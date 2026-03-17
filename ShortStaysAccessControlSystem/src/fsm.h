@@ -5,6 +5,15 @@
 #include <stdio.h>
 #include <ti/devices/msp432p4xx/driverlib/driverlib.h>
 
+#include "joystick.h"
+#include "display.h"
+#include "push_button.h"
+#include "sensorPIR.h"
+#include "timers.h"
+#include "irqHandlers.h"
+#include "buzzer.h"
+
+
 
 
 #define MOVE_ON_MENU 0  //rectangle on display move on admin menu
@@ -40,7 +49,6 @@ typedef struct{
     State_t state;
     void (*state_function)(void);
 } StateMachine_t;
-
 
 void _hwInit(void);
 void door_locked(void);

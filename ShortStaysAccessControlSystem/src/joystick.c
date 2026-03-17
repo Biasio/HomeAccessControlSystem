@@ -1,35 +1,13 @@
 #include "joystick.h"
 
-
-//variable used to move the rectangle in the display after the joystick moved
-static bool move_rectangle = 0;
-
-static int timer_int_counter = 0;
-
-//static const int NUM_INTERRUPT = 2;
-
-void _timerInit(){
-
-    /* Configuring Continuous Mode */
-    Timer_A_configureContinuousMode(TIMER_A0_BASE, &continuousModeConfig);
-
-    Interrupt_enableInterrupt(INT_TA0_N);
-
-    /* Starting the Timer_A0 in continuous mode */
-    Timer_A_startCounter(TIMER_A0_BASE, TIMER_A_CONTINUOUS_MODE);
-}
-
 void _adcInit(){
     /* Configures Pin 6.0 and 4.4 as ADC input */
         GPIO_setAsPeripheralModuleFunctionInputPin(GPIO_PORT_P6, GPIO_PIN0, GPIO_TERTIARY_MODULE_FUNCTION);
         GPIO_setAsPeripheralModuleFunctionInputPin(GPIO_PORT_P4, GPIO_PIN4, GPIO_TERTIARY_MODULE_FUNCTION);
 
-        //Route VLO to Auxiliary clock
-        CS_initClockSignal(CS_ACLK,CS_VLOCLK_SELECT,CS_CLOCK_DIVIDER_16); //VLOCLK ~9.4kHz
-
         /* Initializing ADC (ADCOSC/64/8) */
         ADC14_enableModule();
-        ADC14_initModule(ADC_CLOCKSOURCE_ACLK, ADC_PREDIVIDER_1, ADC_DIVIDER_1, 0);
+        ADC14_initModule(ADC_CLOCKSOURCE_ACLK, ADC_PREDIVIDER_4, ADC_DIVIDER_4, 0);
 
         /* Configuring ADC Memory (ADC_MEM0 - ADC_MEM1 (A15, A9)  with repeat)
              * with internal 2.5v reference */
@@ -57,28 +35,6 @@ void _adcInit(){
         ADC14_enableConversion();
 }
 
-// timer to make joystick updates
-void TA0_N_IRQHandler(void)
-{
-    /* clear the timer pending interrupt flag */
-    Timer_A_clearInterruptFlag(TIMER_A0_BASE);
-    ADC14_toggleConversionTrigger();
-}
-
-void ADC14_IRQHandler(void)
-{
-    uint64_t status;
-
-    status = ADC14_getEnabledInterruptStatus();
-    ADC14_clearInterruptFlag(status);
-
-    if(status & ADC_INT1) //timer has finished, can update position on display
-    {
-        resultsBuffer[0] = ADC14_getResult(ADC_MEM0);
-        resultsBuffer[1] = ADC14_getResult(ADC_MEM1);
-        move_rectangle=1;
-    }
-}
 
 // GETTER:
 // Returns a pointer to resultBuffer

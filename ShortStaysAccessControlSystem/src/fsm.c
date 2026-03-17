@@ -1,8 +1,4 @@
 #include "fsm.h"
-#include "joystick.h"
-#include "display.h"
-#include "push_button.h"
-
 
 int saved_pin_user[4] = {1,1,1,1};
 int saved_pin_admin[4] = {9,9,9,9};
@@ -31,24 +27,26 @@ void _hwInit(void){
     FlashCtl_setWaitState(FLASH_BANK1, 2);
 
     /* Initializes Clock System */
-    CS_setDCOCenteredFrequency(CS_DCO_FREQUENCY_48);
-    CS_initClockSignal(CS_MCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_1);
-    CS_initClockSignal(CS_HSMCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_1);
-    CS_initClockSignal(CS_SMCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_1);
-    CS_initClockSignal(CS_ACLK, CS_REFOCLK_SELECT, CS_CLOCK_DIVIDER_1);
+    _ClockSystemInit();
 
     //display
     _graphicsInit();
 
     //joystick
     _adcInit();
-    _timerInit();
+    _ADCtimerInit();
 
     //buttons
     _pushButtonsInit();
 
     // Presence sensor
-    //_pirInit();
+    _PIRInit();
+    _idleTimerInit();
+
+    //PWM for the buzzer
+    _PWMtimerInit();
+    _buzzerInit();
+
 }
 
 
@@ -74,6 +72,9 @@ void insert_pin(bool pin){ //MAYBE WE CAN ADD LMPO HERE
     for(i=0;i<4;i++){
         number_pin_aquired=0;
         do{
+
+            if (standby) return;
+
             //get results from joystick
             current_results = get_results_buffer();
 
@@ -144,7 +145,7 @@ void open_door(void){
     // ? make a sound to signal that the code is correct
 
     display_door_open();
-
+    buzzerPWMgen(&StarWars);
     int i;
     for(i=0;i<1000000;i++); //simulate opening of the door, IS BETTER TO USE A TIMER
 
@@ -165,7 +166,9 @@ int admin_menu(void){
 
     bool admin_menu_active = 1;
 
-    while(admin_menu_active){   //put a LMP0 ?
+    while(admin_menu_active){
+        if (standby) return -1;
+
         //get results from joystick
         current_results = get_results_buffer();
 
@@ -279,13 +282,40 @@ void fn_BOOT(void){
 
 void fn_DOOR_LOCKED(void){
 
+    Timer_A_stop(TIMER_A2_BASE); //stop the idle timer
+
     door_locked();
 
-    if(buttonA_pressed){    //will be changed with proximity sensor
+    if (PIR_flag)
+    {
+        PIR_flag = 0;
+    }
+    else if (buttonA_pressed)
+    {
         buttonA_pressed=0;
-        cur_state = STATE_INSERT_PIN;
+    }
+    else if (buttonB_pressed)
+    {
+        buttonB_pressed=0;
+    }
+    else // no input was received
+    {
+        // if the PIR interrupt is disabled, enable it
+        if (!(P2->IE & BIT0))
+        {
+            GPIO_enableInterrupt(GPIO_PORT_P3, GPIO_PIN0);
+            PIR_flag = 0;
+        }
+        return; // keep this fsm state
     }
 
+    // Disable PIR interrupt and change state
+    GPIO_disableInterrupt(GPIO_PORT_P3, GPIO_PIN0);
+    PIR_flag = 0; // safety measure if PIR has been retriggered meanwhile
+
+    TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE);
+
+    cur_state = STATE_INSERT_PIN;
 }
 
 
@@ -507,10 +537,19 @@ void fn_WAIT_RESET_DOOR(void){
 // ---------------------------------------------//
 // Function to run in the main
 void FSM_Run(void){
-    if(cur_state < NUM_STATES){
+
+    if (cur_state < NUM_STATES)
+    {
+        if (standby == 1)
+        {
+            standby = 0;
+            cur_state = STATE_DOOR_LOCKED;
+        }
+
         (*fsm[cur_state].state_function)();
     }
-    else{
+    else
+    {
         // Gestione errore stato non valido
     }
 

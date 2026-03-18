@@ -6,6 +6,8 @@
 #include <ti/grlib/grlib.h>
 #include "Crystalfontz128x128_ST7735.h"
 #include <stdio.h>
+#include "timers.h"
+
 
 #define RECTANGLE_SHIFT_X_ON_GRID 30
 #define RECTANGLE_SHIFT_Y_ON_GRID 22

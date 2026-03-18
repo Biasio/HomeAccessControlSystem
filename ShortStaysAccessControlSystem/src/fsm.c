@@ -12,22 +12,53 @@ int32_t displayX = 64;
 int32_t displayY = 64;
 
 
+// ------------------------------------------------ //
+
+
+State_t cur_state = STATE_BOOT;
+
+StateMachine_t fsm[] = {
+     {STATE_BOOT, fn_BOOT},
+     {STATE_DOOR_LOCKED, fn_DOOR_LOCKED},
+     {STATE_INSERT_PIN, fn_INSERT_PIN},
+     {STATE_OPEN_DOOR, fn_OPEN_DOOR},
+     {STATE_WAIT_RFID, fn_WAIT_RFID},
+     {STATE_ADMIN_MENU, fn_ADMIN_MENU},
+
+     {STATE_LAST_ACCESS_LOG, fn_menu_lal},
+     {STATE_SETUP_PIN, fn_menu_setup_pin},
+     {STATE_SETUP_WIFI, fn_menu_wifi},
+     {STATE_FACTORY_RESET, fn_menu_fact_reset},
+     {STATE_UNLOCK_DOOR, fn_menu_unlock_door},
+     {STATE_BLOCK_PIN, fn_menu_block_pin},
+
+     {STATE_WRONG_PIN, fn_WRONG_PIN},
+     {STATE_BLOCK_ACCESS, fn_BLOCK_ACCESS},
+     {STATE_WAIT_RESET_DOOR, fn_WAIT_RESET_DOOR},
+     {STATE_AOD, fn_AOD}
+};
+
+
+// -----------------------------------------------//
+// Implementation of the state's functions
+
+
 // ------------------------------------------------------ //
 
 void _hwInit(void){
-    /* Halting WDT and disabling master interrupts */
     WDT_A_holdTimer();
-    Interrupt_disableMaster();
+    Interrupt_enableMaster();
 
     /* Set the core voltage level to VCORE1 */
     PCM_setCoreVoltageLevel(PCM_VCORE1);
 
     /* Set 2 flash wait states for Flash bank 0 and 1*/
-    FlashCtl_setWaitState(FLASH_BANK0, 2);
-    FlashCtl_setWaitState(FLASH_BANK1, 2);
+    FlashCtl_setWaitState(FLASH_BANK0, 1);
+    FlashCtl_setWaitState(FLASH_BANK1, 1);
 
     /* Initializes Clock System */
     _ClockSystemInit();
+    _SysTickInit();
 
     //display
     _graphicsInit();
@@ -44,18 +75,9 @@ void _hwInit(void){
     _idleTimerInit();
 
     //PWM for the buzzer
-    _PWMtimerInit();
     _buzzerInit();
 
 }
-
-
-void door_locked(void){
-    //it is better to update every tot time
-    //here we show the hour and minutes
-    display_string("10 : 00");
-}
-
 
 
 void insert_pin(bool pin){ //MAYBE WE CAN ADD LMPO HERE
@@ -145,7 +167,7 @@ void open_door(void){
     // ? make a sound to signal that the code is correct
 
     display_door_open();
-    buzzerPWMgen(&StarWars);
+    //buzzerPWMgen(&StarWars);
     int i;
     for(i=0;i<1000000;i++); //simulate opening of the door, IS BETTER TO USE A TIMER
 
@@ -154,6 +176,7 @@ void open_door(void){
 
 
 void wait_RFID(void){
+    Graphics_setForegroundColor(&g_sContext, ClrBlack);
     display_string("PLEASE, USE RFID");
     int i;
     for(i=0;i<1000000;i++); //IS BETTER TO USE A TIMER
@@ -243,49 +266,14 @@ void wait_reset_door(void){
 
 }
 
-// ------------------------------------------------ //
-
-
-State_t cur_state = STATE_BOOT;
-
-StateMachine_t fsm[] = {
-     {STATE_BOOT, fn_BOOT},
-     {STATE_DOOR_LOCKED, fn_DOOR_LOCKED},
-     {STATE_INSERT_PIN, fn_INSERT_PIN},
-     {STATE_OPEN_DOOR, fn_OPEN_DOOR},
-     {STATE_WAIT_RFID, fn_WAIT_RFID},
-     {STATE_ADMIN_MENU, fn_ADMIN_MENU},
-
-     {STATE_LAST_ACCESS_LOG, fn_menu_lal},
-     {STATE_SETUP_PIN, fn_menu_setup_pin},
-     {STATE_SETUP_WIFI, fn_menu_wifi},
-     {STATE_FACTORY_RESET, fn_menu_fact_reset},
-     {STATE_UNLOCK_DOOR, fn_menu_unlock_door},
-     {STATE_BLOCK_PIN, fn_menu_block_pin},
-
-     {STATE_WRONG_PIN, fn_WRONG_PIN},
-     {STATE_BLOCK_ACCESS, fn_BLOCK_ACCESS},
-     {STATE_WAIT_RESET_DOOR, fn_WAIT_RESET_DOOR},
-};
-
-
-// -----------------------------------------------//
-// Implementation of the state's functions
-
-void fn_BOOT(void){
-    printf("Boot \n");
-    _hwInit();
-    cur_state = STATE_DOOR_LOCKED;
+void go_to_idle(){
+    standby = 0;
+    display_string("Going to sleep...");
+    delay_ms(1500);
 }
 
 
-
-void fn_DOOR_LOCKED(void){
-
-    Timer_A_stop(TIMER_A2_BASE); //stop the idle timer
-
-    door_locked();
-
+bool check_for_inputs(){
     if (PIR_flag)
     {
         PIR_flag = 0;
@@ -298,15 +286,12 @@ void fn_DOOR_LOCKED(void){
     {
         buttonB_pressed=0;
     }
-    else // no input was received
+    else if (!(P2->IE & BIT0)) // no input was received
     {
         // if the PIR interrupt is disabled, enable it
-        if (!(P2->IE & BIT0))
-        {
-            GPIO_enableInterrupt(GPIO_PORT_P3, GPIO_PIN0);
-            PIR_flag = 0;
-        }
-        return; // keep this fsm state
+        GPIO_enableInterrupt(GPIO_PORT_P3, GPIO_PIN0);
+        PIR_flag = 0;
+        return 0; // keep this fsm state
     }
 
     // Disable PIR interrupt and change state
@@ -315,13 +300,37 @@ void fn_DOOR_LOCKED(void){
 
     TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE);
 
-    cur_state = STATE_INSERT_PIN;
+    return 1;
+}
+
+
+
+void fn_BOOT(void){
+    _hwInit();
+    TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE);
+    cur_state = STATE_DOOR_LOCKED;
+}
+
+
+
+void fn_DOOR_LOCKED(void){
+    Graphics_setForegroundColor(&g_sContext, ClrBlack);
+    display_string("DOOR LOCKED");
+
+    if (check_for_inputs()) cur_state = STATE_INSERT_PIN;
+
+    if (standby == 1){
+        go_to_idle();
+        cur_state = STATE_AOD;
+        PCM_gotoLPM0();
+    }
 }
 
 
 
 void fn_INSERT_PIN(void){
 
+    Graphics_setForegroundColor(&g_sContext, ClrBlack);
     display_string("INSERT PIN");
     draw_grid();
     insert_pin(0);
@@ -365,7 +374,7 @@ void fn_INSERT_PIN(void){
 
 void fn_OPEN_DOOR(void){
     open_door();
-
+    TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE);
     cur_state = STATE_DOOR_LOCKED;
 }
 
@@ -411,6 +420,21 @@ void fn_ADMIN_MENU(void){
     }
 }
 
+
+
+void fn_AOD(void){
+    Timer_A_stop(TIMER_A2_BASE); //stop the idle timer
+
+    Graphics_setForegroundColor(&g_sContext, ClrBlack);
+    static uint32_t lastUpdate = 0;
+    if((system_millis - lastUpdate) > 30000){
+        display_clock(10,01);
+        lastUpdate = system_millis;
+    }
+
+    if (check_for_inputs()) cur_state = STATE_INSERT_PIN;
+}
+
 //Functions of admin menu
 // --------------------------------------------- //
 
@@ -429,6 +453,7 @@ void fn_menu_lal(void){
 void fn_menu_setup_pin(void){
     bool pins_equal = 0;
 
+    Graphics_setForegroundColor(&g_sContext, ClrBlack);
     do{
         display_menu_setup_pin();
         insert_pin(1);
@@ -542,7 +567,7 @@ void FSM_Run(void){
     {
         if (standby == 1)
         {
-            standby = 0;
+            go_to_idle();
             cur_state = STATE_DOOR_LOCKED;
         }
 
@@ -552,6 +577,4 @@ void FSM_Run(void){
     {
         // Gestione errore stato non valido
     }
-
-    //PCM_gotoLPM0();
 }

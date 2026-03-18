@@ -24,6 +24,7 @@ extern const audio_data StarWars;
 
 void buzzerPWMgen(const audio_data* song);
 
+void _buzzerInit();
 
 #define NOTE_B0  31
 #define NOTE_C1  33

@@ -17,4 +17,8 @@ void _ADCtimerInit();
 
 void _PWMtimerInit();
 
+void _SysTickInit();
+
+void delay_ms(uint32_t msec);
+
 #endif

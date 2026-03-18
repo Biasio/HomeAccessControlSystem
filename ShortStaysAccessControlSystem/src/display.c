@@ -319,24 +319,28 @@ void move_rectangle_on_display( uint16_t x, uint16_t y, bool grid_on) {
        if(x>RIGHT) {
            if(sel_rectangle_on_grid.pos_x1 < GRID_UPPER_LIMIT_X) {
                move_rectangle_right(&sel_rectangle_on_grid, RECTANGLE_SHIFT_X_ON_GRID);
+               TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE); //Restart idle timer
            }
        }
        else if(x<LEFT)
        {
            if(sel_rectangle_on_grid.pos_x1 > GRID_LOWER_LIMIT_X) {
                move_rectangle_left(&sel_rectangle_on_grid, RECTANGLE_SHIFT_X_ON_GRID);
+               TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE); //Restart idle timer
            }
        }
        else if(y>UP)
        {
            if(sel_rectangle_on_grid.pos_y1 > GRID_LOWER_LIMIT_Y){
                move_rectangle_up(&sel_rectangle_on_grid, RECTANGLE_SHIFT_Y_ON_GRID);
+               TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE); //Restart idle timer
            }
        }
        else if(y<DOWN)
        {
            if(sel_rectangle_on_grid.pos_y1 < GRID_UPPER_LIMIT_Y) {
                move_rectangle_down(&sel_rectangle_on_grid, RECTANGLE_SHIFT_Y_ON_GRID);
+               TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE); //Restart idle timer
            }
        }
     }
@@ -776,7 +780,7 @@ void display_clock(int hour, int minute){
     GrContextFontSet(&g_sContext, &g_sFontCmss16);
 
     char string[20];
-    sprintf(string, "%d : %d", hour, minute);
+    sprintf(string, "%02d : %02d", hour, minute);
 
     Graphics_drawStringCentered(&g_sContext, (int8_t *) string,
                                     AUTO_STRING_LENGTH,

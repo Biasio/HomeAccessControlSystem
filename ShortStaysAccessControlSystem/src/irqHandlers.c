@@ -1,11 +1,16 @@
 #include "irqHandlers.h"
 
+volatile uint32_t system_millis=0;
 
 volatile uint8_t standby = 0;
 
 //variable used to move the rectangle in the display after the joystick moved
 volatile bool move_rectangle = 0;
 
+//update
+void SysTick_Handler(void) {
+    ++system_millis;
+}
 
 void PORT5_IRQHandler(void)
 {
@@ -68,7 +73,7 @@ void TA1_0_IRQHandler(void)
     GPIO_enableInterrupt(GPIO_PORT_P3, GPIO_PIN5);
 }
 
-
+// idle timer
 void TA2_0_IRQHandler(void)
 {
     Timer_A_stop(TIMER_A2_BASE);
@@ -106,6 +111,6 @@ void ADC14_IRQHandler(void)
         resultsBuffer[0] = ADC14_getResult(ADC_MEM0);
         resultsBuffer[1] = ADC14_getResult(ADC_MEM1);
         move_rectangle=1;
-        TIMER_RESTART(TIMER_A3_BASE, TIMER_A_CONTINUOUS_MODE); //Retsrat idle timer
+        TIMER_RESTART(TIMER_A3_BASE, TIMER_A_CONTINUOUS_MODE); //Restart joystick timer
     }
 }

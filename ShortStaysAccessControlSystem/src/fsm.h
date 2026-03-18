@@ -8,7 +8,7 @@
 #include "joystick.h"
 #include "display.h"
 #include "push_button.h"
-#include "sensorPIR.h"
+#include "sensors.h"
 #include "timers.h"
 #include "irqHandlers.h"
 #include "buzzer.h"
@@ -42,6 +42,7 @@ typedef enum{
     STATE_WRONG_PIN,
     STATE_BLOCK_ACCESS,
     STATE_WAIT_RESET_DOOR, //after this return to STATE_DOOR_LOCKED o STATE_INSERT_PIN
+    STATE_AOD,
     NUM_STATES
 }State_t;
 
@@ -51,7 +52,6 @@ typedef struct{
 } StateMachine_t;
 
 void _hwInit(void);
-void door_locked(void);
 
 void insert_pin(bool pin);
 void open_door(void);
@@ -84,6 +84,7 @@ void fn_ADMIN_MENU(void);
 void fn_WRONG_PIN(void);
 void fn_BLOCK_ACCESS(void);
 void fn_WAIT_RESET_DOOR(void);
+void fn_AOD(void);
 
 void fn_menu_lal(void);
 void fn_menu_setup_pin(void);
@@ -97,5 +98,6 @@ void FSM_Run(void);
 
 //initialize hardware
 void _hwInit(); //maybe it will substitued by fn_boot()
+
 
 #endif

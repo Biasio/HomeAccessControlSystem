@@ -39,7 +39,7 @@ void ButtonA_IRQHandler(void)
     GPIO_disableInterrupt(GPIO_PORT_P5, GPIO_PIN1);
     GPIO_clearInterruptFlag(GPIO_PORT_P5, GPIO_PIN1);
 
-    /* Starting the Timer_A0 in continuous mode */
+
     TIMER_RESTART(TIMER_A1_BASE, TIMER_A_UP_MODE);
 }
 
@@ -50,6 +50,6 @@ void ButtonB_IRQHandler(void)
     GPIO_disableInterrupt(GPIO_PORT_P3, GPIO_PIN5);
     GPIO_clearInterruptFlag(GPIO_PORT_P3, GPIO_PIN5);
 
-    /* Starting the Timer_A0 in continuous mode */
+
     TIMER_RESTART(TIMER_A1_BASE, TIMER_A_UP_MODE);
 }

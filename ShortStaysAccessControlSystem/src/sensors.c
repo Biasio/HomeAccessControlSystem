@@ -1,4 +1,4 @@
-#include "sensorPIR.h"
+#include "sensors.h"
 
 
 volatile uint8_t PIR_flag = 0;
@@ -20,5 +20,9 @@ void PIR_IRQHandler(void)
 {
     GPIO_clearInterruptFlag(GPIO_PORT_P3, GPIO_PIN0);
     PIR_flag = 1;
+}
+
+void _RFIDInit(){
+    GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P2,GPIO_PIN7,GPIO_PRIMARY_MODULE_FUNCTION);
 }
 

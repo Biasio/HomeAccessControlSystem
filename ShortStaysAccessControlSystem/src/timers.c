@@ -4,7 +4,7 @@ void _ClockSystemInit(){
     CS_setDCOCenteredFrequency(CS_DCO_FREQUENCY_48);
     CS_initClockSignal(CS_MCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_1);  //Master Clock Sources CPU and peripherals
     CS_initClockSignal(CS_HSMCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_2); //Subsystem Master Clock Sources peripherals
-    CS_initClockSignal(CS_SMCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_2); //Low-speed subsystem master clock Sources peripherals
+    CS_initClockSignal(CS_SMCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_4); //Low-speed subsystem master clock Sources peripherals
     CS_initClockSignal(CS_BCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_4); // Low-speed backup domain clock Sources LPM peripherals
     CS_initClockSignal(CS_ACLK, CS_VLOCLK_SELECT, CS_CLOCK_DIVIDER_1);
 }
@@ -20,7 +20,6 @@ static const Timer_A_UpModeConfig idleTimerConfig =
 
 void _idleTimerInit()
 {
-    /* Configuring Continuous Mode */
     Timer_A_configureUpMode(TIMER_A2_BASE, &idleTimerConfig);
     Interrupt_enableInterrupt(INT_TA2_0);
     standby = 0;
@@ -39,7 +38,6 @@ static const Timer_A_UpModeConfig debounceTimerConfig =
 
 void _debounceTimerInit()
 {
-    /* Configuring Continuous Mode */
     Timer_A_configureUpMode(TIMER_A1_BASE, &debounceTimerConfig);
     Interrupt_enableInterrupt(INT_TA1_0);
 }
@@ -77,12 +75,16 @@ static const Timer_A_UpModeConfig buzzerTimerConfig =
     TIMER_A_CCIE_CCR0_INTERRUPT_DISABLE      // Enable interrupt for CCR0
 };
 
-void _PWMtimerInit(){
-    Timer_A_configureUpMode(TIMER_A0_BASE, &buzzerTimerConfig);
-    Interrupt_disableInterrupt(INT_TA0_N);
-    Interrupt_disableInterrupt(INT_TA0_0);
-    Timer_A_startCounter(TIMER_A0_BASE, TIMER_A_UP_MODE);
+
+void _SysTickInit(){
+    SysTick_enableModule();
+    SysTick_setPeriod((CS_getMCLK()/1000)-1); //1ms period
+    SysTick_enableInterrupt();
+    system_millis = 0;
 }
 
 
-
+void delay_ms(uint32_t msec) {
+    uint32_t start_time = system_millis;
+    while ((system_millis - start_time) < msec);
+}

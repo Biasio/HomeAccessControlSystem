@@ -41,6 +41,10 @@ volatile Timer_A_PWMConfig buzzerPWMconfig =
 };
 
 void _buzzerInit(){
+    Timer_A_stop(TIMER_A0_BASE);
+    Interrupt_disableInterrupt(INT_TA0_N);
+    Interrupt_disableInterrupt(INT_TA0_0);
+    Timer_A_clearCaptureCompareInterrupt(TIMER_A0_BASE, TIMER_A_CAPTURECOMPARE_REGISTER_4);
     GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P2,GPIO_PIN7,GPIO_PRIMARY_MODULE_FUNCTION);
 }
 
@@ -48,8 +52,7 @@ void _buzzerInit(){
 
 void buzzerPWMgen(const audio_data* song){
 
-    uint32_t freq = 0;
-    uint32_t i, j, k;
+    uint32_t i,freq = 0;
 
     for(i=0; i < song->length; ++i){
         freq = song->notes[i].pitch;
@@ -59,22 +62,15 @@ void buzzerPWMgen(const audio_data* song){
         if (freq > 65535) freq = 65535; // check if freq is greather than 16 bit uint
 
         (&buzzerPWMconfig)->timerPeriod = freq;
-        (&buzzerPWMconfig)->dutyCycle = freq / 2;
+        (&buzzerPWMconfig)->dutyCycle = freq / 50;
 
         Timer_A_generatePWM(TIMER_A0_BASE, &buzzerPWMconfig);
 
-        // the for loop takes approx 16 cycles (multiplied by 1000 for ms)
-        uint32_t cpufreq_ms = CS_getMCLK()/16000;
-
-        j=song->notes[i].time_ms;
-        for(; j>0; --j)
-        {
-            for(k=cpufreq_ms; k>0; --k);
-        }
+        delay_ms(song->notes[i].time_ms);
 
         (&buzzerPWMconfig)->dutyCycle = 0;
         Timer_A_generatePWM(TIMER_A0_BASE, &buzzerPWMconfig);
-        for(k=cpufreq_ms; k>0; --k); // silence for 1 ms
+        delay_ms(1); // silence for 1 ms
     }
 
     Timer_A_stop(TIMER_A0_BASE);

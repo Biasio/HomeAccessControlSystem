@@ -13,7 +13,7 @@ static const Timer_A_UpModeConfig idleTimerConfig =
 {
     TIMER_A_CLOCKSOURCE_ACLK,       // VLO ~9.4kHz
     TIMER_A_CLOCKSOURCE_DIVIDER_64, // ~146 Hz
-    2500,                                   // CCR0 Value (2500 counts = ~15s) CCR Value = f_{CLK} x desired_time
+    1460,                                   // CCR0 Value (1460 counts = 10s) CCR Value = f_{CLK} x desired_time
     TIMER_A_TAIE_INTERRUPT_DISABLE,         // Disable Overflow ISR
     TIMER_A_CCIE_CCR0_INTERRUPT_ENABLE      // Enable interrupt for CCR0
 };
@@ -63,18 +63,6 @@ void _ADCtimerInit(){
     /* Starting the Timer_A3 in continuous mode */
     Timer_A_startCounter(TIMER_A3_BASE, TIMER_A_CONTINUOUS_MODE);
 }
-
-
-
-static const Timer_A_UpModeConfig buzzerTimerConfig =
-{
-    TIMER_A_CLOCKSOURCE_SMCLK,
-    TIMER_A_CLOCKSOURCE_DIVIDER_1,
-    2500,
-    TIMER_A_TAIE_INTERRUPT_DISABLE,         // Disable Overflow ISR
-    TIMER_A_CCIE_CCR0_INTERRUPT_DISABLE      // Enable interrupt for CCR0
-};
-
 
 void _SysTickInit(){
     SysTick_enableModule();

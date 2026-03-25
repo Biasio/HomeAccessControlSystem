@@ -8,6 +8,7 @@ int main(void)
 {
     while(1){
         FSM_Run();
+
     }
 }
 

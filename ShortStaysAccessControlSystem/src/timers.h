@@ -9,6 +9,8 @@
 
 #define TIMER_RESTART(x,y) Timer_A_stop(x); Timer_A_clearTimer(x); Timer_A_startCounter(x, y)
 
+void _ClockSystemInit();
+
 void _idleTimerInit();
 
 void _debounceTimerInit();

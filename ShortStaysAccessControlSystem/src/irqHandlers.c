@@ -26,6 +26,20 @@ void PORT5_IRQHandler(void)
 
 
 
+void PORT4_IRQHandler(void)
+{
+    uint_fast16_t status = GPIO_getEnabledInterruptStatus(GPIO_PORT_P4);
+
+    if(status & GPIO_PIN6){
+        PIR_IRQHandler();
+        //return;
+    }
+
+    GPIO_clearInterruptFlag(GPIO_PORT_P4, status);
+}
+
+
+
 void PORT3_IRQHandler(void)
 {
 
@@ -34,11 +48,6 @@ void PORT3_IRQHandler(void)
     if(status & GPIO_PIN5)
     {
         ButtonB_IRQHandler();
-        return;
-    }
-    else if(status & GPIO_PIN0)
-    {
-        PIR_IRQHandler();
         return;
     }
 
@@ -84,7 +93,7 @@ void TA2_0_IRQHandler(void)
 
     // Enable interrupt for PIR sensor
     PIR_flag = 0;
-    GPIO_enableInterrupt(GPIO_PORT_P3, GPIO_PIN0);
+    PIR_enable();
 }
 
 

@@ -168,8 +168,7 @@ void open_door(void){
 
     display_door_open();
     //buzzerPWMgen(&StarWars);
-    int i;
-    for(i=0;i<1000000;i++); //simulate opening of the door, IS BETTER TO USE A TIMER
+    delay_ms(2500);
 
 }
 
@@ -261,15 +260,19 @@ void block_access(void){
     for(i=0;i<1000000;i++); //BETTER TO USE A TIMER
 }
 
+void door_lock(){
+    Graphics_setForegroundColor(&g_sContext, ClrBlack);
+    display_string("DOOR LOCKED");
+}
+
 
 void wait_reset_door(void){
 
 }
 
 void go_to_idle(){
-    standby = 0;
     display_string("Going to sleep...");
-    delay_ms(1500);
+    //delay_ms(1500);
 }
 
 
@@ -277,6 +280,7 @@ bool check_for_inputs(){
     if (PIR_flag)
     {
         PIR_flag = 0;
+        I2C_write_reg8(SYSTEM_INTERRUPT_CLEAR, 0x01);
     }
     else if (buttonA_pressed)
     {
@@ -286,21 +290,23 @@ bool check_for_inputs(){
     {
         buttonB_pressed=0;
     }
-    else if (!(P2->IE & BIT0)) // no input was received
+    else // no input was received
     {
-        // if the PIR interrupt is disabled, enable it
-        GPIO_enableInterrupt(GPIO_PORT_P3, GPIO_PIN0);
-        PIR_flag = 0;
-        return 0; // keep this fsm state
+        if (!(P4->IE & BIT6)) // if the PIR interrupt isn't enabled
+        {
+
+            PIR_enable(); // enable the interrupt
+            PIR_flag = 0; // safety measure if PIR has been retriggered meanwhile
+        }
+        return 0; // no interrupts were detected
     }
 
-    // Disable PIR interrupt and change state
-    GPIO_disableInterrupt(GPIO_PORT_P3, GPIO_PIN0);
+    PIR_disable(); // Disable PIR interrupt and change state
     PIR_flag = 0; // safety measure if PIR has been retriggered meanwhile
 
-    TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE);
+    TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE); // restart the idle timer
 
-    return 1;
+    return 1; //signal that an input was detected
 }
 
 
@@ -314,15 +320,21 @@ void fn_BOOT(void){
 
 
 void fn_DOOR_LOCKED(void){
-    Graphics_setForegroundColor(&g_sContext, ClrBlack);
-    display_string("DOOR LOCKED");
+    static bool already_displayed = 0;
 
-    if (check_for_inputs()) cur_state = STATE_INSERT_PIN;
+    if(already_displayed == 0){
+        door_lock();
+        already_displayed = 1;
+    }
 
-    if (standby == 1){
-        go_to_idle();
-        cur_state = STATE_AOD;
-        PCM_gotoLPM0();
+    if (standby) {
+        standby = 0;
+        cur_state= STATE_AOD;
+    }
+
+    if (check_for_inputs()) {
+        already_displayed = 0;
+        cur_state = STATE_INSERT_PIN;
     }
 }
 
@@ -425,14 +437,16 @@ void fn_ADMIN_MENU(void){
 void fn_AOD(void){
     Timer_A_stop(TIMER_A2_BASE); //stop the idle timer
 
-    Graphics_setForegroundColor(&g_sContext, ClrBlack);
+    if (check_for_inputs()) {
+            cur_state = STATE_INSERT_PIN;
+    }
+
     static uint32_t lastUpdate = 0;
     if((system_millis - lastUpdate) > 30000){
+        Graphics_setForegroundColor(&g_sContext, ClrBlack);
         display_clock(10,01);
         lastUpdate = system_millis;
     }
-
-    if (check_for_inputs()) cur_state = STATE_INSERT_PIN;
 }
 
 //Functions of admin menu
@@ -563,12 +577,13 @@ void fn_WAIT_RESET_DOOR(void){
 // Function to run in the main
 void FSM_Run(void){
 
+
     if (cur_state < NUM_STATES)
     {
         if (standby == 1)
         {
-            go_to_idle();
             cur_state = STATE_DOOR_LOCKED;
+            go_to_idle();
         }
 
         (*fsm[cur_state].state_function)();

@@ -47,4 +47,7 @@
 # cache files
 .jxbrowser.userdata/
 
+# IDE files
+*.settings/
+
 .DS_Store

@@ -3,7 +3,7 @@
 void highlight_selected_menu_item(void);
 
 //define first position for the rectangle used to select the numbers
-Rectangle sel_rectangle_on_grid = {22, 48, 32, 58};
+Rectangle sel_rectangle_on_grid = {22, 48, 34, 52};
 
 //define first position of rectangle for selection in admin menu
 Rectangle sel_rectangle_on_admin_menu = {2, 126, 37, 67};
@@ -14,19 +14,15 @@ bool first_screen = 1; //in the admin menu you are in the first screen (first 3 
 
 //these points are used to select the numbers on the grid
 //at each point corresponds a number
-const Point GRID_POINTS[] = {
+Point GRID_POINTS[] = {
      // P1 | P2 | P3
-     { 35, 45 },
-     { 55, 45 },
-     { 85, 45 },
+     { 35, 43 }, { 65, 43 }, { 95, 43 },
      // P4 | P5 | P6
-     { 35, 75 },
-     { 55, 75 },
-     { 85, 75 },
+     { 35, 65 }, { 65, 65 }, { 95, 65 },
      // P7 | P8 | P9
-     { 35, 105 },
-     { 55, 105 },
-     { 85, 105 }
+     { 35, 87 }, { 65, 87 }, { 95, 87 },
+     // VOID | P0 | VOID
+     { 35, 109 }, { 65, 109 }, { 95, 109 }
 };
 
 // Points used to select a function in admin menu
@@ -66,40 +62,51 @@ void _graphicsInit()
 void draw_grid(void)
 {
     Graphics_clearDisplay(&g_sContext);
-    GrContextFontSet(&g_sContext, &g_sFontCmss24);
+    GrContextFontSet(&g_sContext, &g_sFontCmss18);
     Graphics_setForegroundColor(&g_sContext, ClrBlack);
 
     // Initial position to draw the lines
     int start_x = 20;
     int end_x = 110;
-
-    int start_y = 30;
+    int start_y = 32;
     int end_y = 120;
 
     int i;
+
     //the lines of the grid are shifted of the same as when the rectangle is shifted
-    for(i=start_y; i<=end_y; i+=RECTANGLE_SHIFT_ON_GRID){
+    for(i=start_y; i<=end_y; i+=RECTANGLE_SHIFT_Y_ON_GRID){
         Graphics_drawLineH(&g_sContext, start_x, end_x, i);
     }
-    for(i=start_x; i<=end_x; i+=RECTANGLE_SHIFT_ON_GRID){
+
+    for(i=start_x; i<=end_x; i+=RECTANGLE_SHIFT_X_ON_GRID){
         Graphics_drawLineV(&g_sContext, i, start_y, end_y);
     }
 
-    //draw the numbers on the grid
-    char string[1];
-    int x,y;
-    i=1;
+    // Draw the numbers on the grid
+    char string[2];
+    int x, y;
+    i = 1;
 
-    for(y=start_y+15; y<=end_y-15; y+=RECTANGLE_SHIFT_ON_GRID){
-        for(x=start_x+15; x<=end_x-15; x+=RECTANGLE_SHIFT_ON_GRID){
-            sprintf(string, "%d", i++);
+    for(y=start_y+9; y<=end_y-11; y+=RECTANGLE_SHIFT_Y_ON_GRID){
+        for(x=start_x+15; x<=end_x-15; x+=RECTANGLE_SHIFT_X_ON_GRID){
+            if (i <= 9) {
+                sprintf(string, "%d", i);
+            } else if (i == 11) {
+                sprintf(string, "0");
+            } else {
+                string[0] = '\0';
+            }
+            GRID_POINTS[i-1].x = x;
+            GRID_POINTS[i-1].y = y;
+            ++i;
+
             Graphics_drawStringCentered(&g_sContext, (int8_t *) string,
                                         AUTO_STRING_LENGTH,
                                         x, y,
                                         OPAQUE_TEXT);
         }
     }
-    //draw rectangle in his inital position (NUMBER 1)
+    //draw rectangle in his initial position (NUMBER 1)
     draw_rectangle(1, sel_rectangle_on_grid.pos_x1, sel_rectangle_on_grid.pos_y1, sel_rectangle_on_grid.pos_x2, sel_rectangle_on_grid.pos_y2);
 
 
@@ -294,42 +301,55 @@ void move_rectangle_down(Rectangle* rectangle, int16_t shift){
 
 void move_rectangle_on_display( uint16_t x, uint16_t y, bool grid_on) {
 
-    const int RIGHT = 16000;
-    const int LEFT = 300;
-    const int UP = 16000;
-    const int DOWN = 100;
-
-    const int UPPER_LIMIT = 80;
-    const int LOWER_LIMIT = 40;
+    const int RIGHT = 12000;
+    const int LEFT = 4000;
+    const int UP = 12000;
+    const int DOWN = 4000;
 
     //move rectangle on grid
-    if(grid_on){
+    if(grid_on)
+    {
        move_on_menu = 0;
 
+       const int GRID_UPPER_LIMIT_X = 80;
+       const int GRID_LOWER_LIMIT_X = 40;
+       const int GRID_UPPER_LIMIT_Y = 90;
+       const int GRID_LOWER_LIMIT_Y = 40;
+
        if(x>RIGHT) {
-           if(sel_rectangle_on_grid.pos_x1<UPPER_LIMIT) {
-               move_rectangle_right(&sel_rectangle_on_grid, RECTANGLE_SHIFT_ON_GRID);
+           if(sel_rectangle_on_grid.pos_x1 < GRID_UPPER_LIMIT_X) {
+               move_rectangle_right(&sel_rectangle_on_grid, RECTANGLE_SHIFT_X_ON_GRID);
+               TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE); //Restart idle timer
            }
        }
-       if(x<LEFT) {
-           if(sel_rectangle_on_grid.pos_x1>LOWER_LIMIT) {
-               move_rectangle_left(&sel_rectangle_on_grid, RECTANGLE_SHIFT_ON_GRID);
+       else if(x<LEFT)
+       {
+           if(sel_rectangle_on_grid.pos_x1 > GRID_LOWER_LIMIT_X) {
+               move_rectangle_left(&sel_rectangle_on_grid, RECTANGLE_SHIFT_X_ON_GRID);
+               TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE); //Restart idle timer
            }
        }
-       if(y>UP) {
-           if(sel_rectangle_on_grid.pos_y1>LOWER_LIMIT){
-               move_rectangle_up(&sel_rectangle_on_grid, RECTANGLE_SHIFT_ON_GRID);
+       else if(y>UP)
+       {
+           if(sel_rectangle_on_grid.pos_y1 > GRID_LOWER_LIMIT_Y){
+               move_rectangle_up(&sel_rectangle_on_grid, RECTANGLE_SHIFT_Y_ON_GRID);
+               TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE); //Restart idle timer
            }
        }
-       if(y<DOWN) {
-           if(sel_rectangle_on_grid.pos_y1<UPPER_LIMIT) {
-               move_rectangle_down(&sel_rectangle_on_grid, RECTANGLE_SHIFT_ON_GRID);
+       else if(y<DOWN)
+       {
+           if(sel_rectangle_on_grid.pos_y1 < GRID_UPPER_LIMIT_Y) {
+               move_rectangle_down(&sel_rectangle_on_grid, RECTANGLE_SHIFT_Y_ON_GRID);
+               TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE); //Restart idle timer
            }
        }
     }
-
-    else{ //move rectangle on menu
+    else //move rectangle on menu
+    {
        move_on_menu = 1;
+
+       const int UPPER_LIMIT = 80;
+       const int LOWER_LIMIT = 40;
 
        int32_t x_string = 64;
        int32_t y_string = 50;
@@ -480,10 +500,11 @@ int number_selected(void){
                 GRID_POINTS[i].x,
                 GRID_POINTS[i].y))
         {
+            if (i == VOID_LEFT || i == VOID_RIGHT) return -1;
 
             // --- Feedback Flash Sequence Start ---
 
-            GrContextFontSet(&g_sContext, &g_sFontCmss24);
+            GrContextFontSet(&g_sContext, &g_sFontCmss18);
             Graphics_setForegroundColor(&g_sContext, ClrRed);
             Graphics_fillRectangle(&g_sContext, &rect);
             int j;
@@ -494,13 +515,17 @@ int number_selected(void){
             // --- Feedback Flash Sequence End ---
 
             char string[2];
+            int val=i;
 
             Graphics_setForegroundColor(&g_sContext, ClrBlack);
 
-            sprintf(string, "%d", i+1);
+            (val <= NUM9) ? (++val) : (val=0);
+            sprintf(string, "%d", val);
+
             Graphics_drawStringCentered(&g_sContext, (int8_t *) string,
                                         AUTO_STRING_LENGTH,
-                                        sel_rectangle_on_grid.pos_x1+13, sel_rectangle_on_grid.pos_y1+13,
+                                        GRID_POINTS[i].x,
+                                        GRID_POINTS[i].y,
                                         OPAQUE_TEXT);
 
 
@@ -508,10 +533,10 @@ int number_selected(void){
             Graphics_drawRectangle(&g_sContext, &rect);
 
             // Return the selected number immediately
-            return i+1;
+            return val;
         }
     }
-    return 0;
+    return -1;
 }
 
 /*******************************************************************************
@@ -755,7 +780,7 @@ void display_clock(int hour, int minute){
     GrContextFontSet(&g_sContext, &g_sFontCmss16);
 
     char string[20];
-    sprintf(string, "%d : %d", hour, minute);
+    sprintf(string, "%02d : %02d", hour, minute);
 
     Graphics_drawStringCentered(&g_sContext, (int8_t *) string,
                                     AUTO_STRING_LENGTH,

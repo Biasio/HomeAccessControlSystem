@@ -34,12 +34,14 @@ const Point MENU_POINTS[] = {
 };
 
 // Array that stores the functions used
-char* function_strings[] = {"LAST ACCESS LOG",
-                           "SETUP PIN",
-                           "SETUP WIFI",
-                           "FACTORY RESET",
-                           "UNLOCK DOOR",
-                           "BLOCK PIN INSERT"};
+char* function_strings[] = {
+    "LAST ACCESS LOG",
+    //"SETUP PIN", no longer used
+    "SETUP WIFI",
+    "FACTORY RESET",
+    "UNLOCK DOOR",
+    "BLOCK PIN INSERT"
+};
 
 // Initialize display
 void _graphicsInit()
@@ -581,19 +583,25 @@ int display_function_selected(void){
 
                     switch(i){
                     case 0:
-                        printf("Last access log \n", i);
+                        printf("Last access log \n");
                         selected_function = LAST_ACCESS_LOG;
                         break;
+                    /* no longer used
                     case 1:
                         printf("pin_setup \n", i);
                         selected_function = SETUP_PIN;
                         break;
-                    case 2:
-                        printf("wifi_setup \n", i);
+                    */
+                    case 1:
+                        printf("wifi_setup \n");
                         selected_function = WIFI_SETUP;
                         break;
+                    case 2:
+                        printf("Factory reset\n");
+                        selected_function = FACTORY_RESET;
+                        break;
                     default:
-                        printf("Nothing \n", i);
+                        printf("Nothing \n");
                     }
                     // Break the loop once the selected function is found
                     return selected_function;
@@ -613,19 +621,15 @@ int display_function_selected(void){
 
                     switch(i){
                     case 0:
-                        printf("factory_reset \n", i);
-                        selected_function = FACTORY_RESET;
-                        break;
-                    case 1:
-                        printf("unnlock_door \n", i);
+                        printf("Unlock_door \n");
                         selected_function = UNLOCK_DOOR;
                         break;
-                    case 2:
-                        printf("block_pin \n", i);
+                    case 1:
+                        printf("Block_PIN \n");
                         selected_function = BLOCK_PIN;
                         break;
                     default:
-                        printf("Nothing \n", i);
+                        printf("Nothing \n");
                     }
                     // Break the loop once the selected function is found
                     return selected_function;

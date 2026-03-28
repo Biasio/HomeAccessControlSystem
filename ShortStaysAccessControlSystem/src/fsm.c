@@ -1,6 +1,6 @@
 #include "fsm.h"
 
-int saved_pin_user[4] = {1,1,1,1};
+// int saved_pin_user[4] = {1,1,1,1}; no longer used!
 int saved_pin_admin[4] = {9,9,9,9};
 int selected_pin_user[4] = {0,0,0,0};
 
@@ -26,7 +26,7 @@ StateMachine_t fsm[] = {
      {STATE_ADMIN_MENU, fn_ADMIN_MENU},
 
      {STATE_LAST_ACCESS_LOG, fn_menu_lal},
-     {STATE_SETUP_PIN, fn_menu_setup_pin},
+     //{STATE_SETUP_PIN, fn_menu_setup_pin}, no longer used
      {STATE_SETUP_WIFI, fn_menu_wifi},
      {STATE_FACTORY_RESET, fn_menu_fact_reset},
      {STATE_UNLOCK_DOOR, fn_menu_unlock_door},
@@ -35,7 +35,8 @@ StateMachine_t fsm[] = {
      {STATE_WRONG_PIN, fn_WRONG_PIN},
      {STATE_BLOCK_ACCESS, fn_BLOCK_ACCESS},
      {STATE_WAIT_RESET_DOOR, fn_WAIT_RESET_DOOR},
-     {STATE_AOD, fn_AOD}
+     {STATE_AOD, fn_AOD},
+     {STATE_SYNC_TIME, fn_SYNC_TIME}
 };
 
 
@@ -49,14 +50,7 @@ void _hwInit(void){
     WDT_A_holdTimer();
     Interrupt_enableMaster();
 
-    /* Set the core voltage level to VCORE1 */
-    PCM_setCoreVoltageLevel(PCM_VCORE1);
-
-    /* Set 2 flash wait states for Flash bank 0 and 1*/
-    FlashCtl_setWaitState(FLASH_BANK0, 1);
-    FlashCtl_setWaitState(FLASH_BANK1, 1);
-
-    /* Initializes Clock System */
+    /* Initializes Clock & FLASH System */
     _ClockSystemInit();
     _SysTickInit();
 
@@ -77,13 +71,13 @@ void _hwInit(void){
     //PWM for the buzzer
     _buzzerInit();
 
+    // Initialize UART communication with ESP32
+    ESP_Comm_Init();
+
 }
 
 
-void insert_pin(bool pin){ //MAYBE WE CAN ADD LMPO HERE
-
-    //pin = 0 -> SELECTED PIN
-    //pin = 1 -> SAVED PIN
+void insert_pin(void){
 
     bool number_pin_aquired;
 
@@ -94,8 +88,7 @@ void insert_pin(bool pin){ //MAYBE WE CAN ADD LMPO HERE
     for(i=0;i<4;i++){
         number_pin_aquired=0;
         do{
-
-            if (standby) return;
+            if (standby) return; // Exit if system goes to sleep
 
             //get results from joystick
             current_results = get_results_buffer();
@@ -113,16 +106,9 @@ void insert_pin(bool pin){ //MAYBE WE CAN ADD LMPO HERE
                 if (selected_val != -1)
                 {
                     number_pin_aquired=1;
-
                     char string[2];
-
-                    if(!pin){ //selected pin
-                        selected_pin_user[i]=selected_val;
-                        sprintf(string, "%d", selected_pin_user[i]);
-                    } else{   //saved pin
-                        saved_pin_user[i]=selected_val;
-                        sprintf(string, "%d", saved_pin_user[i]);
-                    }
+                    selected_pin_user[i]=selected_val;
+                    snprintf(string, sizeof(string), "%d", selected_pin_user[i]);
 
                     Graphics_setForegroundColor(&g_sContext, ClrBlack);
                     GrContextFontSet(&g_sContext, &g_sFontCmss18);
@@ -139,11 +125,8 @@ void insert_pin(bool pin){ //MAYBE WE CAN ADD LMPO HERE
             if(buttonB_pressed){
                 buttonB_pressed=0;
                 if(i>0){
-                    i--;    //turn back at the previous digit
+                    i--;    // Go back to the previous digit
                     x-=20;
-
-                    printf("\ni=%d \n",i);
-                    printf("x=%d \n\n",x);
 
                     Graphics_setForegroundColor(&g_sContext, ClrBlack);
                     Graphics_drawStringCentered(&g_sContext, " ",
@@ -314,10 +297,52 @@ bool check_for_inputs(){
 void fn_BOOT(void){
     _hwInit();
     TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE);
-    cur_state = STATE_DOOR_LOCKED;
+    cur_state = STATE_SYNC_TIME;
 }
 
+void fn_SYNC_TIME(void){
+    // Static flag to ensure the time request is sent to the ESP32 only once
+    static bool req_sent = false;
 
+    // Track when we last sent the request
+    static uint32_t last_req_time = 0;
+
+    //
+    static uint32_t entry_time = 0;
+
+    if (entry_time == 0) {
+        entry_time = system_millis;
+        // Pulisce lo schermo e stampa il testo UNA SOLA VOLTA per non bloccare la CPU
+        Graphics_setForegroundColor(&g_sContext, ClrBlack);
+        display_string("SYNCING TIME...");
+    }
+
+    // CRITICAL: Block the 10-second idle timer from overriding this state!
+    TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE);
+
+    if (timeSynced) {
+        req_sent = false;
+        entry_time = 0; // Resetta per i futuri riavvii
+        cur_state = STATE_AOD;
+        return;
+    }
+
+    // Fallback
+    if ((system_millis - entry_time) > 10000) {
+        req_sent = false;
+        entry_time = 0; // Resetta
+        cur_state = STATE_AOD; // Forza l'uscita, la tastiera tornerà a funzionare
+        return;
+    }
+
+    // Initial setup for this state:
+    // If we haven't sent the request, OR if 3 seconds have passed without an answer from ESP32...
+    if (!req_sent || ((system_millis - last_req_time) > 3000)) {
+        requestRealTime();
+        last_req_time = system_millis;
+        req_sent = true;
+    }
+}
 
 void fn_DOOR_LOCKED(void){
     static bool already_displayed = 0;
@@ -341,44 +366,48 @@ void fn_DOOR_LOCKED(void){
 
 
 void fn_INSERT_PIN(void){
-
     Graphics_setForegroundColor(&g_sContext, ClrBlack);
     display_string("INSERT PIN");
     draw_grid();
-    insert_pin(0);
+    insert_pin();
 
-    bool user_pin_correct = 1;
     bool admin_pin_correct = 1;
+    bool temp_pin_correct = 0;
+
+    // Convert the integer array from the display into a string
+    char typed_pin_str[5];
+    snprintf(typed_pin_str, sizeof(typed_pin_str), "%d%d%d%d",
+             selected_pin_user[0],
+             selected_pin_user[1],
+             selected_pin_user[2],
+             selected_pin_user[3]);
 
     // --- 1. Check for USER PIN ---
     int i;
-    for(i=0;i<4;i++){
-        user_pin_correct = 1;
-        if(selected_pin_user[i]!=saved_pin_user[i]){ //if pin_user is wrong
-            user_pin_correct = 0;
+    for(i=0; i < MAX_TEMP_USERS; i++) {
+        if(activeTempUsers[i].active && strcmp(typed_pin_str, activeTempUsers[i].pin) == 0) {
+            temp_pin_correct = 1;
             break;
         }
     }
 
     // --- 2. Check if the User PIN was Correct ---
-    if(user_pin_correct){
-        error_pin = 0; //pin correct, reset counter of errors
+    if(temp_pin_correct) {
+        error_pin = 0;
         cur_state = STATE_OPEN_DOOR;
     } else {
-        // --- 3. If User PIN was wrong, Check for ADMIN PIN ---
-
-        for(i=0;i<4;i++){
-            if(selected_pin_user[i]!=saved_pin_admin[i]){ //if pin_admin is wrong
+        // Fallback: Check for Admin PIN
+        for(i=0; i<4; i++) {
+            if(selected_pin_user[i] != saved_pin_admin[i]) {
                 admin_pin_correct = 0;
                 break;
             }
         }
-        // --- 4. Final State Decision ---
         if (admin_pin_correct) {
-            error_pin = 0; //pin correct, reset counter of errors
+            error_pin = 0;
             cur_state = STATE_WAIT_RFID;
         } else {
-            cur_state = STATE_WRONG_PIN;
+            cur_state = STATE_WRONG_PIN; // Increment error_pin in the next state [cite: 601]
         }
     }
 }
@@ -407,25 +436,22 @@ void fn_ADMIN_MENU(void){
 
     //decide to which state of admin menu go
     switch(selected_function){
-    case 0:
-        cur_state = STATE_LAST_ACCESS_LOG;
-        break;
-    case 1:
-        cur_state = STATE_SETUP_PIN;
-        break;
-    case 2:
+    case LAST_ACCESS_LOG:
+            cur_state = STATE_LAST_ACCESS_LOG;
+            break;
+    // case SETUP_PIN no longer used
+    case WIFI_SETUP:
         cur_state = STATE_SETUP_WIFI;
         break;
-    case 3:
+    case FACTORY_RESET:
         cur_state = STATE_FACTORY_RESET;
         break;
-    case 4:
+    case UNLOCK_DOOR:
         cur_state = STATE_UNLOCK_DOOR;
         break;
-    case 5:
+    case BLOCK_PIN:
         cur_state = STATE_BLOCK_PIN;
         break;
-    case 6:
     default:
         cur_state = STATE_INSERT_PIN;
         break;
@@ -435,19 +461,34 @@ void fn_ADMIN_MENU(void){
 
 
 void fn_AOD(void){
-    Timer_A_stop(TIMER_A2_BASE); //stop the idle timer
+    // Stop the idle timer since we are already in the sleep/AOD state
+    Timer_A_stop(TIMER_A2_BASE);
 
+    // Check for any user interaction (buttons, joystick, or PIR sensor)
     if (check_for_inputs()) {
-            cur_state = STATE_INSERT_PIN;
+        cur_state = STATE_INSERT_PIN;
     }
 
-    static uint32_t lastUpdate = 0;
-    if((system_millis - lastUpdate) > 30000){
+    // Static variable to track the last drawn minute.
+    // Initialized to -1 so it instantly draws the clock the first time it enters AOD.
+    static int lastMinute = -1;
+
+    // Fetch the current real time directly from the hardware RTC module
+    RTC_C_Calendar now = RTC_C_getCalendarTime();
+
+    // Refresh the clock ONLY when the minute actually changes
+    if(now.minutes != lastMinute){
         Graphics_setForegroundColor(&g_sContext, ClrBlack);
-        display_clock(10,01);
-        lastUpdate = system_millis;
+
+        // Update the display with the current hours and minutes
+        display_clock(now.hours, now.minutes);
+
+        // Update the tracker
+        lastMinute = now.minutes;
     }
 }
+
+
 
 //Functions of admin menu
 // --------------------------------------------- //
@@ -463,7 +504,7 @@ void fn_menu_lal(void){
     }
 }
 
-
+/* no longer used
 void fn_menu_setup_pin(void){
     bool pins_equal = 0;
 
@@ -489,7 +530,7 @@ void fn_menu_setup_pin(void){
 
     cur_state = STATE_ADMIN_MENU;
 }
-
+*/
 
 void fn_menu_wifi(void){
     menu_setup_wifi();
@@ -577,7 +618,18 @@ void fn_WAIT_RESET_DOOR(void){
 // Function to run in the main
 void FSM_Run(void){
 
+    // --- BACKGROUD ---
+    if (newUartMessage) {
+        processUartMessage();
+    }
 
+    // If TIME_SYNC_INTERVAL_MS ms (now 2h) have elapsed since the last sync, request the time to ESP32
+    if (timeSynced && (system_millis - lastTimeSync > TIME_SYNC_INTERVAL_MS)) {
+        lastTimeSync = system_millis;
+        requestRealTime();
+    }
+
+    // --- FOREGROUND FSM ---
     if (cur_state < NUM_STATES)
     {
         if (standby == 1)
@@ -590,6 +642,6 @@ void FSM_Run(void){
     }
     else
     {
-        // Gestione errore stato non valido
+        // Handle invalid state
     }
 }

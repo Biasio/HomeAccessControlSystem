@@ -12,9 +12,7 @@
 #include "timers.h"
 #include "irqHandlers.h"
 #include "buzzer.h"
-
-
-
+#include "comm_esp.h"
 
 #define MOVE_ON_MENU 0  //rectangle on display move on admin menu
 #define MOVE_ON_GRID 1  //rectangle on display move on grid numbers
@@ -33,7 +31,7 @@ typedef enum{
     STATE_ADMIN_MENU, //there must be other states for each functionality
 
     STATE_LAST_ACCESS_LOG,
-    STATE_SETUP_PIN,
+    //STATE_SETUP_PIN, no longer used
     STATE_SETUP_WIFI,
     STATE_FACTORY_RESET,
     STATE_UNLOCK_DOOR,
@@ -43,6 +41,7 @@ typedef enum{
     STATE_BLOCK_ACCESS,
     STATE_WAIT_RESET_DOOR, //after this return to STATE_DOOR_LOCKED o STATE_INSERT_PIN
     STATE_AOD,
+    STATE_SYNC_TIME,
     NUM_STATES
 }State_t;
 
@@ -53,7 +52,7 @@ typedef struct{
 
 void _hwInit(void);
 
-void insert_pin(bool pin);
+void insert_pin(void);
 void open_door(void);
 void wait_RFID(void);
 int admin_menu(void);
@@ -70,9 +69,8 @@ void last_pin(void);
 void block_access(void);
 void wait_reset_door(void);
 
-
-
 void fn_BOOT(void);
+void fn_SYNC_TIME(void);
 void fn_DOOR_LOCKED(void);
 
 void fn_DRAW_GRID(void);

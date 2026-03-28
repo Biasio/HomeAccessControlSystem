@@ -34,7 +34,13 @@ typedef enum {
 
 //functions inside admin menu
 typedef enum {
-    LAST_ACCESS_LOG, SETUP_PIN, WIFI_SETUP, FACTORY_RESET, UNLOCK_DOOR, BLOCK_PIN, NUM_FUNCTION
+    LAST_ACCESS_LOG,
+    //SETUP_PIN, no longer used
+    WIFI_SETUP,
+    FACTORY_RESET,
+    UNLOCK_DOOR,
+    BLOCK_PIN,
+    NUM_FUNCTION
 } enum_menu_functions;
 
 

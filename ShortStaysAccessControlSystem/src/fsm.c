@@ -307,27 +307,32 @@ void fn_SYNC_TIME(void){
     // Track when we last sent the request
     static uint32_t last_req_time = 0;
 
-    //
+    // Timestamp to manage the state's timeout and first-run logic
     static uint32_t entry_time = 0;
 
+    // Initialization: runs only the first time the FSM enters this state
     if (entry_time == 0) {
         entry_time = system_millis;
-        // Pulisce lo schermo e stampa il testo UNA SOLA VOLTA per non bloccare la CPU
+        // Setup display color and show the loading string.
         Graphics_setForegroundColor(&g_sContext, ClrBlack);
         display_string("SYNCING TIME...");
     }
 
-    // CRITICAL: Block the 10-second idle timer from overriding this state!
+    // CRITICAL: Keep restarting the hardware idle timer (A2) to prevent
+    // the system from going into standby/sleep while waiting for the ESP32.
     TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE);
 
+    // SUCCESS CASE: The UART Interrupt has received a valid time packet
+    // and initialized the hardware RTC.
     if (timeSynced) {
         req_sent = false;
-        entry_time = 0; // Resetta per i futuri riavvii
-        cur_state = STATE_AOD;
+        entry_time = 0; // Reset entry time for future re-synchronizations
+        cur_state = STATE_AOD;  // Transition directly to Always On Display
         return;
     }
 
-    // Fallback
+    // FALLBACK CASE: If 10 seconds pass without a response from the ESP32,
+    // exit the sync state to prevent the system from hanging.
     if ((system_millis - entry_time) > 10000) {
         req_sent = false;
         entry_time = 0; // Resetta
@@ -335,10 +340,12 @@ void fn_SYNC_TIME(void){
         return;
     }
 
-    // Initial setup for this state:
-    // If we haven't sent the request, OR if 3 seconds have passed without an answer from ESP32...
+    // TRANSMISSION LOGIC:
+    // Send the first request immediately, then retry every 3000ms (3 seconds) if no response.
     if (!req_sent || ((system_millis - last_req_time) > 3000)) {
-        requestRealTime();
+        requestRealTime();  // Send the REQ_TIME command via UART
+
+        // Update timing trackers
         last_req_time = system_millis;
         req_sent = true;
     }

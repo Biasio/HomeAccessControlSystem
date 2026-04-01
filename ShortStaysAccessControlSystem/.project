@@ -24,13 +24,6 @@
 		<nature>org.eclipse.cdt.core.ccnature</nature>
 		<nature>org.eclipse.cdt.managedbuilder.core.ScannerConfigNature</nature>
 	</natures>
-	<linkedResources>
-		<link>
-			<name>src/external_src/LCD_128x128</name>
-			<type>2</type>
-			<locationURI>$%7BSIMPLELINK_SDK%7D/examples/nortos/MSP_EXP432P401R/demos/boostxl_edumkii_lightsensor_msp432p401r/LcdDriver</locationURI>
-		</link>
-	</linkedResources>
 	<variableList>
 		<variable>
 			<name>SIMPLELINK_SDK</name>

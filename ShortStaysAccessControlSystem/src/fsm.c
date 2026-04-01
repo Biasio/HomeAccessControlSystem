@@ -468,31 +468,43 @@ void fn_ADMIN_MENU(void){
 
 
 void fn_AOD(void){
+    // Static variable to track the last drawn minute.
+    static int lastMinute = -1; // Initialized to -1 so it instantly draws the clock the first time it enters AOD.
+
+    static bool unsynced_drawn = false; // Flag to ensure the placeholder is drawn only once per sleep cycle
+
     // Stop the idle timer since we are already in the sleep/AOD state
     Timer_A_stop(TIMER_A2_BASE);
 
     // Check for any user interaction (buttons, joystick, or PIR sensor)
     if (check_for_inputs()) {
         cur_state = STATE_INSERT_PIN;
+        unsynced_drawn = false;
     }
 
-    // Static variable to track the last drawn minute.
-    // Initialized to -1 so it instantly draws the clock the first time it enters AOD.
-    static int lastMinute = -1;
+    if (timeSynced) {
+        // Fetch the current real time directly from the hardware RTC module
+        RTC_C_Calendar now = RTC_C_getCalendarTime();
 
-    // Fetch the current real time directly from the hardware RTC module
-    RTC_C_Calendar now = RTC_C_getCalendarTime();
+        // Refresh the clock ONLY when the minute actually changes
+        if(now.minutes != lastMinute){
+            Graphics_setForegroundColor(&g_sContext, ClrBlack);
 
-    // Refresh the clock ONLY when the minute actually changes
-    if(now.minutes != lastMinute){
-        Graphics_setForegroundColor(&g_sContext, ClrBlack);
+            // Update the display with the current hours and minutes
+            display_clock(now.hours, now.minutes);
 
-        // Update the display with the current hours and minutes
-        display_clock(now.hours, now.minutes);
-
-        // Update the tracker
-        lastMinute = now.minutes;
+            // Update the tracker
+            lastMinute = now.minutes;
+        }
     }
+    else {
+        if (!unsynced_drawn) {
+            lastMinute = -1;
+            display_string("-- : --");
+            unsynced_drawn = true;
+        }
+    }
+
 }
 
 
@@ -630,10 +642,20 @@ void FSM_Run(void){
         processUartMessage();
     }
 
-    // If TIME_SYNC_INTERVAL_MS ms (now 2h) have elapsed since the last sync, request the time to ESP32
-    if (timeSynced && (system_millis - lastTimeSync > TIME_SYNC_INTERVAL_MS)) {
-        lastTimeSync = system_millis;
-        requestRealTime();
+    // Anti-drift: If TIME_SYNC_INTERVAL_MS ms (now 2h) have elapsed since the last sync, request the time to ESP32
+    if (timeSynced) {
+        if (system_millis - lastTimeSync > TIME_SYNC_INTERVAL_MS) {
+            lastTimeSync = system_millis;
+            requestRealTime();
+        }
+    }
+    // Auto-Recovery: if the system is not SYNCED, try again every minute
+    else {
+        static uint32_t last_retry = 0;
+        if (system_millis - last_retry > 60000) {
+            last_retry = system_millis;
+            requestRealTime();
+        }
     }
 
     // --- FOREGROUND FSM ---

@@ -469,7 +469,8 @@ void fn_ADMIN_MENU(void){
 
 void fn_AOD(void){
     // Static variable to track the last drawn minute.
-    static int lastMinute = -1; // Initialized to -1 so it instantly draws the clock the first time it enters AOD.
+    // Initialized to -1 so it instantly draws the clock the first time it enters AOD.
+    static int lastMinute = -1;
 
     static bool unsynced_drawn = false; // Flag to ensure the placeholder is drawn only once per sleep cycle
 
@@ -498,9 +499,15 @@ void fn_AOD(void){
         }
     }
     else {
+        // Check if the placeholder hasn't been drawn yet in the current AOD cycle
         if (!unsynced_drawn) {
+            // Reset the minute tracker to force the display to update immediately, without waiting for the next minute
             lastMinute = -1;
+
+            // Draw the unsynced placeholder on the screen
             display_string("-- : --");
+
+            // Set the flag to true so the FSM skips this drawing block in future loop iterations
             unsynced_drawn = true;
         }
     }

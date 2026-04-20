@@ -1,3 +1,4 @@
 [submodule "ShortStaysAccessControlSystem/src/external_src/vl53l0x_msp432"]
 	path = ShortStaysAccessControlSystem/src/external_src/vl53l0x_msp432
 	url = https://github.com/Biasio/vl53l0x_msp432.git
+	branch = main

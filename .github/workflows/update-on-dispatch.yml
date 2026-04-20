@@ -9,6 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    ref: main
     steps:
       - name: Checkout del parent
         uses: actions/checkout@v4

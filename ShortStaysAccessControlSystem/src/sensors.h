@@ -3,6 +3,7 @@
 
 #include <ti/devices/msp432p4xx/driverlib/driverlib.h>
 #include <stdio.h>
+#include "vl53l0x.h"
 
 extern volatile uint8_t PIR_flag;
 

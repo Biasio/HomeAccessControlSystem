@@ -85,6 +85,7 @@
 									<listOptionValue builtIn="false" value="${SIMPLELINK_SDK}/source/ti/grlib/lib/ccs"/>
 									<listOptionValue builtIn="false" value="${SIMPLELINK_SDK}/examples/nortos/MSP_EXP432P401R/demos/boostxl_edumkii_lightsensor_msp432p401r/LcdDriver"/>
 									<listOptionValue builtIn="false" value="${SIMPLELINK_SDK}/source/ti/drivers/lib"/>
+									<listOptionValue builtIn="false" value="${SIMPLELINK_SDK}/source/ti/driverlib"/>
 									<listOptionValue builtIn="false" value="${SIMPLELINK_SDK}/source/ti/devices/msp432p4xx/driverlib"/>
 									<listOptionValue builtIn="false" value="${CCS_BASE_ROOT}/arm/include"/>
 									<listOptionValue builtIn="false" value="${CG_TOOL_ROOT}/lib"/>
@@ -105,6 +106,9 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
+					<sourceEntries>
+						<entry excluding="src/external_src/vl53l0x_msp432/main.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+					</sourceEntries>
 				</configuration>
 			</storageModule>
 			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>

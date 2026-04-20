@@ -26,7 +26,7 @@ jobs:
           cd ShortStaysAccessControlSystem/src/external_src/vl53l0x_msp432
           git fetch origin
           git checkout main
-          git pull origin main
+          git pull --recurse-submodules
           cd -
           git add ShortStaysAccessControlSystem/src/external_src/vl53l0x_msp432
 

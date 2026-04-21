@@ -414,6 +414,23 @@ void move_rectangle_on_display( uint16_t x, uint16_t y, bool grid_on) {
       highlight_selected_menu_item();
 }
 }
+int db_page_selected(uint16_t x, uint16_t y, int numPages, int currentPage){ //this function returns the page selected with joystick
+    const int RIGHT = 12000;
+    const int LEFT = 4000;
+
+    // --- Horizontal Paging Logic --- //
+     if(x>RIGHT) {
+         if(currentPage < numPages){
+             return (currentPage + 1);
+         }
+     }
+     if(x<LEFT) {
+         if(currentPage>1){
+            return (currentPage - 1);
+         }
+    }
+     return currentPage;
+}
 
 // Helper function to draw the selected menu item in red
 void highlight_selected_menu_item(void) {

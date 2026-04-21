@@ -13,6 +13,7 @@
 #include "irqHandlers.h"
 #include "buzzer.h"
 #include "comm_esp.h"
+#include "database.h"
 
 #define MOVE_ON_MENU 0  //rectangle on display move on admin menu
 #define MOVE_ON_GRID 1  //rectangle on display move on grid numbers

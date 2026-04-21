@@ -58,6 +58,7 @@ void draw_admin_menu(bool screen_number);
 
 int number_selected(void);
 int display_function_selected(void);
+int db_page_selected(uint16_t x, uint16_t y, int numElements, int currentPage);              //i give it the number of elements in the db, it returns the page selected by the joystick
 
 void draw_rectangle(bool new_pos, int16_t x1, int16_t y1, int16_t x2, int16_t y2);
 void move_rectangle_on_display( uint16_t x, uint16_t y, bool grid_on);

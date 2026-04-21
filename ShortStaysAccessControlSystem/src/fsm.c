@@ -5,6 +5,8 @@ int saved_pin_admin[4] = {9,9,9,9};
 int selected_pin_user[4] = {0,0,0,0};
 
 int error_pin = 0; //variable to count the number of wrong pin, when is equal to 3, block access
+dbStates dbstate;
+int db_page;
 
 const uint16_t* current_results;
 
@@ -74,6 +76,8 @@ void _hwInit(void){
     // Initialize UART communication with ESP32
     ESP_Comm_Init();
 
+    //flash
+    database_init();
 }
 
 
@@ -197,10 +201,13 @@ int admin_menu(void){
 
 
 void menu_last_access_log(void){
-    display_menu_last_access_log();
+    display_menu_last_access_log();     //it display only the title
+//    serial_print_db();
+    display_db(db_page);                //to display only the correct page of the database
+
+
+
 }
-
-
 
 void menu_setup_wifi(void){
     display_menu_setup_wifi();
@@ -336,7 +343,7 @@ void fn_SYNC_TIME(void){
     if ((system_millis - entry_time) > 10000) {
         req_sent = false;
         entry_time = 0; // Resetta
-        cur_state = STATE_AOD; // Forza l'uscita, la tastiera torner√† a funzionare
+        cur_state = STATE_AOD; // Forza l'uscita, la tastiera torner‡ a funzionare
         return;
     }
 
@@ -413,8 +420,17 @@ void fn_INSERT_PIN(void){
         if (admin_pin_correct) {
             error_pin = 0;
             cur_state = STATE_WAIT_RFID;
+
+            dbstate = ADMIN;
+            add_log(dbstate, "dd/mm hh:mm", selected_pin_user);
+            save_database();
+
         } else {
             cur_state = STATE_WRONG_PIN; // Increment error_pin in the next state [cite: 601]
+
+            dbstate = DENIED;
+            add_log(dbstate, "dd/mm hh:mm", selected_pin_user);
+            save_database();
         }
     }
 }
@@ -444,6 +460,7 @@ void fn_ADMIN_MENU(void){
     //decide to which state of admin menu go
     switch(selected_function){
     case LAST_ACCESS_LOG:
+            db_page=1;                              //when you enter the db, the first page is shown
             cur_state = STATE_LAST_ACCESS_LOG;
             break;
     // case SETUP_PIN no longer used
@@ -520,14 +537,30 @@ void fn_AOD(void){
 // --------------------------------------------- //
 
 void fn_menu_lal(void){
-    menu_last_access_log();
+    bool menu_lal_active = 1;
+    int tmp;
+    menu_last_access_log();         //to display the first page of db
 
-    //show the time of last access (and also pin used)
+    while(menu_lal_active){     //until i press buttonB, i stay in lal database and i can use the joystick
 
-    if(buttonB_pressed){
-        buttonB_pressed=0;
-        cur_state = STATE_ADMIN_MENU;
+        //get results from joystick
+        current_results = get_results_buffer();
+        //if timer of joystick finished, give number of page selected
+        if(data_aquired()){
+           tmp = db_page_selected(current_results[0], current_results[1], calc_num_pages_db(return_number_count()), db_page);
+           printf("return_number_count = %d \n",return_number_count());
+           if(tmp != db_page){  //i re-screen all infos only if i change page
+               db_page = tmp;
+               menu_last_access_log();
+           }
+        }
+        if(buttonB_pressed){
+                buttonB_pressed=0;
+                menu_lal_active=0;
+        }
     }
+    cur_state = STATE_ADMIN_MENU;
+
 }
 
 /* no longer used

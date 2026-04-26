@@ -5,9 +5,9 @@
 #include <ti/devices/msp432p4xx/driverlib/driverlib.h>
 #include <stdio.h>
 #include "timers.h"
+#include "irqHandlers.h"
 
 
-volatile uint16_t resultsBuffer[2];
 
 
 void _timerInit();

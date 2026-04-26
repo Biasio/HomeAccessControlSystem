@@ -6,6 +6,7 @@
 #include <ti/grlib/grlib.h>
 #include "Crystalfontz128x128_ST7735.h"
 #include <stdio.h>
+#include <inttypes.h>
 #include "timers.h"
 
 

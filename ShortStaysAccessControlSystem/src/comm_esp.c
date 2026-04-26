@@ -9,12 +9,11 @@ TempUser activeTempUsers[MAX_TEMP_USERS];
 volatile bool timeSynced = false;
 volatile uint32_t lastTimeSync = 0;
 
-// External reference to the admin PIN stored in fsm.c for Telegram login verification
-extern int saved_pin_admin[4];
 
 // --- LOCAL MODULE VARIABLES ---
 char uartBuffer[UART_BUFFER_SIZE];
 volatile uint8_t uartBufferIndex = 0;
+
 
 // --- INITIALIZATION ---
 void ESP_Comm_Init(void) {
@@ -231,7 +230,7 @@ static void handleTimeSync(const char* payload) {
 
     // Extract Time and Date (HH:MM:SS:DD:MM:YYYY:DOW) from the payload string
     int hour = 0, minute = 0, second = 0, day = 1, month = 1, year = 2026, dow = 0;
-    sscanf(payload, "%d:%d:%d:%d:%d:%d", &hour, &minute, &second, &day, &month, &year, &dow);
+    sscanf(payload, "%d:%d:%d:%d:%d:%d:%d", &hour, &minute, &second, &day, &month, &year, &dow);
 
     // Configure the MSP432 hardware Real-Time Clock (RTC_C)
     RTC_C_Calendar currentTime = {0};

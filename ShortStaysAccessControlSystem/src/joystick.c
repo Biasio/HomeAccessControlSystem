@@ -1,5 +1,9 @@
 #include "joystick.h"
 
+
+
+
+
 void _adcInit(){
     /* Configures Pin 6.0 and 4.4 as ADC input */
         GPIO_setAsPeripheralModuleFunctionInputPin(GPIO_PORT_P6, GPIO_PIN0, GPIO_TERTIARY_MODULE_FUNCTION);
@@ -39,7 +43,7 @@ void _adcInit(){
 // GETTER:
 // Returns a pointer to resultBuffer
 const uint16_t* get_results_buffer(void) {
-    return resultsBuffer;
+    return resultsBuffer_ptr;
 }
 
 bool data_aquired(void){

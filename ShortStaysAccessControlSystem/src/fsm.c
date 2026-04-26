@@ -1,12 +1,5 @@
 #include "fsm.h"
 
-// int saved_pin_user[4] = {1,1,1,1}; no longer used!
-int saved_pin_admin[4] = {9,9,9,9};
-int selected_pin_user[4] = {0,0,0,0};
-
-int error_pin = 0; //variable to count the number of wrong pin, when is equal to 3, block access
-
-const uint16_t* current_results;
 
 int32_t displayX = 64;
 int32_t displayY = 64;
@@ -38,259 +31,6 @@ StateMachine_t fsm[] = {
      {STATE_AOD, fn_AOD},
      {STATE_SYNC_TIME, fn_SYNC_TIME}
 };
-
-
-// -----------------------------------------------//
-// Implementation of the state's functions
-
-
-// ------------------------------------------------------ //
-
-void _hwInit(void){
-    WDT_A_holdTimer();
-    Interrupt_enableMaster();
-
-    /* Initializes Clock & FLASH System */
-    _ClockSystemInit();
-    _SysTickInit();
-
-    //display
-    _graphicsInit();
-
-    //joystick
-    _adcInit();
-    _ADCtimerInit();
-
-    //buttons
-    _pushButtonsInit();
-
-    // Presence sensor
-    _PIRInit();
-    _idleTimerInit();
-
-    //PWM for the buzzer
-    _buzzerInit();
-
-    // Initialize UART communication with ESP32
-    ESP_Comm_Init();
-
-}
-
-
-void insert_pin(void){
-
-    bool number_pin_aquired;
-
-    int x = 35; //position of selected digit on screen
-
-    int i;
-    //acquire 4 digit
-    for(i=0;i<4;i++){
-        number_pin_aquired=0;
-        do{
-            if (standby) return; // Exit if system goes to sleep
-
-            //get results from joystick
-            current_results = get_results_buffer();
-
-            //if timer of joystick finished, move rectangle
-            if(data_aquired()){
-                move_rectangle_on_display(current_results[0], current_results[1], MOVE_ON_GRID);
-            }
-
-            //Button A (S1) used to select a digit
-            if(buttonA_pressed){
-                buttonA_pressed=0;
-                int selected_val = number_selected();
-
-                if (selected_val != -1)
-                {
-                    number_pin_aquired=1;
-                    char string[2];
-                    selected_pin_user[i]=selected_val;
-                    snprintf(string, sizeof(string), "%d", selected_pin_user[i]);
-
-                    Graphics_setForegroundColor(&g_sContext, ClrBlack);
-                    GrContextFontSet(&g_sContext, &g_sFontCmss18);
-                    Graphics_drawStringCentered(&g_sContext, (int8_t *) string,
-                                               AUTO_STRING_LENGTH,
-                                               x, 12,
-                                               OPAQUE_TEXT);
-
-                    x+=20;
-                }
-            }
-
-            // BUTTON B to deselect a number (only if is not at the first digit)
-            if(buttonB_pressed){
-                buttonB_pressed=0;
-                if(i>0){
-                    i--;    // Go back to the previous digit
-                    x-=20;
-
-                    Graphics_setForegroundColor(&g_sContext, ClrBlack);
-                    Graphics_drawStringCentered(&g_sContext, " ",
-                                                AUTO_STRING_LENGTH,
-                                                x, 15,
-                                                OPAQUE_TEXT);
-                    Graphics_drawLineH(&g_sContext, x-5, x+4, 25);
-                }
-
-            }
-
-        } while(number_pin_aquired==0); //when the digit is selected, exit from loop
-    }
-}
-
-
-void open_door(void){
-    // - show on display that door is opening
-    // - turn on servo
-    // - turn on LED
-    // ? make a sound to signal that the code is correct
-
-    display_door_open();
-    //buzzerPWMgen(&StarWars);
-    delay_ms(2500);
-
-}
-
-
-
-void wait_RFID(void){
-    Graphics_setForegroundColor(&g_sContext, ClrBlack);
-    display_string("PLEASE, USE RFID");
-    int i;
-    for(i=0;i<1000000;i++); //IS BETTER TO USE A TIMER
-}
-
-
-
-int admin_menu(void){
-    draw_admin_menu(1); // 1 = FIRST_SCREEN
-
-    bool admin_menu_active = 1;
-
-    while(admin_menu_active){
-        if (standby) return -1;
-
-        //get results from joystick
-        current_results = get_results_buffer();
-
-        //if timer of joystick finished, move rectangle
-        if(data_aquired()){
-            move_rectangle_on_display(current_results[0], current_results[1], MOVE_ON_MENU);
-
-            if(buttonA_pressed){
-                buttonA_pressed=0;
-                return display_function_selected();
-            }
-        }
-        if(buttonB_pressed){    //turn back to grid (ADD A CONFIRMATION MENU ? )
-            buttonB_pressed=0;
-            admin_menu_active=0;
-        }
-    }
-    return 6; //return to INSERT PIN
-}
-
-
-
-void menu_last_access_log(void){
-    display_menu_last_access_log();
-}
-
-
-
-void menu_setup_wifi(void){
-    display_menu_setup_wifi();
-}
-
-
-
-void menu_factory_reset(void){
-    display_menu_factory_reset();
-}
-
-
-
-void menu_unlock_door(void){
-    display_menu_unlock_door();
-}
-
-
-
-void menu_block_pin(void){
-    display_menu_block_pin();
-}
-
-
-void wrong_pin(void){
-    // - turn on LED
-    // - make a sound to signal that the code is incorrect
-
-    error_pin++;
-
-    display_wrong_pin(error_pin);
-
-}
-
-
-void block_access(void){
-    display_block_access();
-
-    int i;
-    for(i=0;i<1000000;i++); //BETTER TO USE A TIMER
-}
-
-void door_lock(){
-    Graphics_setForegroundColor(&g_sContext, ClrBlack);
-    display_string("DOOR LOCKED");
-}
-
-
-void wait_reset_door(void){
-
-}
-
-void go_to_idle(){
-    display_string("Going to sleep...");
-    //delay_ms(1500);
-}
-
-
-bool check_for_inputs(){
-    if (PIR_flag)
-    {
-        PIR_flag = 0;
-        I2C_write_reg8(SYSTEM_INTERRUPT_CLEAR, 0x01);
-    }
-    else if (buttonA_pressed)
-    {
-        buttonA_pressed=0;
-    }
-    else if (buttonB_pressed)
-    {
-        buttonB_pressed=0;
-    }
-    else // no input was received
-    {
-        if (!(P4->IE & BIT6)) // if the PIR interrupt isn't enabled
-        {
-
-            PIR_enable(); // enable the interrupt
-            PIR_flag = 0; // safety measure if PIR has been retriggered meanwhile
-        }
-        return 0; // no interrupts were detected
-    }
-
-    PIR_disable(); // Disable PIR interrupt and change state
-    PIR_flag = 0; // safety measure if PIR has been retriggered meanwhile
-
-    TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE); // restart the idle timer
-
-    return 1; //signal that an input was detected
-}
 
 
 
@@ -376,46 +116,24 @@ void fn_INSERT_PIN(void){
     Graphics_setForegroundColor(&g_sContext, ClrBlack);
     display_string("INSERT PIN");
     draw_grid();
-    insert_pin();
 
-    bool admin_pin_correct = 1;
-    bool temp_pin_correct = 0;
+    bool pin_correct=0;
 
-    // Convert the integer array from the display into a string
-    char typed_pin_str[5];
-    snprintf(typed_pin_str, sizeof(typed_pin_str), "%d%d%d%d",
-             selected_pin_user[0],
-             selected_pin_user[1],
-             selected_pin_user[2],
-             selected_pin_user[3]);
-
-    // --- 1. Check for USER PIN ---
-    int i;
-    for(i=0; i < MAX_TEMP_USERS; i++) {
-        if(activeTempUsers[i].active && strcmp(typed_pin_str, activeTempUsers[i].pin) == 0) {
-            temp_pin_correct = 1;
-            break;
-        }
-    }
+    pin_correct = insert_pin();
 
     // --- 2. Check if the User PIN was Correct ---
-    if(temp_pin_correct) {
+    if(pin_correct == 1) {
         error_pin = 0;
         cur_state = STATE_OPEN_DOOR;
-    } else {
-        // Fallback: Check for Admin PIN
-        for(i=0; i<4; i++) {
-            if(selected_pin_user[i] != saved_pin_admin[i]) {
-                admin_pin_correct = 0;
-                break;
-            }
-        }
-        if (admin_pin_correct) {
+    }
+    else if (pin_correct == 2)
+    {
             error_pin = 0;
             cur_state = STATE_WAIT_RFID;
-        } else {
-            cur_state = STATE_WRONG_PIN; // Increment error_pin in the next state [cite: 601]
-        }
+    }
+    else
+    {
+        cur_state = STATE_WRONG_PIN; // Increment error_pin in the next state
     }
 }
 
@@ -477,11 +195,7 @@ void fn_AOD(void){
     // Stop the idle timer since we are already in the sleep/AOD state
     Timer_A_stop(TIMER_A2_BASE);
 
-    // Check for any user interaction (buttons, joystick, or PIR sensor)
-    if (check_for_inputs()) {
-        cur_state = STATE_INSERT_PIN;
-        unsynced_drawn = false;
-    }
+
 
     if (timeSynced) {
         // Fetch the current real time directly from the hardware RTC module
@@ -512,6 +226,15 @@ void fn_AOD(void){
         }
     }
 
+    // Check for any user interaction (buttons, joystick, or ToF sensor)
+    if (check_for_inputs()) {
+        cur_state = STATE_INSERT_PIN;
+        unsynced_drawn = false;
+    }
+
+    // The VL53L0X interrupt on P4.6 will wake the CPU automatically
+    go_to_idle();
+    PCM_gotoLPM0(); // driverlib call — blocks until any interrupt fires
 }
 
 
@@ -530,33 +253,6 @@ void fn_menu_lal(void){
     }
 }
 
-/* no longer used
-void fn_menu_setup_pin(void){
-    bool pins_equal = 0;
-
-    Graphics_setForegroundColor(&g_sContext, ClrBlack);
-    do{
-        display_menu_setup_pin();
-        insert_pin(1);
-
-        // verify if pin_admin = pin_user
-        int i;
-        for(i=0;i<4;i++){
-            if(saved_pin_user[i]==saved_pin_admin[i]){
-                pins_equal = 1;
-            }else pins_equal = 0;
-        }
-        if(pins_equal){
-            display_string("PIN ADMIN = PIN USER");
-            display_string("CHOOSE ANOTHER PIN");
-        }
-    } while(pins_equal);
-
-    display_string("PIN CHANGED");
-
-    cur_state = STATE_ADMIN_MENU;
-}
-*/
 
 void fn_menu_wifi(void){
     menu_setup_wifi();
@@ -671,7 +367,6 @@ void FSM_Run(void){
         if (standby == 1)
         {
             cur_state = STATE_DOOR_LOCKED;
-            go_to_idle();
         }
 
         (*fsm[cur_state].state_function)();

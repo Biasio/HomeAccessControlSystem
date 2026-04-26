@@ -8,6 +8,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "fsm_helpers.h" // External reference to the admin PIN stored in fsm.c for Telegram login verification
 
 // --- CONSTANTS ---
 #define MAX_TEMP_USERS      10          // Maximum number of simultaneous temporary users

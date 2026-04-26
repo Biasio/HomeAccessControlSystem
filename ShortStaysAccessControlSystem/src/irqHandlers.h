@@ -11,6 +11,8 @@ extern volatile uint8_t standby;
 extern volatile bool move_rectangle;
 extern volatile uint32_t system_millis;
 
+extern const uint16_t *resultsBuffer_ptr;
+
 void SysTick_Handler(void);
 void PORT5_IRQHandler(void);
 void PORT3_IRQHandler(void);

@@ -510,7 +510,7 @@ int number_selected(void){
             Graphics_setForegroundColor(&g_sContext, ClrRed);
             Graphics_fillRectangle(&g_sContext, &rect);
             int j;
-            for(j=0;j<100000;j++);
+            delay_ms(300);
             Graphics_setForegroundColor(&g_sContext, ClrWhite);
             Graphics_fillRectangle(&g_sContext, &rect);
 
@@ -761,13 +761,13 @@ void display_wrong_pin(int error_pin){
                                     64, 64,
                                     OPAQUE_TEXT);
     char string[20];
-    sprintf(string, "ERROR %d/3", error_pin);
+    sprintf(string, "ERROR %" PRIu16 "/3", error_pin);
     Graphics_drawStringCentered(&g_sContext, (int8_t *) string,
                                         AUTO_STRING_LENGTH,
                                         64, 84,
                                         OPAQUE_TEXT);
     int i;
-    for(i=0;i<1000000;i++); //simulate opening of the door, IS BETTER TO USE A TIMER
+    delay_ms(5000);
 }
 
 void display_block_access(void){
@@ -803,6 +803,6 @@ void display_string(const char* string){
                                     64, 64,
                                     OPAQUE_TEXT);
     int i;
-    for(i=0;i<1000000;i++); //IS BETTER TO USE A TIMER FOR DELAY
+    delay_ms(300);
 }
 

@@ -240,7 +240,7 @@ void block_access(void){
     display_block_access();
 
     int i;
-    for(i=0;i<1000000;i++); //BETTER TO USE A TIMER
+    delay_ms(10000);
 }
 
 void door_lock(){
@@ -277,9 +277,8 @@ bool check_for_inputs(){
     {
         if (!(P4->IE & BIT6)) // if the ToF interrupt isn't enabled
         {
-
-            ToF_enable(); // enable the interrupt
             ToF_flag = 0; // safety measure if ToF has been retriggered meanwhile
+            ToF_enable(); // enable the interrupt
         }
         return 0; // no interrupts were detected
     }

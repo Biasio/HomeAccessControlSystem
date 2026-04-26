@@ -186,6 +186,8 @@ void fn_ADMIN_MENU(void){
 
 
 void fn_AOD(void){
+
+
     // Static variable to track the last drawn minute.
     // Initialized to -1 so it instantly draws the clock the first time it enters AOD.
     static int lastMinute = -1;
@@ -233,8 +235,10 @@ void fn_AOD(void){
     }
 
     // The VL53L0X interrupt on P4.6 will wake the CPU automatically
-    go_to_idle();
-    PCM_gotoLPM0(); // driverlib call — blocks until any interrupt fires
+    // TODO: set a 30 sec interrupt to wake the cpu and increment the clock.
+    // TODO: disable unnecessary interrupts so cpu isn't woke up
+    PCM_gotoLPM0(); // is a blocking call: the CPU halts execution at this instruction and only resumes when an interrupt fires.
+
 }
 
 

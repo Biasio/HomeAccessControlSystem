@@ -509,7 +509,7 @@ int number_selected(void){
             GrContextFontSet(&g_sContext, &g_sFontCmss18);
             Graphics_setForegroundColor(&g_sContext, ClrRed);
             Graphics_fillRectangle(&g_sContext, &rect);
-            int j;
+
             delay_ms(300);
             Graphics_setForegroundColor(&g_sContext, ClrWhite);
             Graphics_fillRectangle(&g_sContext, &rect);
@@ -766,7 +766,6 @@ void display_wrong_pin(int error_pin){
                                         AUTO_STRING_LENGTH,
                                         64, 84,
                                         OPAQUE_TEXT);
-    int i;
     delay_ms(5000);
 }
 
@@ -802,7 +801,6 @@ void display_string(const char* string){
                                     AUTO_STRING_LENGTH,
                                     64, 64,
                                     OPAQUE_TEXT);
-    int i;
     delay_ms(300);
 }
 

@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+
+#include "joystick.h"
 #include "joystick.h"
 #include "display.h"
 #include "push_button.h"
@@ -11,6 +13,8 @@
 #include "irqHandlers.h"
 #include "buzzer.h"
 #include "comm_esp.h"
+
+
 
 extern uint16_t error_pin;
 extern uint8_t saved_pin_admin[4];
@@ -36,7 +40,6 @@ void wait_reset_door(void);
 
 bool check_for_inputs();
 void door_lock();
-void go_to_idle();
 
 
 #endif

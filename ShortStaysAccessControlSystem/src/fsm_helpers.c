@@ -1,12 +1,5 @@
 #include "fsm_helpers.h"
-#include "joystick.h"
-#include "display.h"
-#include "push_button.h"
-#include "sensors.h"
-#include "timers.h"
-#include "irqHandlers.h"
-#include "buzzer.h"
-#include "comm_esp.h"
+
 
 uint8_t saved_pin_admin[4] = {9,9,9,9};
 uint16_t error_pin = 0; //variable to count the number of wrong pin, when is equal to 3, block access
@@ -239,7 +232,6 @@ void wrong_pin(void){
 void block_access(void){
     display_block_access();
 
-    int i;
     delay_ms(10000);
 }
 
@@ -253,31 +245,19 @@ void wait_reset_door(void){
 
 }
 
-void go_to_idle(){
-    display_string("Going to sleep...");
-    delay_ms(1500);
-}
-
 
 bool check_for_inputs(){
-    if (ToF_flag)
+    if (ToF_flag || buttonA_pressed || buttonB_pressed)
     {
         ToF_flag = 0;
         //I2C_write_reg8(SYSTEM_INTERRUPT_CLEAR, 0x01);
-    }
-    else if (buttonA_pressed)
-    {
-        buttonA_pressed=0;
-    }
-    else if (buttonB_pressed)
-    {
         buttonB_pressed=0;
+        buttonA_pressed=0;
     }
     else // no input was received
     {
-        if (!(P4->IE & BIT6)) // if the ToF interrupt isn't enabled
+        if (!(P4->IE & BIT6)) // if the ToF interrupt gpio isn't enabled
         {
-            ToF_flag = 0; // safety measure if ToF has been retriggered meanwhile
             ToF_enable(); // enable the interrupt
         }
         return 0; // no interrupts were detected

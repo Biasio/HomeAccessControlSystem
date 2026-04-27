@@ -1,6 +1,5 @@
 #include "sensors.h"
-#include "timers.h"
-#include "vl53l0x.h"
+
 
 volatile uint8_t ToF_flag = 0;
 
@@ -20,14 +19,19 @@ void _ToFInit(){
 }
 
 
+
 void ToF_disable(){
-    xshut_toggle(false);
+    bool status = vl53l0x_stop_continuous(); //need to disable continuous mode
+    xshut_toggle(false); //sensor to standby
     GPIO_disableInterrupt(GPIO_PORT_P4, GPIO_PIN6);
     GPIO_clearInterruptFlag(GPIO_PORT_P4, GPIO_PIN6);
 }
 
 
+
 void ToF_enable(){
+    vl53l0x_start_continuous();
+    xshut_toggle(true);
     GPIO_clearInterruptFlag(GPIO_PORT_P4, GPIO_PIN6);
     GPIO_enableInterrupt(GPIO_PORT_P4, GPIO_PIN6);
 }

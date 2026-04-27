@@ -37,7 +37,7 @@ void PORT4_IRQHandler(void)
 
     if(status & GPIO_PIN6){
         ToF_IRQHandler();
-        //return;
+        return;
     }
 
     GPIO_clearInterruptFlag(GPIO_PORT_P4, status);

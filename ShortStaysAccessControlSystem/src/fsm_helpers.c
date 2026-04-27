@@ -29,7 +29,7 @@ void _hwInit(void){
     _pushButtonsInit();
 
     // Presence sensor
-    _ToFInit();
+    ToF_Init();
     _idleTimerInit();
 
     //PWM for the buzzer
@@ -249,26 +249,23 @@ void wait_reset_door(void){
 bool check_for_inputs(){
     if (ToF_flag || buttonA_pressed || buttonB_pressed)
     {
-        ToF_flag = 0;
-        //I2C_write_reg8(SYSTEM_INTERRUPT_CLEAR, 0x01);
         buttonB_pressed=0;
         buttonA_pressed=0;
+
+        ToF_disable(); // Disable ToF interrupt and change state
+        ToF_flag = 0; // safety measure if ToF has been retriggered meanwhile
+
+        TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE); // restart the idle timer
+
+        return 1; //signal that an input was detected
     }
     else // no input was received
     {
-        if (!(P4->IE & BIT6)) // if the ToF interrupt gpio isn't enabled
-        {
-            ToF_enable(); // enable the interrupt
-        }
-        return 0; // no interrupts were detected
+        // if the ToF interrupt gpio isn't enabled
+        if (!(P4->IE & BIT6)) ToF_enable();
     }
+    return 0; // no interrupts were detected
 
-    ToF_disable(); // Disable ToF interrupt and change state
-    ToF_flag = 0; // safety measure if ToF has been retriggered meanwhile
-
-    TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE); // restart the idle timer
-
-    return 1; //signal that an input was detected
 }
 
 

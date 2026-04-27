@@ -13,6 +13,7 @@ volatile uint8_t ToF_flag = 0;
 bool ToF_Init(){
 
     i2c_init();
+    interrupt_gpio_init();
     xshut_gpio_init();
     return vl53l0x_init();
 }
@@ -25,6 +26,8 @@ void ToF_IRQHandler(void){
 }
 
 bool ToF_disable(){
+    uint16_t dummy=0;
+    vl53l0x_read_range_interrupt(&dummy);
     bool status = vl53l0x_stop_continuous(); //need to disable continuous mode
 
     xshut_toggle(false); //sensor to standby

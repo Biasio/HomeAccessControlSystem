@@ -42,7 +42,6 @@ void _hwInit(void){
 
 uint8_t insert_pin(){
 
-    uint8_t pin_correct=0;
     int selected_pin_user[4] = {0,0,0,0};
 
 
@@ -119,6 +118,8 @@ uint8_t insert_pin(){
 
     // --- 1. Check for USER PIN ---
     int k;
+    uint8_t pin_correct=0;
+
     for(k=0; k < MAX_TEMP_USERS; ++k) {
         if(activeTempUsers[k].active && strcmp(typed_pin_str, activeTempUsers[k].pin) == 0) {
             pin_correct = 1;
@@ -130,12 +131,15 @@ uint8_t insert_pin(){
     // Fallback: Check for Admin PIN
         for(i=0; i<4; i++) {
             if(selected_pin_user[i] != saved_pin_admin[i]) {
-                pin_correct = 2;
+                pin_correct = 0;
                 break;
+            }
+            else
+            {
+                pin_correct = 2;
             }
         }
     }
-
     return pin_correct;
 }
 

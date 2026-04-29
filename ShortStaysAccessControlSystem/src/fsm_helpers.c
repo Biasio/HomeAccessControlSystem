@@ -30,8 +30,8 @@ void _hwInit(void){
     _pushButtonsInit();
 
     // Presence sensor
-    //ToF_Init();
-    //_idleTimerInit();
+    ToF_Init();
+    _idleTimerInit();
 
     //PWM for the buzzer
     _buzzerInit();
@@ -254,9 +254,7 @@ bool check_for_inputs(){
         buttonA_pressed=0;
 
         ToF_disable(); // Disable ToF interrupt and change state
-        ToF_flag = 0; // safety measure if ToF has been retriggered meanwhile
-
-        TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE); // restart the idle timer
+        ToF_flag = 0; // safety measure if ToF has been re-triggered meanwhile
 
         return 1; //signal that an input was detected
     }

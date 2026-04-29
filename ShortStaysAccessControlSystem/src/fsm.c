@@ -188,6 +188,37 @@ void fn_ADMIN_MENU(void){
 }
 
 
+void fn_WRONG_PIN(void){
+    printf("Wrong pin \n");
+    wrong_pin(); //show an error message on display
+
+    if(error_pin<3){
+        cur_state = STATE_INSERT_PIN;
+    }else if(error_pin==3){
+        error_pin = 0; //pin wrong for 3 times, reset counter of errors
+        cur_state = STATE_BLOCK_ACCESS;
+    }
+}
+
+
+
+void fn_BLOCK_ACCESS(void){
+    printf("Access blocked \n");
+    block_access();
+    cur_state = STATE_WAIT_RESET_DOOR;
+}
+
+
+
+void fn_WAIT_RESET_DOOR(void){
+    printf("Wait door to be reset \n");
+    wait_reset_door();
+    cur_state = STATE_INSERT_PIN;
+    //if telegram or RFID
+    //  cur_state = STATE_INSERT_PIN;
+}
+
+
 
 void fn_AOD(void){
 
@@ -235,6 +266,7 @@ void fn_AOD(void){
     // Check for any user interaction (buttons, joystick, or ToF sensor)
     if (check_for_inputs()) {
         cur_state = STATE_INSERT_PIN;
+        TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE); // restart the idle timer
         unsynced_drawn = false;
     }
 
@@ -325,40 +357,6 @@ void fn_menu_block_pin(void){
         buttonB_pressed=0;
         cur_state = STATE_ADMIN_MENU;
     }
-}
-
-
-
-// --------------------------------------------- //
-
-void fn_WRONG_PIN(void){
-    printf("Wrong pin \n");
-    wrong_pin(); //show an error message on display
-
-    if(error_pin<3){
-        cur_state = STATE_INSERT_PIN;
-    }else if(error_pin==3){
-        error_pin = 0; //pin wrong for 3 times, reset counter of errors
-        cur_state = STATE_BLOCK_ACCESS;
-    }
-}
-
-
-
-void fn_BLOCK_ACCESS(void){
-    printf("Access blocked \n");
-    block_access();
-    cur_state = STATE_WAIT_RESET_DOOR;
-}
-
-
-
-void fn_WAIT_RESET_DOOR(void){
-    printf("Wait door to be reset \n");
-    wait_reset_door();
-    cur_state = STATE_INSERT_PIN;
-    //if telegram or RFID
-    //  cur_state = STATE_INSERT_PIN;
 }
 
 

@@ -10,9 +10,9 @@
 
 
 extern volatile uint8_t ToF_flag;
+extern volatile bool ToF_ready; // 1=yes 0=no
 
-
-bool ToF_Init(void);
+void ToF_Init(void);
 
 void ToF_IRQHandler(void);
 

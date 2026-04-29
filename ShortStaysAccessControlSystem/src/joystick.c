@@ -1,9 +1,6 @@
 #include "joystick.h"
 
 
-
-
-
 void _adcInit(){
     /* Configures Pin 6.0 and 4.4 as ADC input */
         GPIO_setAsPeripheralModuleFunctionInputPin(GPIO_PORT_P6, GPIO_PIN0, GPIO_TERTIARY_MODULE_FUNCTION);

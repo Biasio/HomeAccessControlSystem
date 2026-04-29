@@ -10,7 +10,7 @@ volatile bool move_rectangle = 0;
 
 static uint16_t resultsBuffer[2] = {0,0};
 
-const uint16_t *resultsBuffer_ptr = &resultsBuffer[0];
+uint16_t *resultsBuffer_ptr = &resultsBuffer[0];
 
 //update
 void SysTick_Handler(void) {

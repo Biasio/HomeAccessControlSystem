@@ -37,6 +37,8 @@ void _hwInit(void){
 
     // Initialize UART communication with ESP32
     ESP_Comm_Init();
+    //flash
+    database_init();
 }
 
 

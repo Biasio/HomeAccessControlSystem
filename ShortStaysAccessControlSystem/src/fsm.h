@@ -6,7 +6,7 @@
 #include <ti/devices/msp432p4xx/driverlib/driverlib.h>
 
 #include "fsm_helpers.h"
-
+#include "database.h"
 
 #define MOVE_ON_MENU 0  //rectangle on display move on admin menu
 #define MOVE_ON_GRID 1  //rectangle on display move on grid numbers

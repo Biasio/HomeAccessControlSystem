@@ -13,7 +13,7 @@
 void _timerInit();
 void _adcInit();
 
-const uint16_t* get_results_buffer(void);
+uint16_t* get_results_buffer(void);
 bool data_aquired(void);
 
 #endif

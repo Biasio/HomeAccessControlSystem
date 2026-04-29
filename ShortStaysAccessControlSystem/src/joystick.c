@@ -42,7 +42,7 @@ void _adcInit(){
 
 // GETTER:
 // Returns a pointer to resultBuffer
-const uint16_t* get_results_buffer(void) {
+uint16_t* get_results_buffer(void) {
     return resultsBuffer_ptr;
 }
 

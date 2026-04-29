@@ -3,6 +3,7 @@
 
 uint8_t saved_pin_admin[4] = {9,9,9,9};
 uint16_t error_pin = 0; //variable to count the number of wrong pin, when is equal to 3, block access
+dbStates dbstate;
 
 // -----------------------------------------------//
 // Implementation of the state's functions
@@ -29,8 +30,8 @@ void _hwInit(void){
     _pushButtonsInit();
 
     // Presence sensor
-    ToF_Init();
-    _idleTimerInit();
+    //ToF_Init();
+    //_idleTimerInit();
 
     //PWM for the buzzer
     _buzzerInit();
@@ -118,27 +119,33 @@ uint8_t insert_pin(){
              selected_pin_user[2],
              selected_pin_user[3]);
 
-    // --- 1. Check for USER PIN ---
+    // Check for USER PIN
     int k;
     uint8_t pin_correct=0;
 
     for(k=0; k < MAX_TEMP_USERS; ++k) {
         if(activeTempUsers[k].active && strcmp(typed_pin_str, activeTempUsers[k].pin) == 0) {
             pin_correct = 1;
-            break;
+            break; //break if correct
         }
     }
 
     if(pin_correct != 1){
-    // Fallback: Check for Admin PIN
+    // Check for Admin PIN
         for(i=0; i<4; i++) {
             if(selected_pin_user[i] != saved_pin_admin[i]) {
                 pin_correct = 0;
+                dbstate = DENIED;
+                add_log(dbstate, "dd/mm hh:mm", selected_pin_user);
+                save_database();
                 break;
             }
             else
             {
                 pin_correct = 2;
+                dbstate = ADMIN;
+                add_log(dbstate, "dd/mm hh:mm", selected_pin_user);
+                save_database();
             }
         }
     }
@@ -163,8 +170,7 @@ void open_door(void){
 void wait_RFID(void){
     Graphics_setForegroundColor(&g_sContext, ClrBlack);
     display_string("PLEASE, USE RFID");
-    int i;
-    for(i=0;i<1000000;i++); //IS BETTER TO USE A TIMER
+    delay_ms(10000);
 }
 
 
@@ -197,19 +203,8 @@ int admin_menu(void){
     return 6; //return to INSERT PIN
 }
 
-
-
-void menu_last_access_log(void){
-}
-
 void menu_setup_wifi(void){
     display_menu_setup_wifi();
-}
-
-
-
-void menu_factory_reset(void){
-    display_menu_factory_reset();
 }
 
 
@@ -272,6 +267,17 @@ bool check_for_inputs(){
     }
     return 0; // no interrupts were detected
 
+}
+
+
+void menu_last_access_log(int db_page){
+    display_menu_last_access_log();     //it display only the title
+//    serial_print_db();
+    display_db(db_page);                //to display only the correct page of the database
+}
+
+void menu_factory_reset(void){
+    display_menu_factory_reset();
 }
 
 

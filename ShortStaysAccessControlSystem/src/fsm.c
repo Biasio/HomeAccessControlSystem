@@ -1,10 +1,8 @@
 #include "fsm.h"
 
 
-dbStates dbstate;
 int db_page;
 
-const uint16_t* current_results;
 
 int32_t displayX = 64;
 int32_t displayY = 64;
@@ -36,22 +34,6 @@ StateMachine_t fsm[] = {
      {STATE_AOD, fn_AOD},
      {STATE_SYNC_TIME, fn_SYNC_TIME}
 };
-
-
-void menu_last_access_log(void){
-    display_menu_last_access_log();     //it display only the title
-//    serial_print_db();
-    display_db(db_page);                //to display only the correct page of the database
-
-
-
-}
-
-void menu_factory_reset(void){
-    display_menu_factory_reset();
-}
-
-
 
 
 void fn_BOOT(void){
@@ -96,7 +78,7 @@ void fn_SYNC_TIME(void){
     if ((system_millis - entry_time) > 10000) {
         req_sent = false;
         entry_time = 0; // Resetta
-        cur_state = STATE_AOD; // Forza l'uscita, la tastiera tornerà a funzionare
+        cur_state = STATE_AOD; // Forza l'uscita, la tastiera tornerï¿½ a funzionare
         return;
     }
 
@@ -142,7 +124,8 @@ void fn_INSERT_PIN(void){
     pin_correct = insert_pin();
 
     // --- 2. Check if the User PIN was Correct ---
-    if(pin_correct == 1) {
+    if(pin_correct == 1)
+    {
         error_pin = 0;
         cur_state = STATE_OPEN_DOOR;
     }
@@ -150,18 +133,10 @@ void fn_INSERT_PIN(void){
     {
             error_pin = 0;
             cur_state = STATE_WAIT_RFID;
-
-            dbstate = ADMIN;
-            add_log(dbstate, "dd/mm hh:mm", selected_pin_user);
-            save_database();
-
-        } else {
-            cur_state = STATE_WRONG_PIN; // Increment error_pin in the next state [cite: 601]
-
-            dbstate = DENIED;
-            add_log(dbstate, "dd/mm hh:mm", selected_pin_user);
-            save_database();
-        }
+    }
+    else
+    {
+        cur_state = STATE_WRONG_PIN; // Increment error_pin in the next state [cite: 601]
     }
 }
 
@@ -276,9 +251,11 @@ void fn_AOD(void){
 // --------------------------------------------- //
 
 void fn_menu_lal(void){
+    int dp_page;
+    uint16_t* current_results;
     bool menu_lal_active = 1;
     int tmp;
-    menu_last_access_log();         //to display the first page of db
+    menu_last_access_log(db_page);         //to display the first page of db
 
     while(menu_lal_active){     //until i press buttonB, i stay in lal database and i can use the joystick
 
@@ -290,7 +267,7 @@ void fn_menu_lal(void){
            printf("return_number_count = %d \n",return_number_count());
            if(tmp != db_page){  //i re-screen all infos only if i change page
                db_page = tmp;
-               menu_last_access_log();
+               menu_last_access_log(dp_page);
            }
         }
         if(buttonB_pressed){

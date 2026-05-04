@@ -527,7 +527,7 @@ int number_selected(void){
             Graphics_setForegroundColor(&g_sContext, ClrRed);
             Graphics_fillRectangle(&g_sContext, &rect);
 
-            delay_ms(300);
+            delay_ms(100);
             Graphics_setForegroundColor(&g_sContext, ClrWhite);
             Graphics_fillRectangle(&g_sContext, &rect);
 
@@ -818,6 +818,6 @@ void display_string(const char* string){
                                     AUTO_STRING_LENGTH,
                                     64, 64,
                                     OPAQUE_TEXT);
-    delay_ms(300);
+    delay_ms(100);
 }
 

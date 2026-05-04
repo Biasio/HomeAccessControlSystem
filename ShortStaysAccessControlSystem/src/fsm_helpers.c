@@ -40,6 +40,8 @@ void _hwInit(void){
     ESP_Comm_Init();
     //flash
     database_init();
+
+    TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE); //start the idle timer
 }
 
 
@@ -256,21 +258,17 @@ bool check_for_inputs(){
         ToF_disable(); // Disable ToF interrupt and change state
         ToF_flag = 0; // safety measure if ToF has been re-triggered meanwhile
 
+        TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE); // restart the idle timer
+
         return 1; //signal that an input was detected
     }
-    else // no input was received
-    {
-        // if the ToF interrupt gpio isn't enabled
-        if (!(P4->IE & BIT6)) ToF_enable();
-    }
     return 0; // no interrupts were detected
-
 }
 
 
 void menu_last_access_log(int db_page){
     display_menu_last_access_log();     //it display only the title
-//    serial_print_db();
+//  serial_print_db();
     display_db(db_page);                //to display only the correct page of the database
 }
 

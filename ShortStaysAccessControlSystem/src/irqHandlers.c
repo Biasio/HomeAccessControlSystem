@@ -89,9 +89,8 @@ void TA2_0_IRQHandler(void)
 
     standby = 1;
 
-    // Enable interrupt for ToF sensor
+    // This will enable the interrupt for ToF sensor
     ToF_flag = 0;
-    ToF_enable();
 }
 
 

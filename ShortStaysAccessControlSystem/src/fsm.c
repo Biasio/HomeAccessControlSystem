@@ -38,7 +38,6 @@ StateMachine_t fsm[] = {
 
 void fn_BOOT(void){
     _hwInit();
-    TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE);
     cur_state = STATE_SYNC_TIME;
 }
 
@@ -59,10 +58,6 @@ void fn_SYNC_TIME(void){
         Graphics_setForegroundColor(&g_sContext, ClrBlack);
         display_string("SYNCING TIME...");
     }
-
-    // CRITICAL: Keep restarting the hardware idle timer (A2) to prevent
-    // the system from going into standby/sleep while waiting for the ESP32.
-    TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE);
 
     // SUCCESS CASE: The UART Interrupt has received a valid time packet
     // and initialized the hardware RTC.
@@ -101,15 +96,22 @@ void fn_DOOR_LOCKED(void){
         already_displayed = 1;
     }
 
-    if (standby) {
-        standby = 0;
-        cur_state= STATE_AOD;
-    }
+    // Here the door is assumend locked since the previous one will be
+    // executed at least once per state transition to fn_DOOR_LOCKED
 
-    if (check_for_inputs()) {
+    if (check_for_inputs()) // if idle timer hasn't fired check if there is activity
+    {
         already_displayed = 0;
         cur_state = STATE_INSERT_PIN;
     }
+    else if (standby) // if no activity and the idle timer has fired go to aod
+    {
+        standby = 0;
+        already_displayed = 0;
+        cur_state= STATE_AOD;
+    }
+
+    return;
 }
 
 
@@ -119,25 +121,24 @@ void fn_INSERT_PIN(void){
     display_string("INSERT PIN");
     draw_grid();
 
-    bool pin_correct=0;
-
-    pin_correct = insert_pin();
-
-    // --- 2. Check if the User PIN was Correct ---
-    if(pin_correct == 1)
+    switch ( insert_pin() )
     {
-        error_pin = 0;
-        cur_state = STATE_OPEN_DOOR;
-    }
-    else if (pin_correct == 2)
-    {
+        case 1: // USER pin detected
+            error_pin = 0;
+            cur_state = STATE_OPEN_DOOR;
+            break;
+
+        case 2: // ADMIN pin detected
             error_pin = 0;
             cur_state = STATE_WAIT_RFID;
+            break;
+
+        default:
+            cur_state = STATE_WRONG_PIN;
+            break;
     }
-    else
-    {
-        cur_state = STATE_WRONG_PIN; // Increment error_pin in the next state [cite: 601]
-    }
+
+    return;
 }
 
 
@@ -232,8 +233,6 @@ void fn_AOD(void){
     // Stop the idle timer since we are already in the sleep/AOD state
     Timer_A_stop(TIMER_A2_BASE);
 
-
-
     if (timeSynced) {
         // Fetch the current real time directly from the hardware RTC module
         RTC_C_Calendar now = RTC_C_getCalendarTime();
@@ -265,16 +264,18 @@ void fn_AOD(void){
 
     // Check for any user interaction (buttons, joystick, or ToF sensor)
     if (check_for_inputs()) {
-        cur_state = STATE_INSERT_PIN;
-        TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE); // restart the idle timer
         unsynced_drawn = false;
+        cur_state = STATE_INSERT_PIN;
     }
-
-    // The VL53L0X interrupt on P4.6 will wake the CPU automatically
-    // TODO: set a 30 sec interrupt to wake the cpu and increment the clock.
-    // TODO: disable unnecessary interrupts so cpu isn't woke up
-    PCM_gotoLPM0(); // is a blocking call: the CPU halts execution at this instruction and only resumes when an interrupt fires.
-
+    else // no input was received
+    {
+        // if the ToF interrupt gpio isn't enabled it
+        if(ToF_ready) ToF_enable();
+        // The VL53L0X interrupt on P4.6 will wake the CPU automatically
+        // TODO: set a 30 sec interrupt to wake the cpu and increment the clock.
+        // TODO: disable unnecessary interrupts so cpu isn't woke up
+        PCM_gotoLPM0(); // is a blocking call: the CPU halts execution at this instruction and only resumes when an interrupt fires.
+    }
 }
 
 

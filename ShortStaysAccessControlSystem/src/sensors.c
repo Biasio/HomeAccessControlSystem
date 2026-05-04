@@ -11,24 +11,22 @@ volatile bool ToF_ready = 0;
 */
 
 void ToF_Init(){
-    /*
     i2c_init();
     interrupt_gpio_init();
     xshut_gpio_init();
     ToF_ready = vl53l0x_init();
-    return;*/
+    return;
 }
 
 void ToF_IRQHandler(void){
-    /*
     ToF_flag = 1;
     GPIO_disableInterrupt(GPIO_PORT_P4, GPIO_PIN6);
     GPIO_clearInterruptFlag(GPIO_PORT_P4, GPIO_PIN6);
-    return;*/
+    return;
 }
 
 bool ToF_disable(){
-    /*
+
     uint16_t dummy=0;
 
 
@@ -38,34 +36,34 @@ bool ToF_disable(){
     ToF_ready=0;
     xshut_toggle(false); //sensor to standby
 
-    return status;*/
+    return status;
 }
 
 
 
 bool ToF_enable(){
-    /*
     bool status = vl53l0x_init();
 
-    status &=  vl53l0x_start_continuous();
+    status &= vl53l0x_start_continuous();
 
     GPIO_clearInterruptFlag(GPIO_PORT_P4, GPIO_PIN6);
     GPIO_enableInterrupt(GPIO_PORT_P4, GPIO_PIN6);
 
-    return status;*/
+    if (status) ToF_ready=1;
+
+    return status;
 }
 
 
 bool ToF_validate_interrupt(void)
 {
-    /*
     bool status = 0;
     uint16_t range=0;
     if (ToF_flag == 1){
         status &= vl53l0x_read_range_interrupt(&range);
         status &= ToF_disable();
     }
-    return status;*/
+    return status;
 }
 
 

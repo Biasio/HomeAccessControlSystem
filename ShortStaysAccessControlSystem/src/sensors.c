@@ -26,10 +26,9 @@ void ToF_IRQHandler(void){
 }
 
 bool ToF_disable(){
+    if (!ToF_ready) return false;
 
     uint16_t dummy=0;
-
-
     bool status = vl53l0x_read_range_interrupt(&dummy);
     status &= vl53l0x_stop_continuous(); //need to disable continuous mode
 
@@ -42,16 +41,22 @@ bool ToF_disable(){
 
 
 bool ToF_enable(){
-    bool status = vl53l0x_init();
 
-    status &= vl53l0x_start_continuous();
+    ToF_ready &= vl53l0x_init();
+    ToF_ready &= vl53l0x_start_continuous();
 
-    GPIO_clearInterruptFlag(GPIO_PORT_P4, GPIO_PIN6);
-    GPIO_enableInterrupt(GPIO_PORT_P4, GPIO_PIN6);
+    if (!ToF_ready){
+        vl53l0x_stop_continuous();
+        xshut_toggle(false);
+        i2c_recover(void);
+    }
+    else
+    {
+        GPIO_clearInterruptFlag(GPIO_PORT_P4, GPIO_PIN6);
+        GPIO_enableInterrupt(GPIO_PORT_P4, GPIO_PIN6);
+    }
 
-    if (status) ToF_ready=1;
-
-    return status;
+    return ToF_ready;
 }
 
 

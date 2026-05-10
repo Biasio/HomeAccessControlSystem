@@ -19,11 +19,14 @@
 extern uint16_t error_pin;
 extern uint8_t saved_pin_admin[4];
 
+
+
+
 void _hwInit(void);
 
 uint8_t insert_pin(void);
 void open_door(void);
-void wait_RFID(void);
+bool wait_RFID(void);
 int admin_menu(void);
 
 void menu_setup_pin(void);
@@ -34,7 +37,6 @@ void menu_block_pin(void);
 void wrong_pin(void);
 void last_pin(void);
 void block_access(void);
-void wait_reset_door(void);
 
 bool check_for_inputs();
 void door_lock();

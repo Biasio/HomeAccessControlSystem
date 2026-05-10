@@ -9,6 +9,7 @@
 #include <inttypes.h>
 #include "timers.h"
 
+#define MAX_PIN_TRIES 3
 
 #define RECTANGLE_SHIFT_X_ON_GRID 30
 #define RECTANGLE_SHIFT_Y_ON_GRID 22

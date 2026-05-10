@@ -19,12 +19,14 @@ void _hwInit(void){
     _ClockSystemInit();
     _SysTickInit();
 
-    //display
-    _graphicsInit();
-
     //joystick
     _adcInit();
     _ADCtimerInit();
+
+    //disable the CS gpio for RFID It might be
+    // left low after a reset without power interruptionn
+    GPIO_setAsOutputPin(RFID_CS_PORT, RFID_CS_PIN);
+    RFID_CS_High();
 
     //buttons
     _pushButtonsInit();
@@ -40,6 +42,9 @@ void _hwInit(void){
     ESP_Comm_Init();
     //flash
     database_init();
+
+    //display
+    _graphicsInit();
 
     TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE); //start the idle timer
 }
@@ -156,23 +161,67 @@ uint8_t insert_pin(){
 
 
 void open_door(void){
-    // - show on display that door is opening
     // - turn on servo
-    // - turn on LED
-    // ? make a sound to signal that the code is correct
-
-    display_door_open();
-    //buzzerPWMgen(&StarWars);
-    delay_ms(2500);
-
 }
 
 
 
-void wait_RFID(void){
+bool wait_RFID(void){
     Graphics_setForegroundColor(&g_sContext, ClrBlack);
     display_string("PLEASE, USE RFID");
-    delay_ms(10000);
+
+    uint32_t start_t = system_millis;
+    while ((system_millis - start_t) < 4000){
+        if(buttonB_pressed){ //if back button is pressed, go back
+            buttonB_pressed=0;
+            RFID_Disable();
+            return false; //exit if a button is pressed
+        }
+    }
+
+    if(!RFID_Enable()){
+        display_string("ERROR SETTING UP RFID");
+        RFID_Disable(); //restore button functionality and disables SPI
+        delay_ms(2000);
+        return false;
+    }
+
+    uint8_t read_uid[10] = {0};
+    uint8_t uidLength=10;
+    bool read_status = 1;
+
+    while(1){ //polling loop
+        if(buttonA_pressed || buttonB_pressed){
+            buttonA_pressed=0;
+            buttonB_pressed=0;
+            RFID_Disable();
+            return false; //exit if a button is pressed
+        }
+
+        read_status = RFID_ReadTag(read_uid, &uidLength);
+        if (read_status && (uidLength <= RFID_UID_LENGTH)){
+            //check for valid RFID
+            while((uidLength--) > 0){
+                if(read_uid[uidLength]!=RFID_saved[uidLength]){
+                    read_status = 0;
+                    break;
+                }
+            }
+            if(read_status){ //rfid data is valid
+                display_string("valid RFID");
+                RFID_Disable(); //restore button functionality and disables SPI
+                delay_ms(2000);
+                return true;
+            }
+        }
+        else
+        {
+            display_string("ERROR READING THE RFID");
+            RFID_Disable();
+            delay_ms(2000);
+            return false;
+        }
+    }
 }
 
 
@@ -226,43 +275,51 @@ void wrong_pin(void){
     // - turn on LED
     // - make a sound to signal that the code is incorrect
 
-    error_pin++;
+    ++error_pin;
 
+    uint32_t t_start = system_millis;
     display_wrong_pin(error_pin);
+    if (error_pin<MAX_PIN_TRIES) buzzerPWMgen(&WrongPin);
+    else buzzerPWMgen(&LockOut);
+    while(t_start-system_millis < 3000);
+
 }
 
 
 void block_access(void){
     display_block_access();
-
-    delay_ms(10000);
+    delay_ms(3000);
 }
 
 void door_lock(){
     Graphics_setForegroundColor(&g_sContext, ClrBlack);
     display_string("DOOR LOCKED");
+    delay_ms(2000);
 }
 
-
-void wait_reset_door(void){
-
-}
 
 
 bool check_for_inputs(){
-    if (ToF_flag || buttonA_pressed || buttonB_pressed)
+    if (buttonA_pressed || buttonB_pressed)
     {
         buttonB_pressed=0;
         buttonA_pressed=0;
-
-        ToF_disable(); // Disable ToF interrupt and change state
-        ToF_flag = 0; // safety measure if ToF has been re-triggered meanwhile
-
-        TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE); // restart the idle timer
+        Timer_A_stop(TIMER_A2_BASE);
 
         return 1; //signal that an input was detected
     }
-    return 0; // no interrupts were detected
+    else if (ToF_flag)
+    {
+        ToF_flag = 0; // safety measure if ToF has been re-triggered meanwhile
+
+        if (ToF_validate_interrupt()){
+            Timer_A_stop(TIMER_A2_BASE);
+            ToF_disable(); // Disable ToF interrupt and change state
+
+            return 1;
+        }
+    }
+    return 0; // no interrupts were detected or ToF wasn't valid
 }
 
 

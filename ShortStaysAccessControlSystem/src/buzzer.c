@@ -24,24 +24,26 @@ void _buzzerInit(){
 void buzzerPWMgen(const audio_data* song){
 
     uint32_t i,freq = 0;
-
     for(i=0; i < song->length; ++i){
+
         freq = song->notes[i].pitch;
 
-        freq == 0 ? (freq = 0) : (freq = CS_getSMCLK() / (freq*16));
+        if((VOLUME!=0) && (freq != 0)){
+            freq = (CS_getSMCLK() / (freq << 4)) & (0xFFFF); //limit to 65535
+            (&buzzerPWMconfig)->timerPeriod = freq;
+            (&buzzerPWMconfig)->dutyCycle = (freq * VOLUME) >> 10 ;
+            Timer_A_generatePWM(TIMER_A0_BASE, &buzzerPWMconfig);
 
-        if (freq > 65535) freq = 65535; // check if freq is greather than 16 bit uint
+            delay_ms(song->notes[i].time_ms);
 
-        (&buzzerPWMconfig)->timerPeriod = freq;
-        (&buzzerPWMconfig)->dutyCycle = freq / 50;
-
-        Timer_A_generatePWM(TIMER_A0_BASE, &buzzerPWMconfig);
-
-        delay_ms(song->notes[i].time_ms);
-
-        (&buzzerPWMconfig)->dutyCycle = 0;
-        Timer_A_generatePWM(TIMER_A0_BASE, &buzzerPWMconfig);
-        delay_ms(1); // silence for 1 ms
+            (&buzzerPWMconfig)->dutyCycle = 0;
+            Timer_A_generatePWM(TIMER_A0_BASE, &buzzerPWMconfig);
+            delay_ms(1); // silence for 2 ms
+        }
+        else
+        {
+            Timer_A_stop(TIMER_A0_BASE);
+        }
     }
 
     Timer_A_stop(TIMER_A0_BASE);

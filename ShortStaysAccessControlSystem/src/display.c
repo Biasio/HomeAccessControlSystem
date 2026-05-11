@@ -386,22 +386,6 @@ void move_rectangle_on_display( uint16_t x, uint16_t y, bool grid_on) {
               move_rectangle_down(&sel_rectangle_on_admin_menu, RECTANGLE_SHIFT_ON_MENU);
           }
        }
-/*
-       // --- Horizontal Paging Logic --- //
-      if(x>RIGHT) {
-          Timer_A_clearTimer(TIMER_A2_BASE);
-          if(first_screen){
-              first_screen = 0; //change page
-              draw_admin_menu(first_screen);
-          }
-      }
-      if(x<LEFT) {
-          Timer_A_clearTimer(TIMER_A2_BASE);
-          if(!first_screen){
-              first_screen = 1; //change page
-              draw_admin_menu(first_screen);
-          }
-      }*/
 
       // --- FINAL STEP: Draw the NEWLY selected item in RED --- //
       // This must run after any movement (scroll or page change)

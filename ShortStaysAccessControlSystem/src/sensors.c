@@ -196,7 +196,7 @@ void RFID_CS_High(void) {
 
 bool RFID_Init(void) {
     // Configure SPI pins
-    GPIO_disableInterrupt(RFID_SCK_PORT, RFID_SCK_PIN);
+    GPIO_disableInterrupt(RFID_SCK_PORT, RFID_SCK_PIN); //shared with the button!
     GPIO_clearInterruptFlag(RFID_SCK_PORT, RFID_SCK_PIN);
     GPIO_disableInterrupt(RFID_MOSI_PORT, RFID_MOSI_PIN);
     GPIO_clearInterruptFlag(RFID_MOSI_PORT, RFID_MOSI_PIN);
@@ -234,11 +234,9 @@ bool RFID_Init(void) {
 }
 
 bool RFID_Enable(void) {
-    if(!RFID_ready) {
-        if(!RFID_Init()){
-            RFID_ready=0;
-            return false;
-        }
+    if(!RFID_Init()){
+        RFID_ready=0;
+        return false;
     }
     // Hardware reset sequence
     GPIO_setOutputHighOnPin(RFID_RST_PORT, RFID_RST_PIN);  // release reset
@@ -279,18 +277,17 @@ bool RFID_Enable(void) {
 }
 
 bool RFID_Disable(void) {
-    // Software power down MFRC522
-    RFID_WriteRegister(MFRC522_COMMAND_REG, MFRC522_CMD_IDLE);
-    uint8_t temp = RFID_ReadRegister(MFRC522_CONTROL_REG);
-    RFID_WriteRegister(MFRC522_CONTROL_REG, temp | 0x10); // set PowerDown bit
+    // Ensure CS is high
+    RFID_CS_High();
 
     // Disable SPI module
     SPI_disableModule(RFID_EUSCI);
 
-    // Ensure CS is high
-    RFID_CS_High();
-
     delay_ms(100); //ensure SPI is dead
+
+    GPIO_setAsOutputPin(RFID_RST_PORT, RFID_RST_PIN);
+    GPIO_setOutputHighOnPin(RFID_RST_PORT, RFID_RST_PIN);
+
     //revert GPIO to normal functions
     GPIO_setAsInputPinWithPullUpResistor(RFID_SCK_PORT, RFID_SCK_PIN);
     GPIO_setAsInputPinWithPullUpResistor(RFID_MOSI_PORT, RFID_MOSI_PIN);

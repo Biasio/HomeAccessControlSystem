@@ -18,6 +18,8 @@ void _pushButtonsInit(){
         GPIO_interruptEdgeSelect(GPIO_PORT_P3, GPIO_PIN5, GPIO_HIGH_TO_LOW_TRANSITION);
 
         //enable interrupts on buttons
+        GPIO_clearInterruptFlag(GPIO_PORT_P5, GPIO_PIN1); // clear any spurious flag
+        GPIO_clearInterruptFlag(GPIO_PORT_P3, GPIO_PIN5);
         GPIO_enableInterrupt(GPIO_PORT_P5, GPIO_PIN1);
         GPIO_enableInterrupt(GPIO_PORT_P3, GPIO_PIN5);
 

@@ -44,4 +44,6 @@ void door_lock();
 void menu_factory_reset(void);
 void menu_last_access_log(int db_page);
 
+char* get_date_hour();
+
 #endif

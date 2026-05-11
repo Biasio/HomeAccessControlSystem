@@ -1,31 +1,22 @@
 #include "database.h"
 
+LogDB myDb;             //the real creation of the instance
 
-//formato: dd/mm - hh:mm
-//          USER ACCESS
-
-    /// ALLORA adesso sembrerebbe funzionare. anche se stacco e poi riattacco, il sistema in automatico
-     //  sembra ritrovare i valori di head e di count. inoltre sul memory browser tutto sembra funzionare
-     //  come previsto. adesso bisogna vedere se dalla flash viene prelevato sempre anche l'array, per stamparlo sul display.
 
 void database_init(){
 
-   // ptr1 = &myDb;                    //i set ptr to point to myDb
-    ptr2 = (volatile LogDB *)DATABASE_START;
+    ptr2 = (volatile LogDB *)DATABASE_START;                //ptr2 points to the myDb instance in flash
 
     myDb = *ptr2;    //when i initialize, myDb (in Ram) copies data from flash
 
-
-    printf(" dalla flash: head =%d   count = %d\n", myDb.head,myDb.count);
-    if(myDb.count<0){myDb.count=0;}
+   // printf(" dalla flash: head =%d   count = %d\n", myDb.head,myDb.count);
+    if(myDb.count<0){myDb.count=0;}             //because when i program the flash the first time, all cells contain FFFF which is -1, thus creating errors
     if(myDb.head<0){myDb.head=0;}
 }
 
 void add_log(dbStates s, const char* dH, const int* pin){
-    printf("entrato su addlog\n");
-    printf("head =%d   count = %d\n", myDb.head,myDb.count);
 
-     myDb.dbArray[myDb.head].logState = s;           //to add state info
+    myDb.dbArray[myDb.head].logState = s;           //to add state info
 
     strncpy(myDb.dbArray[myDb.head].dateHour,       //to copy the info about date and hour
             dH,
@@ -42,8 +33,7 @@ void add_log(dbStates s, const char* dH, const int* pin){
     if(myDb.count < MAX_NUMBER_LOG_SAVED) myDb.count++;         //to know the number of elements in the array
 }
 
-void serial_print_db(){
-    printf("STAMPAAA \n");
+void serial_print_db(){                                 //used only in debug to print db on serial monitor. no longer used
     printf("count serial_print = %d \n", myDb.count);
     int i;
     int j;
@@ -64,34 +54,7 @@ void serial_print_db(){
     }
 }
 
-void save_database(){
-    /* Setting our MCLK to 48MHz for faster programming*/
-    MAP_PCM_setCoreVoltageLevel(PCM_VCORE1);
-    FlashCtl_setWaitState(FLASH_BANK0, 1);
-    FlashCtl_setWaitState(FLASH_BANK1, 1);
-    MAP_CS_setDCOCenteredFrequency(CS_DCO_FREQUENCY_48);
 
-    //![FlashCtl Program]
-    /* Unprotecting Info Bank 0, Sector 0  */
-    MAP_FlashCtl_unprotectSector(FLASH_MAIN_MEMORY_SPACE_BANK1,FLASH_SECTOR31);
-
-    /* Trying to erase the sector. Within this function, the API will
-        automatically try to erase the maximum number of tries.  */
-    if(!MAP_FlashCtl_eraseSector(DATABASE_START)){
-        printf("Error in erasing sector! \n");
-    }
-
-
-    /* Trying to program the memory. Within this function, the API will
-        automatically try to program the maximum number of tries. */
-    if(!MAP_FlashCtl_programMemory((LogDB*)&myDb, (void*) DATABASE_START, sizeof(LogDB))){      //qua al posto di ptr1 ho usato &myDb, e dopo boh ha iniziato a funzionare
-        printf("Error in writing flash! \n");
-    }
-
-    /* Setting the sector back to protected  */
-    MAP_FlashCtl_protectSector(FLASH_MAIN_MEMORY_SPACE_BANK1,FLASH_SECTOR31);
-    printf("saved in db \n");
-}
 
 
 void display_db(int page){

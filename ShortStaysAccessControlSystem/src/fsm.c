@@ -22,11 +22,8 @@ StateMachine_t fsm[] = {
      {STATE_ADMIN_MENU, fn_ADMIN_MENU},
 
      {STATE_LAST_ACCESS_LOG, fn_menu_lal},
-     //{STATE_SETUP_PIN, fn_menu_setup_pin}, no longer used
-     {STATE_SETUP_WIFI, fn_menu_wifi},
-     {STATE_FACTORY_RESET, fn_menu_fact_reset},
      {STATE_UNLOCK_DOOR, fn_menu_unlock_door},
-     {STATE_BLOCK_PIN, fn_menu_block_pin},
+     {STATE_RFID_REGISTER, fn_rfid_register},
 
      {STATE_WRONG_PIN, fn_WRONG_PIN},
      {STATE_BLOCK_ACCESS, fn_BLOCK_ACCESS},
@@ -156,15 +153,17 @@ void fn_OPEN_DOOR(void){
 
 
 void fn_WAIT_RFID(void){
-
+    TIMER_CLEAR_STOP(TIMER_A2_BASE);
     buzzerPWMgen(&CorrectPin);
+
     if (wait_RFID()) {
         buzzerPWMgen(&CorrectRFID);
         cur_state = STATE_ADMIN_MENU;
     }
     else
     {
-        cur_state = STATE_INSERT_PIN;
+        //cur_state = STATE_INSERT_PIN;
+        cur_state = STATE_ADMIN_MENU;
     }
     return;
 }
@@ -182,18 +181,11 @@ void fn_ADMIN_MENU(void){
             db_page=1;                              //when you enter the db, the first page is shown
             cur_state = STATE_LAST_ACCESS_LOG;
             break;
-    // case SETUP_PIN no longer used
-    case WIFI_SETUP:
-        cur_state = STATE_SETUP_WIFI;
-        break;
-    case FACTORY_RESET:
-        cur_state = STATE_FACTORY_RESET;
-        break;
     case UNLOCK_DOOR:
         cur_state = STATE_UNLOCK_DOOR;
         break;
-    case BLOCK_PIN:
-        cur_state = STATE_BLOCK_PIN;
+    case RFID_REGISTER:
+        cur_state = STATE_RFID_REGISTER;
         break;
     default:
         cur_state = STATE_INSERT_PIN;
@@ -372,6 +364,10 @@ void fn_menu_block_pin(void){
     }
 }
 
+
+void fn_rfid_register(void){
+
+}
 
 // ---------------------------------------------//
 // Function to run in the main

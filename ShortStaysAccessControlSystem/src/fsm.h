@@ -25,11 +25,8 @@ typedef enum{
     STATE_ADMIN_MENU, //there must be other states for each functionality
 
     STATE_LAST_ACCESS_LOG,
-    //STATE_SETUP_PIN, no longer used
-    STATE_SETUP_WIFI,
-    STATE_FACTORY_RESET,
     STATE_UNLOCK_DOOR,
-    STATE_BLOCK_PIN,
+    STATE_RFID_REGISTER,
 
     STATE_WRONG_PIN,
     STATE_BLOCK_ACCESS,
@@ -67,6 +64,7 @@ void fn_menu_wifi(void);
 void fn_menu_fact_reset(void);
 void fn_menu_unlock_door(void);
 void fn_menu_block_pin(void);
+void fn_rfid_register(void);
 
 // Function to run in the loop
 void FSM_Run(void);

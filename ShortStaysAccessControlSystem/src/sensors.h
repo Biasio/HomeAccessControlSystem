@@ -28,7 +28,7 @@ bool ToF_validate_interrupt(void);
 
 extern volatile bool RFID_ready; // 1=yes 0=no
 
-#define SPI_TIMEOUT 10
+#define SPI_TIMEOUT 100
 #define RFID_UID_LENGTH  7          // length of the RFID UID
 extern const uint8_t RFID_saved[RFID_UID_LENGTH];
 
@@ -53,8 +53,8 @@ bool RFID_ReadTag(uint8_t *uid, uint8_t *uidLength); // Polling single tag read 
 #define RFID_CS_PIN           GPIO_PIN2
 
 /* If pulled low, hard power down triggers, when edge rising, reset is forced*/
-#define RFID_RST_PORT         GPIO_PORT_P2
-#define RFID_RST_PIN          GPIO_PIN3
+#define RFID_RST_PORT         GPIO_PORT_P3
+#define RFID_RST_PIN          GPIO_PIN0
 
 #define RFID_EUSCI            EUSCI_B2_BASE
 #define RFID_EUSCI_TX_INT     EUSCI_B_SPI_TRANSMIT_INTERRUPT

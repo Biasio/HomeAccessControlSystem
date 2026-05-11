@@ -180,48 +180,58 @@ bool wait_RFID(void){
     }
 
     if(!RFID_Enable()){
-        display_string("ERROR SETTING UP RFID");
-        RFID_Disable(); //restore button functionality and disables SPI
-        delay_ms(2000);
-        return false;
+        goto FALSE;
     }
 
     uint8_t read_uid[10] = {0};
     uint8_t uidLength=10;
-    bool read_status = 1;
+    bool read_status = 0;
 
     while(1){ //polling loop
         if(buttonA_pressed || buttonB_pressed){
             buttonA_pressed=0;
             buttonB_pressed=0;
-            RFID_Disable();
-            return false; //exit if a button is pressed
         }
 
-        read_status = RFID_ReadTag(read_uid, &uidLength);
-        if (read_status && (uidLength <= RFID_UID_LENGTH)){
+        if(RFID_ready) read_status = RFID_ReadTag(read_uid, &uidLength);
+
+        if (read_status && (uidLength <= RFID_UID_LENGTH))
+        {
+            printf("Read RFID:");
+            for(int i=uidLength; i>0;) printf("%" PRIu8, read_uid[--i]);
+
             //check for valid RFID
-            while((uidLength--) > 0){
+            while((uidLength--) > 0)
+            {
                 if(read_uid[uidLength]!=RFID_saved[uidLength]){
                     read_status = 0;
                     break;
                 }
             }
-            if(read_status){ //rfid data is valid
-                display_string("valid RFID");
+            if(read_status) //rfid data is valid
+            {
+
                 RFID_Disable(); //restore button functionality and disables SPI
+                _graphicsInit();
+                display_string("valid RFID");
                 delay_ms(2000);
                 return true;
             }
         }
         else
         {
-            display_string("ERROR READING THE RFID");
-            RFID_Disable();
-            delay_ms(2000);
-            return false;
+            goto FALSE;
         }
     }
+    return true;
+
+    /* Reset logic before exiting */
+    FALSE:
+    RFID_Disable();
+    _graphicsInit();
+    display_string("ERROR");
+    delay_ms(2000);
+    return false; //exit if a button is pressed
 }
 
 

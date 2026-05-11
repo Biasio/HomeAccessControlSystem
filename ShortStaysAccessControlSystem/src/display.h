@@ -38,11 +38,12 @@ typedef enum {
 typedef enum {
     LAST_ACCESS_LOG,
     //SETUP_PIN, no longer used
-    WIFI_SETUP,
-    FACTORY_RESET,
+    //WIFI_SETUP,
+    //FACTORY_RESET,
     UNLOCK_DOOR,
-    BLOCK_PIN,
-    NUM_FUNCTION
+    //BLOCK_PIN,
+    //NUM_FUNCTION
+    RFID_REGISTER
 } enum_menu_functions;
 
 

@@ -37,10 +37,11 @@ const Point MENU_POINTS[] = {
 char* function_strings[] = {
     "LAST ACCESS LOG",
     //"SETUP PIN", no longer used
-    "SETUP WIFI",
-    "FACTORY RESET",
+    //"SETUP WIFI",
+    //"FACTORY RESET",
     "UNLOCK DOOR",
-    "BLOCK PIN INSERT"
+    "RFID_REGISTER"
+    //"BLOCK PIN INSERT"
 };
 
 // Initialize display
@@ -146,20 +147,10 @@ void draw_admin_menu(bool screen_number){
          start = 0;
          end = 3;
 
-         Graphics_drawStringCentered(&g_sContext, (int8_t *) "Page 1/2",
+         Graphics_drawStringCentered(&g_sContext, (int8_t *) "Page 1/1",
                                         AUTO_STRING_LENGTH,
                                         23, 5,
                                         OPAQUE_TEXT);
-     }
-     else{   //second page
-         first_screen=0;
-         start = 3;
-         end = 6;
-
-         Graphics_drawStringCentered(&g_sContext, (int8_t *) "Page 2/2",
-                                     AUTO_STRING_LENGTH,
-                                     23, 5,
-                                     OPAQUE_TEXT);
      }
 
     GrContextFontSet(&g_sContext, &g_sFontCmss16);
@@ -395,7 +386,7 @@ void move_rectangle_on_display( uint16_t x, uint16_t y, bool grid_on) {
               move_rectangle_down(&sel_rectangle_on_admin_menu, RECTANGLE_SHIFT_ON_MENU);
           }
        }
-
+/*
        // --- Horizontal Paging Logic --- //
       if(x>RIGHT) {
           Timer_A_clearTimer(TIMER_A2_BASE);
@@ -410,7 +401,7 @@ void move_rectangle_on_display( uint16_t x, uint16_t y, bool grid_on) {
               first_screen = 1; //change page
               draw_admin_menu(first_screen);
           }
-      }
+      }*/
 
       // --- FINAL STEP: Draw the NEWLY selected item in RED --- //
       // This must run after any movement (scroll or page change)
@@ -607,47 +598,14 @@ int display_function_selected(void){
                         printf("Last access log \n");
                         selected_function = LAST_ACCESS_LOG;
                         break;
-                    /* no longer used
-                    case 1:
-                        printf("pin_setup \n", i);
-                        selected_function = SETUP_PIN;
-                        break;
-                    */
-                    case 1:
-                        printf("wifi_setup \n");
-                        selected_function = WIFI_SETUP;
-                        break;
-                    case 2:
-                        printf("Factory reset\n");
-                        selected_function = FACTORY_RESET;
-                        break;
-                    default:
-                        printf("Nothing \n");
-                    }
-                    // Break the loop once the selected function is found
-                    return selected_function;
-                }
-            }
 
-    }else{ // --- SECOND SCREEN (Functions 3-5) ---
-        int i;
-            for (i = 0; i <= 2; i++)
-            {
-                // Check if current point (MENU_POINTS[i]) is inside the rectangle rect
-                if (Graphics_isPointWithinRectangle(
-                        &rect,
-                        MENU_POINTS[i].x,
-                        MENU_POINTS[i].y))
-                {
-
-                    switch(i){
-                    case 0:
+                    case 1:
                         printf("Unlock_door \n");
                         selected_function = UNLOCK_DOOR;
                         break;
-                    case 1:
-                        printf("Block_PIN \n");
-                        selected_function = BLOCK_PIN;
+                    case 2:
+                        printf("RFID_REGISTER\n");
+                        selected_function = RFID_REGISTER;
                         break;
                     default:
                         printf("Nothing \n");
@@ -656,7 +614,9 @@ int display_function_selected(void){
                     return selected_function;
                 }
             }
+
     }
+
     // Return the initial value (0) if no menu point was selected on either screen
     return selected_function;
 }

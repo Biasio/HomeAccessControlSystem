@@ -95,13 +95,13 @@ static void RFID_WriteRegister(uint8_t reg, uint8_t value) {
     SPI_transmitData(RFID_EUSCI, addr);
     // Wait for TX to complete (first byte)
     uint32_t t_start = system_millis;
-    while (!(SPI_getInterruptStatus(RFID_EUSCI, RFID_EUSCI_RX_INT)) && (t_start - system_millis < SPI_TIMEOUT)); //wait for ACK
+    while (!(SPI_getInterruptStatus(RFID_EUSCI, RFID_EUSCI_RX_INT)) && ((system_millis - t_start) < SPI_TIMEOUT)); //wait for ACK
     SPI_receiveData(RFID_EUSCI); // Dummy read to clear the RX flag
 
     SPI_transmitData(RFID_EUSCI, value);
     // Wait for TX complete (data byte)
     t_start = system_millis;
-    while (!(SPI_getInterruptStatus(RFID_EUSCI, RFID_EUSCI_RX_INT)) && (t_start - system_millis < SPI_TIMEOUT)); //Wait for ACK
+    while (!(SPI_getInterruptStatus(RFID_EUSCI, RFID_EUSCI_RX_INT)) && ((system_millis - t_start) < SPI_TIMEOUT)); //Wait for ACK
     SPI_receiveData(RFID_EUSCI); // Dummy read to clear the RX flag
     RFID_CS_High();
 }
@@ -117,13 +117,13 @@ static uint8_t RFID_ReadRegister(uint8_t reg) {
         SPI_transmitData(RFID_EUSCI, addr);
         // Wait for transfer to complete and discard dummy RX data
         uint32_t t_start = system_millis;
-        while (!(SPI_getInterruptStatus(RFID_EUSCI, RFID_EUSCI_RX_INT)) && (t_start - system_millis < SPI_TIMEOUT));
+        while (!(SPI_getInterruptStatus(RFID_EUSCI, RFID_EUSCI_RX_INT)) && ((system_millis - t_start) < SPI_TIMEOUT));
         SPI_receiveData(RFID_EUSCI);
 
         // Send dummy write to clock in the valid response
         SPI_transmitData(RFID_EUSCI, 0xFF);
         t_start = system_millis;
-        while (!(SPI_getInterruptStatus(RFID_EUSCI, RFID_EUSCI_RX_INT)) && (t_start - system_millis < SPI_TIMEOUT));
+        while (!(SPI_getInterruptStatus(RFID_EUSCI, RFID_EUSCI_RX_INT)) && ((system_millis - t_start) < SPI_TIMEOUT));
         uint8_t data = SPI_receiveData(RFID_EUSCI);
         RFID_CS_High();
         return data;
@@ -202,9 +202,9 @@ bool RFID_Init(void) {
     GPIO_clearInterruptFlag(RFID_MOSI_PORT, RFID_MOSI_PIN);
     GPIO_disableInterrupt(RFID_MISO_PORT, RFID_MISO_PIN);
     GPIO_clearInterruptFlag(RFID_MISO_PORT, RFID_MISO_PIN);
-    GPIO_setAsPeripheralModuleFunctionOutputPin(RFID_SCK_PORT, RFID_SCK_PIN, GPIO_SECONDARY_MODULE_FUNCTION);
-    GPIO_setAsPeripheralModuleFunctionOutputPin(RFID_MOSI_PORT, RFID_MOSI_PIN, GPIO_TERTIARY_MODULE_FUNCTION);
-    GPIO_setAsPeripheralModuleFunctionInputPin(RFID_MISO_PORT, RFID_MISO_PIN, GPIO_TERTIARY_MODULE_FUNCTION);
+    GPIO_setAsPeripheralModuleFunctionOutputPin(RFID_SCK_PORT, RFID_SCK_PIN, GPIO_PRIMARY_MODULE_FUNCTION);
+    GPIO_setAsPeripheralModuleFunctionOutputPin(RFID_MOSI_PORT, RFID_MOSI_PIN, GPIO_PRIMARY_MODULE_FUNCTION);
+    GPIO_setAsPeripheralModuleFunctionInputPin(RFID_MISO_PORT, RFID_MISO_PIN, GPIO_PRIMARY_MODULE_FUNCTION);
 
     // CS pin as output, idle high
     GPIO_disableInterrupt(RFID_CS_PORT, RFID_CS_PIN);
@@ -234,11 +234,15 @@ bool RFID_Init(void) {
 }
 
 bool RFID_Enable(void) {
-    if(!RFID_ready) RFID_Init();
-
+    if(!RFID_ready) {
+        if(!RFID_Init()){
+            RFID_ready=0;
+            return false;
+        }
+    }
     // Hardware reset sequence
     GPIO_setOutputHighOnPin(RFID_RST_PORT, RFID_RST_PIN);  // release reset
-    delay_ms(10);                                          // stabilization
+    delay_ms(20);                                          // stabilization
     GPIO_setOutputLowOnPin(RFID_RST_PORT, RFID_RST_PIN);   // assert reset
     delay_ms(10);
     GPIO_setOutputHighOnPin(RFID_RST_PORT, RFID_RST_PIN);  // release
@@ -249,6 +253,8 @@ bool RFID_Enable(void) {
 
     // Perform initialization sequence
     MFRC522_SoftReset();
+    RFID_WriteRegister(0x12, 0x00);
+    RFID_WriteRegister(0x13, 0x00);
 
     // Verify version register (expected 0x92 for MFRC522)
     uint8_t version = RFID_ReadRegister(MFRC522_VERSION_REG);
@@ -284,6 +290,11 @@ bool RFID_Disable(void) {
     // Ensure CS is high
     RFID_CS_High();
 
+    delay_ms(100); //ensure SPI is dead
+    //revert GPIO to normal functions
+    GPIO_setAsInputPinWithPullUpResistor(RFID_SCK_PORT, RFID_SCK_PIN);
+    GPIO_setAsInputPinWithPullUpResistor(RFID_MOSI_PORT, RFID_MOSI_PIN);
+    _graphicsInit();
     _pushButtonsInit(); //revert the gpio's function as button
 
     RFID_ready=0;

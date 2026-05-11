@@ -222,7 +222,6 @@ void fn_WAIT_RESET_DOOR(void){
 
 void fn_AOD(void){
 
-
     // Static variable to track the last drawn minute.
     // Initialized to -1 so it instantly draws the clock the first time it enters AOD.
     static int lastMinute = -1;
@@ -296,7 +295,7 @@ void fn_menu_lal(void){
         //if timer of joystick finished, give number of page selected
         if(data_aquired()){
            tmp = db_page_selected(current_results[0], current_results[1], calc_num_pages_db(return_number_count()), db_page);
-           printf("return_number_count = %d \n",return_number_count());
+
            if(tmp != db_page){  //i re-screen all infos only if i change page
                db_page = tmp;
                menu_last_access_log(dp_page);

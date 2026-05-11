@@ -38,7 +38,8 @@ void _hwInit(void){
 
     // Initialize UART communication with ESP32
     ESP_Comm_Init();
-    //flash
+
+    //to restore data from flash
     database_init();
 }
 
@@ -126,6 +127,14 @@ uint8_t insert_pin(){
     for(k=0; k < MAX_TEMP_USERS; ++k) {
         if(activeTempUsers[k].active && strcmp(typed_pin_str, activeTempUsers[k].pin) == 0) {
             pin_correct = 1;
+            printf("%c \n",activeTempUsers[k].pin[0]);                  //only to debug
+
+            //to save the access data in db:
+            dbstate = USER;
+            add_log(dbstate, get_date_hour(), selected_pin_user);
+            //add_log(dbstate, "taao", selected_pin_user);
+            save_database();
+
             break; //break if correct
         }
     }
@@ -135,16 +144,19 @@ uint8_t insert_pin(){
         for(i=0; i<4; i++) {
             if(selected_pin_user[i] != saved_pin_admin[i]) {
                 pin_correct = 0;
+                //to save the access data in db:
                 dbstate = DENIED;
-                add_log(dbstate, "dd/mm hh:mm", selected_pin_user);
+                add_log(dbstate, get_date_hour(), selected_pin_user);
                 save_database();
                 break;
             }
             else
             {
                 pin_correct = 2;
+                //to save the access data in db:
                 dbstate = ADMIN;
-                add_log(dbstate, "dd/mm hh:mm", selected_pin_user);
+               // add_log(dbstate, "taao", selected_pin_user);
+                add_log(dbstate, get_date_hour(), selected_pin_user);
                 save_database();
             }
         }
@@ -269,7 +281,7 @@ bool check_for_inputs(){
 
 
 void menu_last_access_log(int db_page){
-    display_menu_last_access_log();     //it display only the title
+    display_menu_last_access_log();     //it displays only the title
 //    serial_print_db();
     display_db(db_page);                //to display only the correct page of the database
 }
@@ -278,5 +290,18 @@ void menu_factory_reset(void){
     display_menu_factory_reset();
 }
 
-
+char* get_date_hour(){
+    char buffer[15];
+    int hour = 0, minute = 0, day = 1, month = 1;
+    if(timeSynced){             //so only if the esp has sinced and sent the current time
+        hour = RTC_C_getCalendarTime().hours;
+        minute = RTC_C_getCalendarTime().minutes;
+        day = RTC_C_getCalendarTime().dayOfmonth;
+        month = RTC_C_getCalendarTime().month;
+        sprintf(buffer, "%02d/%02d %02d:%02d", day, month, hour, minute);   //"%02d" specifies i want to stamp 2 character in any case, and to add a 0 if necessary (ex 7 -> 07)
+    } else {
+        sprintf(buffer, "--/-- --:--");         //if time data not available, print this
+    }
+    return buffer;
+}
 

@@ -6,14 +6,13 @@
 #include <string.h>
 #include <stdlib.h>
 #include "display.h"
+#include "flash.h"
 
 /*bisogna prima fare un erase. posso scrivere nelle parte finale della flash main oopure nella flash info
  Guarda su moodle i due manuali: il datasheet e il reference manual a pag 458*/
 
 
 #define MAX_NUMBER_LOG_SAVED 10
-#define DATABASE_START 0x0003F000     //start address of database
-//int dbAddress = DATABASE_START;
 
 char buffer[40];
 
@@ -21,12 +20,12 @@ typedef enum {
     USER, ADMIN, DENIED
 } dbStates;
 
+    //-- future implementation: use int8_t to occupy less memory --
 
-
-typedef struct {                           //struct of a single "log event"
-  dbStates logState;
-  int used_pin[4];
-  char dateHour[20];
+typedef struct {                            //struct of a single "log event"
+  dbStates logState;                        //to memorize if the access has been made by a user, by admin or if it has been denied
+  int used_pin[4];                          //the used pin
+  char dateHour[20];                        //date and hour of the access
 }AccessData;
 
 typedef struct {                               //this is the structure that will be saved in flash
@@ -36,11 +35,9 @@ typedef struct {                               //this is the structure that will
 }LogDB;
 
 
-static LogDB myDb;                 //the instance of logDB which contains the array
-LogDB *ptr1;                 //pointer to myDb
-LogDB *ptr2;
-
-
+extern LogDB myDb;                 //the instance of logDB which contains the array. using extern it becomes shared to all files
+//LogDB *ptr1;                 //pointer to myDb
+LogDB *ptr2;            //pointer to myDb in flash
 
 
 //FUNCTIONS
@@ -53,7 +50,7 @@ void display_db(int page);
 int return_number_count();
 int calc_num_pages_db(int numElements);
 
-void save_database();
+
 
 void write_date(const AccessData* d);           //to overwrite the array "buffer" with infos about date
 void write_pin(const AccessData* d);            //to overwrite the array "buffer" with infos about the pin used

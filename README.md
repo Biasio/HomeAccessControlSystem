@@ -68,3 +68,41 @@ cd <your-repository-name>
 ### 2. Import the project in CCStudio
 1. The git repo is a full workspace for ccstudio, so when opening the IDE select the cloned folder as the active workspace. 
 2. The project should be already configured and working out of the box; if no project is automatically imported do "Import Project > Code Composer Studio > CCS Projects > Browse... > Select the ShortStaysAccessControlSystem folder inside the repo location > tick the ccs project > click Finish "
+```
+
+----------------
+## Title:
+
+## About the project
+
+## Project Layout
+
+## Requirements
+
+### Hardware Setup (+ Project wiring)
+
+### Software Setup (CCSTudio + PlatformIO)
+
+## IoT Integration
+
+## Authors
+
+- Pietro Baroni:
+  1. Display
+  2. Joystick and push buttons
+
+- Michele Martini:
+  1. Telegram bot
+  2. UART Communication
+
+- Michele Casagrande:
+  1. Database
+  2. Motor
+
+- Alessandro Biasoli
+  1. RFID
+  2. ToF Senosor
+  3. Buzzer
+  
+
+## Links

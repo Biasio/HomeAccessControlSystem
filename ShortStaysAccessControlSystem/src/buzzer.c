@@ -116,15 +116,14 @@ const audio_data WrongPin = {
 
 
 const note LockOut_Notes[] = {
-                              {NOTE_B4, 100},
-                                  {REST,     50},
-                                  {NOTE_F5, 300},
-                                  {REST,    100},
-                                  {NOTE_F5, 150},
-                                  {NOTE_F5, 150},
-                                  {NOTE_E5, 150},
-                                  {NOTE_D5, 150},
-                                  {NOTE_C5, 500}
+                            {NOTE_B4, 160},
+                            {NOTE_F5, 160},
+                            {REST,    160},
+                            {NOTE_F5, 160},
+                            {NOTE_F5, 200},
+                            {NOTE_E5, 200},
+                            {NOTE_D5, 200},
+                            {NOTE_C5, 550}
 };
 
 const audio_data LockOut = {

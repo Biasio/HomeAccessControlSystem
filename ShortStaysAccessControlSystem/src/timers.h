@@ -25,4 +25,7 @@ void _SysTickInit();
 
 void delay_ms(uint32_t msec);
 
+
+#define NVIC_ST_CURRENT 0xE000E018
+
 #endif

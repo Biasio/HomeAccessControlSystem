@@ -17,6 +17,7 @@ void _hwInit(void){
 
     /* Initializes Clock & FLASH System */
     _ClockSystemInit();
+
     _SysTickInit();
 
     //joystick
@@ -24,9 +25,9 @@ void _hwInit(void){
     _ADCtimerInit();
 
     //disable the CS gpio for RFID It might be
-    // left low after a reset without power interruptionn
+    // left low after a reset without power interruption
     GPIO_setAsOutputPin(RFID_CS_PORT, RFID_CS_PIN);
-    RFID_CS_High();
+    GPIO_setOutputHighOnPin(RFID_CS_PORT, RFID_CS_PIN);
 
     //buttons
     _pushButtonsInit();
@@ -179,71 +180,113 @@ void open_door(void){
 
 
 bool wait_RFID(void){
-    Graphics_setForegroundColor(&g_sContext, ClrBlack);
-    display_string("PLEASE, USE RFID");
+    // clear previous set flags
+    buttonA_pressed=0;
+    buttonB_pressed=0;
 
-    uint32_t start_t = system_millis;
-    while ((system_millis - start_t) < 4000){
-        if(buttonB_pressed){ //if back button is pressed, go back
-            buttonB_pressed=0;
-            RFID_Disable();
-            return false; //exit if a button is pressed
-        }
-    }
+    Graphics_setForegroundColor(&g_sContext, ClrBlack);
+    GrContextFontSet(&g_sContext, &g_sFontCmss16);
+    Graphics_clearDisplay(&g_sContext);
+        GrContextFontSet(&g_sContext, &g_sFontCmss16);
+        Graphics_setForegroundColor(&g_sContext, ClrBlack);
+        Graphics_drawStringCentered(&g_sContext, (int8_t *) "USE RFID TAG",
+                                    AUTO_STRING_LENGTH, 64, 40, OPAQUE_TEXT);
+        Graphics_drawStringCentered(&g_sContext, (int8_t *) "Press A to cancel",
+                                    AUTO_STRING_LENGTH, 64, 60, OPAQUE_TEXT);
 
     if(!RFID_Enable()){
-        goto FALSE;
+        goto ERROR;
     }
 
     uint8_t read_uid[10] = {0};
-    uint8_t uidLength=10;
+    uint8_t uid_len=0;
     bool read_status = 0;
+    bool tag_valid =0;
 
-    while(1){ //polling loop
-        if(buttonA_pressed || buttonB_pressed){
-            buttonA_pressed=0;
-            buttonB_pressed=0;
+    //polling loop
+    while (1) {
+        // Check for button A
+        if (buttonA_pressed)
+        {
+            buttonA_pressed = 0;
+            goto CANCEL;
         }
 
-        if(RFID_ready) read_status = RFID_ReadTag(read_uid, &uidLength);
-
-        if (read_status && (uidLength <= RFID_UID_LENGTH))
+        // Try to read a tag
+        if (RFID_ReadTag(read_uid, &uid_len))
         {
-            printf("Read RFID:");
-            for(int i=uidLength; i>0;) printf("%" PRIu8, read_uid[--i]);
-
-            //check for valid RFID
-            while((uidLength--) > 0)
+            // If tag found, check if it matches the saved UID length first
+            tag_valid = (uid_len == RFID_UID_LENGTH);
+            if (tag_valid)
             {
-                if(read_uid[uidLength]!=RFID_saved[uidLength]){
-                    read_status = 0;
-                    break;
+                for (int i = 0; i < RFID_UID_LENGTH; i++)
+                {
+                    if (read_uid[i] != RFID_saved[i])
+                    {
+                        tag_valid = 0;
+                        break;
+                    }
                 }
             }
-            if(read_status) //rfid data is valid
-            {
 
-                RFID_Disable(); //restore button functionality and disables SPI
+            if (tag_valid)
+            {
+                // Valid tag, success
+                RFID_Disable();
                 _graphicsInit();
-                display_string("valid RFID");
-                delay_ms(2000);
+                display_string("VALID RFID");
+                delay_ms(1500);
                 return true;
             }
-        }
-        else
-        {
-            goto FALSE;
+            else
+            {
+                // Invalid tag, show feedback but continue scanning
+                Graphics_clearDisplay(&g_sContext);
+                Graphics_setForegroundColor(&g_sContext, ClrRed);
+                Graphics_drawStringCentered(&g_sContext, (int8_t *) "INVALID TAG!",
+                                            AUTO_STRING_LENGTH, 64, 40, OPAQUE_TEXT);
+                Graphics_setForegroundColor(&g_sContext, ClrBlack);
+                Graphics_drawStringCentered(&g_sContext, (int8_t *) "Keep scanning...",
+                                            AUTO_STRING_LENGTH, 64, 60, OPAQUE_TEXT);
+
+                uint_fast8_t start_t = system_millis;
+                // Wait a moment before clearing the error message and allow button press
+                while ((system_millis - start_t) < 1500) {
+                    if (buttonA_pressed)
+                    {
+                        buttonA_pressed = 0;
+                        goto CANCEL;
+                    }
+                }
+                // Restore scanning message
+                Graphics_clearDisplay(&g_sContext);
+                Graphics_setForegroundColor(&g_sContext, ClrBlack);
+                Graphics_drawStringCentered(&g_sContext, (int8_t *) "USE RFID TAG",
+                                            AUTO_STRING_LENGTH, 64, 40, OPAQUE_TEXT);
+                Graphics_drawStringCentered(&g_sContext, (int8_t *) "Press A to cancel",
+                                            AUTO_STRING_LENGTH, 64, 60, OPAQUE_TEXT);
+            }
+        } else {
+            // No tag – short delay to avoid busy‑looping and reduce power
+            delay_ms(50);
         }
     }
-    return true;
 
-    /* Reset logic before exiting */
-    FALSE:
-    RFID_Disable();
-    _graphicsInit();
-    display_string("ERROR");
-    delay_ms(2000);
-    return false; //exit if a button is pressed
+    /* Reset logic on error before exiting */
+    ERROR:
+        RFID_Disable();
+        _graphicsInit();
+        display_string("ERROR");
+        delay_ms(2000);
+        return false;
+
+    /* Reset logic on cancel before exiting */
+    CANCEL:
+        RFID_Disable();
+        _graphicsInit();
+        display_string("CANCELLED");
+        delay_ms(1500);
+        return false;
 }
 
 
@@ -296,15 +339,10 @@ void menu_block_pin(void){
 void wrong_pin(void){
     // - turn on LED
     // - make a sound to signal that the code is incorrect
-
     ++error_pin;
 
-    uint32_t t_start = system_millis;
     display_wrong_pin(error_pin);
-    if (error_pin<MAX_PIN_TRIES) buzzerPWMgen(&WrongPin);
-    else buzzerPWMgen(&LockOut);
-    while(t_start-system_millis < 3000);
-
+    delay_ms(3000);
 }
 
 

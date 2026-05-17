@@ -26,7 +26,7 @@ extern const audio_data CorrectRFID;
 extern const audio_data LockOut;
 
 //In percentage (0 - 100)
-#define VOLUME 0
+#define VOLUME 1000
 
 void buzzerPWMgen(const audio_data* song);
 

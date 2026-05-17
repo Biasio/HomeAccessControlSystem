@@ -79,7 +79,7 @@ bool ToF_validate_interrupt(void)
 // RFID MFRC522
 
 volatile bool RFID_ready = 0;
-const uint8_t RFID_saved[RFID_UID_LENGTH] = {1,1,1,1,1};
+const uint8_t RFID_saved[RFID_UID_LENGTH] = {233,52,245,162};
 
 
 
@@ -88,55 +88,79 @@ static void RFID_WriteRegister(uint8_t reg, uint8_t value) {
      * Bit 0 must always be 0.
      * Bit 7 (MSB) is the R/W flag: 0 for write, 1 for read.
      * */
-    uint8_t addr = (reg << 1) & 0x7E;
-
-
+    uint8_t addr = ((uint16_t) (reg << 1)) & 0x7E;
+    uint32_t t_start =0;
     RFID_CS_Low(); // activate the CS
-    SPI_transmitData(RFID_EUSCI, addr);
-    // Wait for TX to complete (first byte)
-    uint32_t t_start = system_millis;
-    while (!(SPI_getInterruptStatus(RFID_EUSCI, RFID_EUSCI_RX_INT)) && ((system_millis - t_start) < SPI_TIMEOUT)); //wait for ACK
-    SPI_receiveData(RFID_EUSCI); // Dummy read to clear the RX flag
 
-    SPI_transmitData(RFID_EUSCI, value);
-    // Wait for TX complete (data byte)
+    // Wait for TX to complete (first byte)
+    SPI_transmitData(EUSCI_B2_BASE, addr);
     t_start = system_millis;
-    while (!(SPI_getInterruptStatus(RFID_EUSCI, RFID_EUSCI_RX_INT)) && ((system_millis - t_start) < SPI_TIMEOUT)); //Wait for ACK
-    SPI_receiveData(RFID_EUSCI); // Dummy read to clear the RX flag
+    while (!(SPI_getInterruptStatus(EUSCI_B2_BASE, EUSCI_B_SPI_TRANSMIT_INTERRUPT))
+               && ((system_millis - t_start) < SPI_TIMEOUT));
+        SPI_clearInterruptFlag(EUSCI_B2_BASE, EUSCI_B_SPI_TRANSMIT_INTERRUPT);
+
+    // Wait for TX complete (data byte)
+    SPI_transmitData(EUSCI_B2_BASE, value);
+    t_start = system_millis;
+    while (!(SPI_getInterruptStatus(EUSCI_B2_BASE, EUSCI_B_SPI_TRANSMIT_INTERRUPT))
+               && ((system_millis - t_start) < SPI_TIMEOUT));
+        SPI_clearInterruptFlag(EUSCI_B2_BASE, EUSCI_B_SPI_TRANSMIT_INTERRUPT);
+
+    while (SPI_isBusy(EUSCI_B2_BASE));
     RFID_CS_High();
 }
 
-static uint8_t RFID_ReadRegister(uint8_t reg) {
-    /*
-     * Bit 0 must always be 0.
-     * Bit 7 (MSB) is the R/W flag: 0 for write, 1 for read.
-     * */
-    uint8_t addr = ((reg << 1) & 0x7E) | 0x80;
+static uint8_t RFID_ReadRegister(uint8_t reg){
 
-        RFID_CS_Low();
-        SPI_transmitData(RFID_EUSCI, addr);
-        // Wait for transfer to complete and discard dummy RX data
-        uint32_t t_start = system_millis;
-        while (!(SPI_getInterruptStatus(RFID_EUSCI, RFID_EUSCI_RX_INT)) && ((system_millis - t_start) < SPI_TIMEOUT));
-        SPI_receiveData(RFID_EUSCI);
+    uint8_t addr = (((reg << 1) & 0x7E) | 0x80);  // MSB=1 for read
+    uint8_t data = 0;
+    uint32_t t_start;
 
-        // Send dummy write to clock in the valid response
-        SPI_transmitData(RFID_EUSCI, 0xFF);
-        t_start = system_millis;
-        while (!(SPI_getInterruptStatus(RFID_EUSCI, RFID_EUSCI_RX_INT)) && ((system_millis - t_start) < SPI_TIMEOUT));
-        uint8_t data = SPI_receiveData(RFID_EUSCI);
-        RFID_CS_High();
-        return data;
+    RFID_CS_Low();
+
+    // Send address byte
+    SPI_transmitData(EUSCI_B2_BASE, addr);
+    t_start = system_millis;
+    while (!(SPI_getInterruptStatus(EUSCI_B2_BASE, EUSCI_B_SPI_TRANSMIT_INTERRUPT))
+           && ((system_millis - t_start) < SPI_TIMEOUT));
+    SPI_clearInterruptFlag(EUSCI_B2_BASE, EUSCI_B_SPI_TRANSMIT_INTERRUPT);
+
+    // Read dummy byte (discard) – this clocks out the first byte
+    t_start = system_millis;
+    while (!(SPI_getInterruptStatus(EUSCI_B2_BASE, EUSCI_B_SPI_RECEIVE_INTERRUPT))
+           && ((system_millis - t_start) < SPI_TIMEOUT));
+    (void) SPI_receiveData(EUSCI_B2_BASE);
+    SPI_clearInterruptFlag(EUSCI_B2_BASE, EUSCI_B_SPI_RECEIVE_INTERRUPT);
+
+    // Send 0x00 to clock out the actual register value
+    SPI_transmitData(EUSCI_B2_BASE, 0x00);
+    t_start = system_millis;
+    while (!(SPI_getInterruptStatus(EUSCI_B2_BASE, EUSCI_B_SPI_TRANSMIT_INTERRUPT))
+           && ((system_millis - t_start) < SPI_TIMEOUT));
+    SPI_clearInterruptFlag(EUSCI_B2_BASE, EUSCI_B_SPI_TRANSMIT_INTERRUPT);
+
+    // Read the actual data
+    t_start = system_millis;
+    while (!(SPI_getInterruptStatus(EUSCI_B2_BASE, EUSCI_B_SPI_RECEIVE_INTERRUPT))
+           && ((system_millis - t_start) < SPI_TIMEOUT));
+    data = SPI_receiveData(EUSCI_B2_BASE);
+    SPI_clearInterruptFlag(EUSCI_B2_BASE, EUSCI_B_SPI_RECEIVE_INTERRUPT);
+
+    while (SPI_isBusy(EUSCI_B2_BASE));
+
+    RFID_CS_High();
+    return data;
 }
 
-static void MFRC522_SoftReset(void) {
+static bool MFRC522_SoftReset(void) {
     RFID_WriteRegister(MFRC522_COMMAND_REG, MFRC522_CMD_SOFT_RESET);
     // Wait for the PowerDown bit to clear (bit 4 of CommandReg)
     uint32_t t_start = system_millis;
-    while ((system_millis - t_start) < 50) {
-        if (!(RFID_ReadRegister(MFRC522_COMMAND_REG) & 0x10))
-            break;
+    while ((system_millis - t_start) < 200) {
+        if (!(RFID_ReadRegister(MFRC522_COMMAND_REG) & 0x10)) //bit4 (fifth bit) must be 0 when ready
+            return true;
     }
+    return false;
 }
 
 static void MFRC522_AntennaOn(void) {
@@ -147,7 +171,7 @@ static void MFRC522_AntennaOn(void) {
 }
 
 static bool RFID_Transceive(uint8_t *txData, uint8_t txLen, uint8_t *rxData, uint8_t *rxLen) {
-    // Flush FIFO
+    // Flush FIFO (set bit 7 of FIFOLevelReg)
     RFID_WriteRegister(MFRC522_FIFO_LEVEL_REG, 0x80);
 
     // Write data to FIFO
@@ -155,24 +179,52 @@ static bool RFID_Transceive(uint8_t *txData, uint8_t txLen, uint8_t *rxData, uin
         RFID_WriteRegister(MFRC522_FIFO_DATA_REG, txData[i]);
     }
 
+    // Clear any pending interrupts
+    RFID_WriteRegister(MFRC522_COM_IRQ_REG, 0x7F);
+
     // Execute Transceive command
     RFID_WriteRegister(MFRC522_COMMAND_REG, MFRC522_CMD_TRANSCEIVE);
 
-    // Start transmission (Set bit 7 of BitFramingReg without wiping lower bits)
+    // Set StartSend bit (bit 7 of BitFramingReg)
     uint8_t framing = RFID_ReadRegister(MFRC522_BIT_FRAMING_REG);
     RFID_WriteRegister(MFRC522_BIT_FRAMING_REG, framing | 0x80);
 
-    // Wait for RxIRq (bit 5) or Timeout (bit 7)
+    // Wait for completion (RxIRq, IdleIRq, or TimerIRq)
     uint32_t t_start = system_millis;
-    while ((system_millis - t_start) < 50) {
-        uint8_t irq = RFID_ReadRegister(0x04); // ComIrqReg
-        if (irq & 0x20) break;                 // Success
-        if (irq & 0x80) return false;          // Timeout
+    uint8_t irq = 0;
+    while ((system_millis - t_start) < 100) {  // 100 ms timeout
+        irq = RFID_ReadRegister(0x04);  // ComIrqReg
+        if (irq & 0x20) break;          // RxIRq – data received
+        if (irq & 0x10) break;          // IdleIRq – command finished (may be set with no data)
+        if (irq & 0x80) {               // TimerIRq – timeout
+            return false;
+        }
     }
 
-    // Read response from FIFO
+    if ((system_millis - t_start) >= 100) {
+        return false;
+    }
+
+    // Check for errors (ErrorReg, address 0x06)
+    uint8_t error = RFID_ReadRegister(0x06);
+    if (error & 0x01) { // ProtocolErr
+        printf("Protocol error\n");
+        return false;
+    }
+    if (error & 0x04) { // CollErr (only at 106 kBd)
+        printf("Collision detected\n");
+        return false;
+    }
+    if (error & 0x08) { // CRCErr
+        printf("CRC error\n");
+        return false;
+    }
+
+    // Read FIFO level
     *rxLen = RFID_ReadRegister(MFRC522_FIFO_LEVEL_REG) & 0x7F;
-    if (*rxLen == 0) return false;
+    if (*rxLen == 0) {
+        return false;
+    }
 
     for (int i = 0; i < *rxLen; i++) {
         rxData[i] = RFID_ReadRegister(MFRC522_FIFO_DATA_REG);
@@ -182,13 +234,14 @@ static bool RFID_Transceive(uint8_t *txData, uint8_t txLen, uint8_t *rxData, uin
 }
 
 
-void RFID_CS_Low(void) {
+static inline void RFID_CS_Low(void) {
+
    // no bus conflict since every peripheral has its own module
     GPIO_setOutputLowOnPin(RFID_CS_PORT, RFID_CS_PIN);
-
 }
 
-void RFID_CS_High(void) {
+static inline void RFID_CS_High(void) {
+
     // no bus conflict since every peripheral has its own module
     GPIO_setOutputHighOnPin(RFID_CS_PORT, RFID_CS_PIN);
 }
@@ -198,12 +251,15 @@ bool RFID_Init(void) {
     // Configure SPI pins
     GPIO_disableInterrupt(RFID_SCK_PORT, RFID_SCK_PIN); //shared with the button!
     GPIO_clearInterruptFlag(RFID_SCK_PORT, RFID_SCK_PIN);
+    GPIO_setAsPeripheralModuleFunctionOutputPin(RFID_SCK_PORT, RFID_SCK_PIN, GPIO_PRIMARY_MODULE_FUNCTION);
+
     GPIO_disableInterrupt(RFID_MOSI_PORT, RFID_MOSI_PIN);
     GPIO_clearInterruptFlag(RFID_MOSI_PORT, RFID_MOSI_PIN);
+    GPIO_setAsPeripheralModuleFunctionOutputPin(RFID_MOSI_PORT, RFID_MOSI_PIN, GPIO_PRIMARY_MODULE_FUNCTION);
+
     GPIO_disableInterrupt(RFID_MISO_PORT, RFID_MISO_PIN);
     GPIO_clearInterruptFlag(RFID_MISO_PORT, RFID_MISO_PIN);
-    GPIO_setAsPeripheralModuleFunctionOutputPin(RFID_SCK_PORT, RFID_SCK_PIN, GPIO_PRIMARY_MODULE_FUNCTION);
-    GPIO_setAsPeripheralModuleFunctionOutputPin(RFID_MOSI_PORT, RFID_MOSI_PIN, GPIO_PRIMARY_MODULE_FUNCTION);
+    GPIO_setAsInputPinWithPullUpResistor(GPIO_PORT_P3, GPIO_PIN7);
     GPIO_setAsPeripheralModuleFunctionInputPin(RFID_MISO_PORT, RFID_MISO_PIN, GPIO_PRIMARY_MODULE_FUNCTION);
 
     // CS pin as output, idle high
@@ -215,18 +271,21 @@ bool RFID_Init(void) {
     // Reset pin as output and drive low
     GPIO_setAsOutputPin(RFID_RST_PORT, RFID_RST_PIN);
     GPIO_setOutputLowOnPin(RFID_RST_PORT, RFID_RST_PIN);
+    delay_ms(1); //required 100ns for the pull down to be valid
 
+    uint32_t SMCLK_freq = CS_getSMCLK();
     // Configure SPI module (EUSCI_B2) but keep it disabled for now
     eUSCI_SPI_MasterConfig spiConfig = {
         EUSCI_B_SPI_CLOCKSOURCE_SMCLK,
-        CS_getSMCLK(),                            // clockSourceFrequency
-        4000000,                                  // desiredSpiClock (4 MHz)
+        SMCLK_freq,                            // clockSourceFrequency
+        4000000,                                  // desiredSpiClock (4 MHz), it must be lower than 10MHz
         EUSCI_B_SPI_MSB_FIRST,
         EUSCI_B_SPI_PHASE_DATA_CAPTURED_ONFIRST_CHANGED_ON_NEXT,
         EUSCI_B_SPI_CLOCKPOLARITY_INACTIVITY_LOW,
         EUSCI_B_SPI_3PIN
     };
-    SPI_initMaster(RFID_EUSCI, &spiConfig);
+
+    SPI_initMaster(EUSCI_B2_BASE, &spiConfig);
     // Module remains disabled until RFID_Enable()
     RFID_ready=1;
 
@@ -234,54 +293,67 @@ bool RFID_Init(void) {
 }
 
 bool RFID_Enable(void) {
-    if(!RFID_Init()){
-        RFID_ready=0;
-        return false;
+    if(!RFID_ready){
+        RFID_Init();
     }
+
+    // Enable SPI module
+    SPI_enableModule(EUSCI_B2_BASE);
+
     // Hardware reset sequence
-    GPIO_setOutputHighOnPin(RFID_RST_PORT, RFID_RST_PIN);  // release reset
-    delay_ms(20);                                          // stabilization
-    GPIO_setOutputLowOnPin(RFID_RST_PORT, RFID_RST_PIN);   // assert reset
-    delay_ms(10);
     GPIO_setOutputHighOnPin(RFID_RST_PORT, RFID_RST_PIN);  // release
     delay_ms(50);                                          // wait for boot
 
-    // Enable SPI module
-    SPI_enableModule(RFID_EUSCI);
 
     // Perform initialization sequence
-    MFRC522_SoftReset();
-    RFID_WriteRegister(0x12, 0x00);
-    RFID_WriteRegister(0x13, 0x00);
+    if (! MFRC522_SoftReset()) return (RFID_ready=0);
 
-    // Verify version register (expected 0x92 for MFRC522)
+    // Verify version register
     uint8_t version = RFID_ReadRegister(MFRC522_VERSION_REG);
-    if (version != 0x92 && version != 0x91) {
-        return false;
+    printf("version: %" PRIu8 "\n", version);
+
+    if ((version != 0x91) && (version != 0x92)) {
+        RFID_Init(); //try to reinitialize the peripheral
+        version = RFID_ReadRegister(MFRC522_VERSION_REG);
+        if ((version != 0x91) && (version != 0x92)) return (RFID_ready=0);
     }
 
-    // Timer settings: TModeReg = 0x80 (internal 13.56 MHz/2), TPrescalerReg = 0xA9, TReload = 0x10 * 0xE8
-    RFID_WriteRegister(MFRC522_T_MODE_REG, 0x80);
-    RFID_WriteRegister(MFRC522_T_PRESCALER_REG, 0xA9);
-    RFID_WriteRegister(MFRC522_T_RELOAD_H_REG, 0x03);
-    RFID_WriteRegister(MFRC522_T_RELOAD_L_REG, 0xE8);
+    // 3. Configure the timer
+    RFID_WriteRegister(MFRC522_T_MODE_REG, 0x8D);
+    RFID_WriteRegister(MFRC522_T_PRESCALER_REG, 0x3E);
+    RFID_WriteRegister(MFRC522_T_RELOAD_H_REG, 0x00);
+    RFID_WriteRegister(MFRC522_T_RELOAD_L_REG, 0x12);
 
-    // Force 100% ASK modulation, set modulation width to 0x26
+    // 4. Configure receiver gain (RFCfgReg) – Section 9.3.3.6
+    // Max gain (48dB) for better range:
+    RFID_WriteRegister(MFRC522_RF_CFG_REG, 0x70);      // RxGain[2:0] = 111b (48dB)
+
+    // 5. Configure modulation width (ModWidthReg) – Section 9.3.3.4
+    // Default 0x26 is usually fine
+    RFID_WriteRegister(MFRC522_MOD_WIDTH_REG, 0x26);
+
+    // 6. Configure TxASK (Force 100% ASK) – you have this
     RFID_WriteRegister(MFRC522_TX_ASK_REG, 0x40);
-    RFID_WriteRegister(MFRC522_MODE_REG, 0x3D);  // CRC initial value 0x6363
 
-    // Turn on antenna
+    // 7. Configure ModeReg (CRC, etc.) – Section 9.3.2.2
+    // Default after reset is 0x3F (MSBFirst=1, TxWaitRF=1, CRCPreset=11b)
+    RFID_WriteRegister(MFRC522_MODE_REG, 0x3F);   // Or 0x3D as you had (CRC 0x6363)
+
+    // 8. Turn antenna on (you have this)
     MFRC522_AntennaOn();
+
+    // 9. Clear any pending interrupts
+    RFID_WriteRegister(MFRC522_COM_IRQ_REG, 0x7F);
 
     return true;
 }
 
 bool RFID_Disable(void) {
-    // Ensure CS is high
+    // Ensure CS is high (disabled)
     RFID_CS_High();
 
     // Disable SPI module
-    SPI_disableModule(RFID_EUSCI);
+    SPI_disableModule(EUSCI_B2_BASE);
 
     delay_ms(100); //ensure SPI is dead
 
@@ -326,10 +398,13 @@ bool RFID_ReadTag(uint8_t *uid, uint8_t *uidLength) {
     }
 
     // --- 4. Success: Copy UID to user variables ---
+    printf("RFID detected: ");
     for (int i = 0; i < 4; i++) {
         uid[i] = buffer[i];
+        printf("%" PRIu8 " ", uid[i]);
     }
     *uidLength = 4;
+    printf("\n");
 
     return true;
 }

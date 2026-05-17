@@ -92,8 +92,9 @@ void _ADCtimerInit(){
 }
 
 void _SysTickInit(){
+    SysTick_setPeriod(48000); //1ms period
+    HWREG(NVIC_ST_CURRENT) = 1;
     SysTick_enableModule();
-    SysTick_setPeriod((CS_getMCLK()/1000)-1); //1ms period
     SysTick_enableInterrupt();
     system_millis = 0;
 }

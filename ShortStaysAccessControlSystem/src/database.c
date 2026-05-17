@@ -9,7 +9,7 @@ void database_init(){
 
     myDb = *ptr2;    //when i initialize, myDb (in Ram) copies data from flash
 
-   // printf(" dalla flash: head =%d   count = %d\n", myDb.head,myDb.count);
+    printf(" database init dalla flash: head =%d   count = %d\n", myDb.head,myDb.count);
     if(myDb.count<0){myDb.count=0;}             //because when i program the flash the first time, all cells contain FFFF which is -1, thus creating errors
     if(myDb.head<0){myDb.head=0;}
 }

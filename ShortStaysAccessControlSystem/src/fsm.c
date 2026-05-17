@@ -121,12 +121,14 @@ void fn_INSERT_PIN(void){
             error_pin = 0;
             TIMER_CLEAR_STOP(TIMER_A2_BASE);
             cur_state = STATE_OPEN_DOOR;
+            buzzerPWMgen(&CorrectPin);
             break;
 
         case 2: // ADMIN pin detected
             error_pin = 0;
             TIMER_CLEAR_STOP(TIMER_A2_BASE);
             cur_state = STATE_WAIT_RFID;
+            buzzerPWMgen(&CorrectPin);
             break;
 
         default:
@@ -154,7 +156,6 @@ void fn_OPEN_DOOR(void){
 
 void fn_WAIT_RFID(void){
     TIMER_CLEAR_STOP(TIMER_A2_BASE);
-    buzzerPWMgen(&CorrectPin);
 
     if (wait_RFID()) {
         buzzerPWMgen(&CorrectRFID);
@@ -162,8 +163,8 @@ void fn_WAIT_RFID(void){
     }
     else
     {
-        //cur_state = STATE_INSERT_PIN;
-        cur_state = STATE_ADMIN_MENU;
+        cur_state = STATE_INSERT_PIN;
+        //cur_state = STATE_ADMIN_MENU;
     }
     return;
 }
@@ -199,9 +200,11 @@ void fn_WRONG_PIN(void){
     wrong_pin(); //show an error message on display
 
     if(error_pin<MAX_PIN_TRIES){
+        buzzerPWMgen(&WrongPin);
         cur_state = STATE_INSERT_PIN;
     }else if(error_pin==MAX_PIN_TRIES){
         error_pin = 0; //pin wrong for max tries, reset counter of errors
+        buzzerPWMgen(&LockOut);
         cur_state = STATE_BLOCK_ACCESS;
     }
 }

@@ -146,12 +146,12 @@ uint8_t insert_pin(){
             //to save the access data in db:
             dbstate = USER;
             add_log(dbstate, get_date_hour(), selected_pin_user);
-            //add_log(dbstate, "taao", selected_pin_user);
             save_database();
 
             break; //break if correct
         }
     }
+
 
     if(pin_correct != 1){
     // Check for Admin PIN
@@ -162,16 +162,19 @@ uint8_t insert_pin(){
                 dbstate = DENIED;
                 add_log(dbstate, get_date_hour(), selected_pin_user);
                 save_database();
+
                 break;
             }
             else
             {
                 pin_correct = 2;
-                //to save the access data in db:
-                dbstate = ADMIN;
-               // add_log(dbstate, "taao", selected_pin_user);
-                add_log(dbstate, get_date_hour(), selected_pin_user);
-                save_database();
+
+                if(i==3){           //this way i save admin access on db only if all 4 digits are right. it saves when the last digit is checked
+                    dbstate = ADMIN;
+                    add_log(dbstate, get_date_hour(), selected_pin_user);
+                    save_database();
+                }
+
             }
         }
     }

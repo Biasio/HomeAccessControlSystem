@@ -1,7 +1,7 @@
 #include "fsm.h"
 
 
-int db_page;
+int db_page = 1;
 
 
 int32_t displayX = 64;
@@ -127,6 +127,7 @@ void fn_INSERT_PIN(void){
             while(system_millis - t_start < 1500);
 
             cur_state = STATE_OPEN_DOOR;
+
             break;
 
         case 2: // ADMIN pin detected
@@ -138,10 +139,12 @@ void fn_INSERT_PIN(void){
             while(system_millis - t_start < 1500);
 
             cur_state = STATE_WAIT_RFID;
+
             break;
 
         default:
             cur_state = STATE_WRONG_PIN;
+
             break;
     }
 
@@ -315,8 +318,8 @@ void fn_AOD(void){
 // --------------------------------------------- //
 
 void fn_menu_lal(void){
-    int dp_page;
-    uint16_t* current_results;
+    //int dp_page;                  //this is defined in the top of the file!
+    const uint16_t* current_results;
     bool menu_lal_active = 1;
     int tmp;
     menu_last_access_log(db_page);         //to display the first page of db
@@ -331,7 +334,7 @@ void fn_menu_lal(void){
 
            if(tmp != db_page){  //i re-screen all infos only if i change page
                db_page = tmp;
-               menu_last_access_log(dp_page);
+               menu_last_access_log(db_page);
            }
         }
         if(buttonB_pressed){

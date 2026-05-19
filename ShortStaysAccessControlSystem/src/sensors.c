@@ -13,10 +13,8 @@ volatile bool ToF_ready = 0;
 
 void ToF_Init(){
     i2c_init();
-    xshut_gpio_init();
-    ToF_ready = vl53l0x_init();
-    if(ToF_ready) interrupt_gpio_init();
-    printf("end of T0F_Init: %d", ToF_ready);
+    if (vl53l0x_init()) interrupt_gpio_init();
+    printf("end of T0F_Init: %d\n", ToF_ready);
     return;
 }
 
@@ -27,30 +25,37 @@ void ToF_IRQHandler(void){
     return;
 }
 
-bool ToF_disable(){
-    if (!ToF_ready) return false;
+void ToF_disable(){
+    if (ToF_ready)
+    {
+        uint16_t dummy=0;
+        vl53l0x_read_range_interrupt(&dummy); //clears sensor flags
+        vl53l0x_stop_continuous(); //disable continuous mode
 
-    uint16_t dummy=0;
-    bool status = vl53l0x_read_range_interrupt(&dummy);
-    status &= vl53l0x_stop_continuous(); //need to disable continuous mode
-
-    ToF_ready=0;
-    xshut_toggle(false); //sensor to standby
-
-    return status;
+        ToF_ready=0;
+        xshut_toggle(false); //sensor to standby
+    }
+    return;
 }
 
 
 
-bool ToF_enable(){
+void ToF_enable(){
+    GPIO_disableInterrupt(GPIO_PORT_P4, GPIO_PIN6);
+    GPIO_clearInterruptFlag(GPIO_PORT_P4, GPIO_PIN6);
 
-    ToF_ready &= vl53l0x_init();
+    ToF_ready = vl53l0x_init();
     ToF_ready &= vl53l0x_start_continuous();
 
-    if (!ToF_ready){
+    if (!ToF_ready){ // if init failed
+        i2c_recover();
         vl53l0x_stop_continuous();
         xshut_toggle(false);
-        i2c_recover();
+
+        static bool retries=RECOVER_TRIES;
+
+        if((retries--)>0) ToF_enable();
+        else {retries=RECOVER_TRIES; return;}
     }
     else
     {
@@ -58,20 +63,15 @@ bool ToF_enable(){
         GPIO_enableInterrupt(GPIO_PORT_P4, GPIO_PIN6);
     }
     printf("end of T0F_enable: %d", ToF_ready);
-    return ToF_ready;
+    return;
 }
 
 
-bool ToF_validate_interrupt(void)
-{
-    bool status = false;
+bool ToF_validate_interrupt(void){
     uint16_t range=0;
 
-    if (ToF_flag == 1){
-        status &= vl53l0x_read_range_interrupt(&range);
-        status &= ToF_disable();
-    }
-    return status;
+    if (ToF_flag) return (vl53l0x_read_range_interrupt(&range));
+    else return false;
 }
 
 

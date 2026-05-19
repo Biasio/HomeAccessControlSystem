@@ -8,8 +8,8 @@
 
 
 #define TIMER_RESTART(x,y) Timer_A_stop(x); Timer_A_clearTimer(x); Timer_A_startCounter(x, y)
-#define TIMER_CLEAR_STOP(x) Timer_A_stop(x); Timer_A_clearTimer(x)
-#define TIMER_CLEAR_START(x,y) Timer_A_clearTimer(x); Timer_A_startCounter(x, y)
+//#define TIMER_CLEAR_STOP(x) Timer_A_stop(x); Timer_A_clearTimer(x)
+//#define TIMER_CLEAR_START(x,y) Timer_A_clearTimer(x); Timer_A_startCounter(x, y)
 
 void _ClockSystemInit();
 

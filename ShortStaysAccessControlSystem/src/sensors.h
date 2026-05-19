@@ -14,8 +14,8 @@ extern volatile bool ToF_ready; // 1=yes 0=no
 
 void ToF_Init(void);
 void ToF_IRQHandler(void);
-bool ToF_disable(void);
-bool ToF_enable(void);
+void ToF_disable(void);
+void ToF_enable(void);
 bool ToF_validate_interrupt(void);
 
 
@@ -29,6 +29,7 @@ bool ToF_validate_interrupt(void);
 
 extern volatile bool RFID_ready; // 1=yes 0=no
 
+#define RECOVER_TRIES 2
 #define SPI_TIMEOUT 100
 #define RFID_UID_LENGTH  4          // length of the RFID UID
 extern const uint8_t RFID_saved[RFID_UID_LENGTH];

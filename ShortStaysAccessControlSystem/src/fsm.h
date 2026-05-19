@@ -59,11 +59,7 @@ void fn_WAIT_RESET_DOOR(void);
 void fn_AOD(void);
 
 void fn_menu_lal(void);
-void fn_menu_setup_pin(void);
-void fn_menu_wifi(void);
-void fn_menu_fact_reset(void);
 void fn_menu_unlock_door(void);
-void fn_menu_block_pin(void);
 void fn_rfid_register(void);
 
 // Function to run in the loop

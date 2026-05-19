@@ -47,8 +47,14 @@ void _hwInit(void){
 
     //display
     _graphicsInit();
+}
 
-    TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE); //start the idle timer
+
+
+void reset_flags(){
+    move_rectangle=0;
+    buttonA_pressed = 0;
+    buttonB_pressed = 0;
 }
 
 
@@ -342,7 +348,6 @@ void wrong_pin(void){
     ++error_pin;
 
     display_wrong_pin(error_pin);
-    delay_ms(3000);
 }
 
 
@@ -360,24 +365,17 @@ void door_lock(){
 
 
 bool check_for_inputs(){
+    printf("check_for_inputs: ToF_ready:%d, ToF_flag:%d\n", ToF_ready, ToF_flag);
     if (buttonA_pressed || buttonB_pressed)
     {
         buttonB_pressed=0;
         buttonA_pressed=0;
-        Timer_A_stop(TIMER_A2_BASE);
-
         return 1; //signal that an input was detected
     }
     else if (ToF_flag)
     {
-        ToF_flag = 0; // safety measure if ToF has been re-triggered meanwhile
-
-        if (ToF_validate_interrupt()){
-            Timer_A_stop(TIMER_A2_BASE);
-            ToF_disable(); // Disable ToF interrupt and change state
-
-            return 1;
-        }
+        ToF_flag = 0;
+        return ToF_validate_interrupt();
     }
     return 0; // no interrupts were detected or ToF wasn't valid
 }

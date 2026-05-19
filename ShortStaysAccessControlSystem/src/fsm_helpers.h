@@ -24,6 +24,8 @@ extern uint8_t saved_pin_admin[4];
 
 void _hwInit(void);
 
+void reset_flags(void);
+
 uint8_t insert_pin(void);
 void open_door(void);
 bool wait_RFID(void);

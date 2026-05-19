@@ -415,11 +415,13 @@ int db_page_selected(uint16_t x, uint16_t y, int numPages, int currentPage){ //t
 
     // --- Horizontal Paging Logic --- //
      if(x>RIGHT) {
+ //        Timer_A_clearTimer(TIMER_A2_BASE);
          if(currentPage < numPages){
              return (currentPage + 1);
          }
      }
      if(x<LEFT) {
+ //        Timer_A_clearTimer(TIMER_A2_BASE);
          if(currentPage>1){
             return (currentPage - 1);
          }

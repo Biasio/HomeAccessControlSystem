@@ -172,13 +172,11 @@ void fn_WAIT_RFID(void){
     reset_flags(); //clear input actions
 
     if (wait_RFID()) {
-        buzzerPWMgen(&CorrectRFID);
         cur_state = STATE_ADMIN_MENU;
     }
     else
     {
         cur_state = STATE_INSERT_PIN;
-        //cur_state = STATE_ADMIN_MENU;
     }
     return;
 }
@@ -208,7 +206,7 @@ void fn_ADMIN_MENU(void){
         break;
     }
 
-    //stops the idle timer so the admin can work slowly
+    //stops the idle timer so the admin can work without interruption
     Timer_A_stop(TIMER_A2_BASE);
 }
 
@@ -221,13 +219,13 @@ void fn_WRONG_PIN(void){
     if(error_pin<MAX_PIN_TRIES){
         uint32_t start_t=system_millis;
         buzzerPWMgen(&WrongPin);
-        while((system_millis-start_t)<3000);
+        while((system_millis-start_t)<2000);
         cur_state = STATE_INSERT_PIN;
     }else if(error_pin==MAX_PIN_TRIES){
         error_pin = 0; //pin wrong for max tries, reset counter of errors
         uint32_t start_t=system_millis;
         buzzerPWMgen(&LockOut);
-        while((system_millis-start_t)<3000);
+        while((system_millis-start_t)<2000);
         cur_state = STATE_BLOCK_ACCESS;
     }
 }
@@ -304,7 +302,9 @@ void fn_AOD(void){
     else // no input was received
     {
         // if the ToF isn't scanning, enable it
-        if(!ToF_ready) ToF_enable();
+        if(!ToF_ready) {
+            ToF_enable();
+        }
         // The VL53L0X interrupt on P4.6 will wake the CPU automatically
         // TODO: set a 30 sec interrupt to wake the cpu and increment the clock.
         // TODO: disable unnecessary interrupts so cpu isn't woke up
@@ -392,7 +392,7 @@ void FSM_Run(void){
     // --- FOREGROUND FSM ---
     if (cur_state < NUM_STATES)
     {
-        static State_t prev_state=0; // initializes only once
+        static State_t prev_state= STATE_BOOT; // initializes only once
 
         if (standby == 1)
         {

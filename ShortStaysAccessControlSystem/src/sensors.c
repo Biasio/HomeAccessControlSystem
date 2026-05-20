@@ -5,39 +5,52 @@
 volatile uint8_t ToF_flag = 0;
 volatile bool ToF_ready = 0;
 
+
+
 /*
     The ToF will rely solely on the GPIO interrupt,
     and the threshold for the sensor is setup via I2C read onto peripheral's registers.
     A driver for the sensor is included under 'src/external_src/drivers/'
 */
 
+
+
 void ToF_Init(){
+    xshut_gpio_init();
     i2c_init();
     interrupt_gpio_init();
     return;
 }
 
-void ToF_IRQHandler(void){
-    ToF_flag = 1;
 
+
+
+void ToF_IRQHandler(void){
+    if(ToF_ready) ToF_flag = 1;
     PORT(VL53L0X_INT_PORT)->IE  &= ~ONE_HOT_BIT(VL53L0X_INT_PIN);
     PORT(VL53L0X_INT_PORT)->IFG  &= ~ONE_HOT_BIT(VL53L0X_INT_PIN);
 
     return;
 }
 
+
+
 void ToF_disable(){
     if (ToF_ready)
     {
+        PORT(VL53L0X_INT_PORT)->IE  &= ~ONE_HOT_BIT(VL53L0X_INT_PIN);
+        PORT(VL53L0X_INT_PORT)->IFG  &= ~ONE_HOT_BIT(VL53L0X_INT_PIN);
+
         uint16_t dummy=0;
         vl53l0x_read_range_interrupt(&dummy); //clears sensor flags
         vl53l0x_stop_continuous(); //disable continuous mode
 
         ToF_ready=0;
-        xshut_toggle(false); //sensor to standby
+        //xshut_toggle(false); //sensor to standby
     }
     return;
 }
+
 
 
 
@@ -108,6 +121,8 @@ static void RFID_WriteRegister(uint8_t reg, uint8_t value) {
     RFID_CS_High();
 }
 
+
+
 static uint8_t RFID_ReadRegister(uint8_t reg){
 
     uint8_t addr = (((reg << 1) & 0x7E) | 0x80);  // MSB=1 for read
@@ -150,6 +165,8 @@ static uint8_t RFID_ReadRegister(uint8_t reg){
     return data;
 }
 
+
+
 static bool MFRC522_SoftReset(void) {
     RFID_WriteRegister(MFRC522_COMMAND_REG, MFRC522_CMD_SOFT_RESET);
     // Wait for the PowerDown bit to clear (bit 4 of CommandReg)
@@ -161,12 +178,16 @@ static bool MFRC522_SoftReset(void) {
     return false;
 }
 
+
+
 static void MFRC522_AntennaOn(void) {
     uint8_t temp = RFID_ReadRegister(MFRC522_TX_CONTROL_REG);
     if (!(temp & 0x03)) {
         RFID_WriteRegister(MFRC522_TX_CONTROL_REG, temp | 0x03);
     }
 }
+
+
 
 static bool RFID_Transceive(uint8_t *txData, uint8_t txLen, uint8_t *rxData, uint8_t *rxLen) {
     // Flush FIFO (set bit 7 of FIFOLevelReg)
@@ -232,17 +253,21 @@ static bool RFID_Transceive(uint8_t *txData, uint8_t txLen, uint8_t *rxData, uin
 }
 
 
+
 static inline void RFID_CS_Low(void) {
 
    // no bus conflict since every peripheral has its own module
     GPIO_setOutputLowOnPin(RFID_CS_PORT, RFID_CS_PIN);
 }
 
+
+
 static inline void RFID_CS_High(void) {
 
     // no bus conflict since every peripheral has its own module
     GPIO_setOutputHighOnPin(RFID_CS_PORT, RFID_CS_PIN);
 }
+
 
 
 bool RFID_Init(void) {
@@ -374,6 +399,8 @@ bool RFID_Disable(void) {
 
     return true;
 }
+
+
 
 bool RFID_ReadTag(uint8_t *uid, uint8_t *uidLength) {
     uint8_t buffer[5];

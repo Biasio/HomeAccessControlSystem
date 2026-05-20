@@ -215,11 +215,7 @@ bool wait_RFID(void){
     //polling loop
     while (1) {
         // Check for button A
-        if (buttonA_pressed)
-        {
-            buttonA_pressed = 0;
-            goto CANCEL;
-        }
+        if (buttonA_pressed) {buttonA_pressed = 0; goto CANCEL;}
 
         // Try to read a tag
         if (RFID_ReadTag(read_uid, &uid_len))
@@ -243,39 +239,31 @@ bool wait_RFID(void){
                 // Valid tag, success
                 RFID_Disable();
                 _graphicsInit();
+
+                uint32_t t_start = system_millis;
+                Graphics_setForegroundColor(&g_sContext, ClrGreen);
                 display_string("VALID RFID");
-                delay_ms(1500);
+                buzzerPWMgen(&CorrectRFID);
+                while(system_millis - t_start < 1500);
+
                 return true;
             }
             else
             {
                 // Invalid tag, show feedback but continue scanning
-                Graphics_clearDisplay(&g_sContext);
-                Graphics_setForegroundColor(&g_sContext, ClrRed);
-                Graphics_drawStringCentered(&g_sContext, (int8_t *) "INVALID TAG!",
-                                            AUTO_STRING_LENGTH, 64, 40, OPAQUE_TEXT);
-                Graphics_setForegroundColor(&g_sContext, ClrBlack);
-                Graphics_drawStringCentered(&g_sContext, (int8_t *) "Keep scanning...",
-                                            AUTO_STRING_LENGTH, 64, 60, OPAQUE_TEXT);
+                RFID_Disable();
+                _graphicsInit();
 
-                uint_fast8_t start_t = system_millis;
-                // Wait a moment before clearing the error message and allow button press
-                while ((system_millis - start_t) < 1500) {
-                    if (buttonA_pressed)
-                    {
-                        buttonA_pressed = 0;
-                        goto CANCEL;
-                    }
-                }
-                // Restore scanning message
-                Graphics_clearDisplay(&g_sContext);
-                Graphics_setForegroundColor(&g_sContext, ClrBlack);
-                Graphics_drawStringCentered(&g_sContext, (int8_t *) "USE RFID TAG",
-                                            AUTO_STRING_LENGTH, 64, 40, OPAQUE_TEXT);
-                Graphics_drawStringCentered(&g_sContext, (int8_t *) "Press A to cancel",
-                                            AUTO_STRING_LENGTH, 64, 60, OPAQUE_TEXT);
+                uint32_t t_start = system_millis;
+                Graphics_setForegroundColor(&g_sContext, ClrRed);
+                display_string("WRONG RFID");
+                buzzerPWMgen(&WrongPin);
+                while(system_millis - t_start < 1500);
+
+                return false;
             }
-        } else {
+        }
+        else {
             // No tag – short delay to avoid busy‑looping and reduce power
             delay_ms(50);
         }

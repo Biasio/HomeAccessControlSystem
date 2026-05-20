@@ -13,15 +13,16 @@ volatile bool ToF_ready = 0;
 
 void ToF_Init(){
     i2c_init();
-    if (vl53l0x_init()) interrupt_gpio_init();
-    printf("end of T0F_Init: %d\n", ToF_ready);
+    interrupt_gpio_init();
     return;
 }
 
 void ToF_IRQHandler(void){
     ToF_flag = 1;
-    GPIO_disableInterrupt(GPIO_PORT_P4, GPIO_PIN6);
-    GPIO_clearInterruptFlag(GPIO_PORT_P4, GPIO_PIN6);
+
+    PORT(VL53L0X_INT_PORT)->IE  &= ~ONE_HOT_BIT(VL53L0X_INT_PIN);
+    PORT(VL53L0X_INT_PORT)->IFG  &= ~ONE_HOT_BIT(VL53L0X_INT_PIN);
+
     return;
 }
 
@@ -41,13 +42,13 @@ void ToF_disable(){
 
 
 void ToF_enable(){
-    GPIO_disableInterrupt(GPIO_PORT_P4, GPIO_PIN6);
-    GPIO_clearInterruptFlag(GPIO_PORT_P4, GPIO_PIN6);
+    PORT(VL53L0X_INT_PORT)->IE  &= ~ONE_HOT_BIT(VL53L0X_INT_PIN);
+    PORT(VL53L0X_INT_PORT)->IFG  &= ~ONE_HOT_BIT(VL53L0X_INT_PIN);
 
     ToF_ready = vl53l0x_init();
     ToF_ready &= vl53l0x_start_continuous();
 
-    if (!ToF_ready){ // if init failed
+    if (!ToF_ready){  //if init failed
         i2c_recover();
         vl53l0x_stop_continuous();
         xshut_toggle(false);
@@ -59,19 +60,16 @@ void ToF_enable(){
     }
     else
     {
-        GPIO_clearInterruptFlag(GPIO_PORT_P4, GPIO_PIN6);
-        GPIO_enableInterrupt(GPIO_PORT_P4, GPIO_PIN6);
+        PORT(VL53L0X_INT_PORT)->IFG  &= ~ONE_HOT_BIT(VL53L0X_INT_PIN);
+        PORT(VL53L0X_INT_PORT)->IE  |= ONE_HOT_BIT(VL53L0X_INT_PIN);
     }
-    printf("end of T0F_enable: %d", ToF_ready);
+    printf("end of T0F_enable: ToF_ready %d\n", ToF_ready);
+
+    uint16_t dummy=0;
+    vl53l0x_read_range_interrupt(&dummy);
+    printf("end of T0F_enable measure: %" PRIu16 "\n", dummy);
+
     return;
-}
-
-
-bool ToF_validate_interrupt(void){
-    uint16_t range=0;
-
-    if (ToF_flag) return (vl53l0x_read_range_interrupt(&range));
-    else return false;
 }
 
 
@@ -292,6 +290,9 @@ bool RFID_Init(void) {
     return true;
 }
 
+
+
+
 bool RFID_Enable(void) {
     if(!RFID_ready){
         RFID_Init();
@@ -347,6 +348,9 @@ bool RFID_Enable(void) {
 
     return true;
 }
+
+
+
 
 bool RFID_Disable(void) {
     // Ensure CS is high (disabled)

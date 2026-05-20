@@ -16,7 +16,6 @@ void ToF_Init(void);
 void ToF_IRQHandler(void);
 void ToF_disable(void);
 void ToF_enable(void);
-bool ToF_validate_interrupt(void);
 
 
 //////////////////// RFID /////////////////////////

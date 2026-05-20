@@ -378,7 +378,8 @@ bool check_for_inputs(){
     else if (ToF_flag)
     {
         ToF_flag = 0;
-        return ToF_validate_interrupt();
+        uint16_t range=0;
+        return (vl53l0x_read_range_interrupt(&range));
     }
     return 0; // no interrupts were detected or ToF wasn't valid
 }

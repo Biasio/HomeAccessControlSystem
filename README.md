@@ -1,3 +1,79 @@
+# Home Access Control System 
+
+<!-- TABLE OF CONTENTS -->
+<details>
+  <summary>Table of Contents</summary>
+  <ol>
+    <li><a href="#about-the-project">About The Project</a></li>
+    <li><a href="#project-layout">Project Layout</a></li>
+    <li>
+      <a href="#requirements">Requirements</a>
+      <ul>
+        <li><a href="#hardware-setup">Hardware Setup</a></li>
+      </ul>
+      <ul>
+        <li><a href="#software-setup">Software Setup</a></li>
+      </ul>
+    </li>
+    <li><a href="#iot-integration">IoT Integration</a></li>
+    <li><a href="#authors">Authors</a></li>
+    <li><a href="#links">Links</a></li>
+  </ol>
+</details>
+
+## About The Project
+Welcome to the Home Access Control System!
+
+This project implements a smart door access control system that combines local hardware interaction with IoT remote management.
+Users can authenticate using unlock codes, while the administrator can access a dedicated secure menu using an RFID tag.
+Beyond the physical interface, an integrated Telegram bot handles remote interactions, enabling the administrator to oversee access permissions and allowing users to request or manage their own codes.
+The system also features a database that logs all access events for monitoring purposes.
+
+The architecture is split between two microcontrollers to safely separate local hardware logic from network tasks:
+- **MSP432**: Acts as the brain for local operations, handling sensor inputs, the user interface, and mechanical outputs.
+- **ESP32-S3**: Connected to the MSP, this board is dedicated to WiFi connectivity, fetching the clock time, and handling the Telegram Bot logic.
+
+The system integrates the following components and sensors
+- **RFID**: Scans tags to allow the administrator to access the local admin menu.
+- **Stepper Motor**: Controls the physical opening and closing mechanism of the door.
+- **Display**: Renders the local user interface.
+- **Buttons and Joystick**: Allow users to navigate through the system interface.
+- **Buzzer**: Provides acoustic feedback, such as warning signals for incorrect code inputs and general alerts.
+
+## Project Layout
+
+## Requirements
+
+### Hardware Setup (+ Project wiring)
+
+### Software Setup (CCSTudio + PlatformIO)
+
+## IoT Integration
+
+## Authors
+
+- Pietro Baroni:
+  1. Display
+  2. Joystick and push buttons
+
+- Michele Martini:
+  1. Telegram bot
+  2. UART Communication
+
+- Michele Casagrande:
+  1. Database
+  2. Motor
+
+- Alessandro Biasoli
+  1. RFID
+  2. ToF Senosor
+  3. Buzzer
+  
+
+## Links
+
+-------------------------
+
 # EmbeddedProject
 Access control for door opening in short stays
 
@@ -69,40 +145,3 @@ cd <your-repository-name>
 1. The git repo is a full workspace for ccstudio, so when opening the IDE select the cloned folder as the active workspace. 
 2. The project should be already configured and working out of the box; if no project is automatically imported do "Import Project > Code Composer Studio > CCS Projects > Browse... > Select the ShortStaysAccessControlSystem folder inside the repo location > tick the ccs project > click Finish "
 ```
-
-----------------
-## Title:
-
-## About the project
-
-## Project Layout
-
-## Requirements
-
-### Hardware Setup (+ Project wiring)
-
-### Software Setup (CCSTudio + PlatformIO)
-
-## IoT Integration
-
-## Authors
-
-- Pietro Baroni:
-  1. Display
-  2. Joystick and push buttons
-
-- Michele Martini:
-  1. Telegram bot
-  2. UART Communication
-
-- Michele Casagrande:
-  1. Database
-  2. Motor
-
-- Alessandro Biasoli
-  1. RFID
-  2. ToF Senosor
-  3. Buzzer
-  
-
-## Links

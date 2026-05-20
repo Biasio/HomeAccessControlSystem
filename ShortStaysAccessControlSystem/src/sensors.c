@@ -38,6 +38,7 @@ void ToF_IRQHandler(void){
 void ToF_disable(){
     if (ToF_ready)
     {
+        ToF_ready=0;
         PORT(VL53L0X_INT_PORT)->IE  &= ~ONE_HOT_BIT(VL53L0X_INT_PIN);
         PORT(VL53L0X_INT_PORT)->IFG  &= ~ONE_HOT_BIT(VL53L0X_INT_PIN);
 
@@ -45,8 +46,7 @@ void ToF_disable(){
         vl53l0x_read_range_interrupt(&dummy); //clears sensor flags
         vl53l0x_stop_continuous(); //disable continuous mode
 
-        ToF_ready=0;
-        //xshut_toggle(false); //sensor to standby
+        xshut_toggle(false); //sensor to standby
     }
     return;
 }
@@ -73,6 +73,7 @@ void ToF_enable(){
     }
     else
     {
+        clear_interrupt(); //clear sensor interrupts
         PORT(VL53L0X_INT_PORT)->IFG  &= ~ONE_HOT_BIT(VL53L0X_INT_PIN);
         PORT(VL53L0X_INT_PORT)->IE  |= ONE_HOT_BIT(VL53L0X_INT_PIN);
     }

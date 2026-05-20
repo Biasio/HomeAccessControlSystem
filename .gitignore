@@ -36,6 +36,7 @@
 *.idb
 *.pdb
 
+
 # Compiler and linker generated files
 /ShortStaysAccessControlSystem/Debug
 /ShortStaysAccessControlSystem/Release
@@ -58,3 +59,7 @@ simplelink_msp432p4_sdk_*/
 
 # mac system files
 .DS_Store
+
+
+#.pio
+TelegramBot/.pio/

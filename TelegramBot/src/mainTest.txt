@@ -1,0 +1,101 @@
+#include <Arduino.h>
+#include <WiFi.h>
+#include <AsyncTelegram2.h>
+#include <WiFiClientSecure.h>
+
+const int ledPin = 38;
+bool botConnesso = false;
+unsigned long tempoPrecedente = 0;
+const long intervalloLampeggio = 500; // Millisecondi tra acceso e spento
+int statoLed = LOW;
+
+const char ssid[] = "FRITZ!Box 7590 ON";
+const char password[] = "81097581114143684201";
+const char bot_token[] = "8620740437:AAHVbki-ZPTGqgVfXTVypP7QdyOv1XQ6s78";
+
+WiFiClientSecure client;
+AsyncTelegram2 myBot(client);
+InlineKeyboard miaTastiera;
+
+void setup() {
+    Serial.begin(115200);
+    delay(1000);
+    Serial.println("\n\n!!! SONO VIVO E STO ESEGUENDO IL CODICE !!!");
+
+    // Configura il pin del LED come uscita e inizialmente spento
+    rgbLedWrite(ledPin, 0, 0, 0);
+
+    // Aspetta l'apertura del monitor seriale se usi la USB Nativa
+    unsigned long t = millis();
+    while (!Serial && (millis() - t < 3000)) { delay(10); }
+
+    Serial.println("\n\n--- TEST BOT TELEGRAM ASINCRONO ---");
+
+    // 1. Connessione al Wi-Fi (Hardcoded per il test)
+    Serial.print("Connessione al Wi-Fi: ");
+    Serial.println(ssid);
+    WiFi.begin(ssid, password);
+    
+    while (WiFi.status() != WL_CONNECTED) {
+        Serial.print(".");
+        delay(500);
+    }
+    Serial.println("\n✅ Wi-Fi Connesso! IP: " + WiFi.localIP().toString());
+
+
+    // 2. Configurazione di Sicurezza per Telegram (Fondamentale su ESP32)
+    client.setCACert(telegram_cert); 
+
+    // 3. Avvio del Bot
+    myBot.setUpdateTime(2000); // Controlla nuovi messaggi ogni 2 secondi
+    myBot.setTelegramToken(bot_token);
+    
+    Serial.print("Connessione a Telegram... ");
+    if (myBot.begin()) {
+        Serial.println("✅ Bot pronto! Accendo il LED Verde!");
+        // Se si connette a Telegram, il LED RGB diventa VERDE fisso
+        rgbLedWrite(ledPin, 0, 10, 0); 
+
+        miaTastiera.addButton("🟢 Accendi Verde", "cmd_verde", KeyboardButtonQuery);
+        miaTastiera.addButton("🔴 Accendi Rosso", "cmd_rosso", KeyboardButtonQuery);
+
+        botConnesso = true;
+    } else {
+        Serial.println("❌ Errore Telegram. Accendo il LED Rosso!");
+        // Se c'è errore, il LED RGB diventa ROSSO fisso
+        rgbLedWrite(ledPin, 10, 0, 0);
+    }
+}
+
+void loop() {
+    // --- PARTE 1: GESTIONE MESSAGGI TELEGRAM ---
+    TBMessage msg;
+    if (myBot.getNewMessage(msg)) {
+        // CASO 1: L'utente ha scritto un messaggio di TESTO normale
+        if (msg.messageType == MessageText) {
+            Serial.println("\n📩 Testo ricevuto: " + msg.text);
+            String risposta = "Ciao" + msg.sender.firstName + " " + msg.sender.lastName + "! \nScegli un colore:";
+
+
+            // Rispondiamo inviando il menu con la nostra tastiera "appiccicata" sotto
+            myBot.sendMessage(msg, risposta.c_str(), miaTastiera);
+        }
+
+        // CASO 2: L'utente ha PREMUTO UN BOTTONE (Callback Query)
+        else if (msg.messageType == MessageQuery) {
+            Serial.print("\n👆 Bottone premuto! Il comando nascosto è: ");
+            Serial.println(msg.callbackQueryData); // Leggiamo il codice segreto del bottone
+
+            // Decidiamo cosa fare in base al bottone premuto
+            if (msg.callbackQueryData == "cmd_verde") {
+                Serial.println("Azione: Accendo il LED di Verde!");
+                rgbLedWrite(ledPin, 0, 50, 0); 
+            }
+            
+            else if (msg.callbackQueryData == "cmd_rosso") {
+                Serial.println("Azione: Accendo il LED di Rosso!");
+                rgbLedWrite(ledPin, 50, 0, 0); 
+            }
+        }
+    }
+}

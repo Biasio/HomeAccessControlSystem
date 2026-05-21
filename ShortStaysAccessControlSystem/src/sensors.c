@@ -26,9 +26,9 @@ void ToF_Init(){
 
 
 void ToF_IRQHandler(void){
-    if(ToF_ready) ToF_flag = 1;
     PORT(VL53L0X_INT_PORT)->IE  &= ~ONE_HOT_BIT(VL53L0X_INT_PIN);
     PORT(VL53L0X_INT_PORT)->IFG  &= ~ONE_HOT_BIT(VL53L0X_INT_PIN);
+    if(ToF_ready) ToF_flag = 1;
 
     return;
 }
@@ -36,18 +36,13 @@ void ToF_IRQHandler(void){
 
 
 void ToF_disable(){
-    if (ToF_ready)
-    {
-        ToF_ready=0;
+
         PORT(VL53L0X_INT_PORT)->IE  &= ~ONE_HOT_BIT(VL53L0X_INT_PIN);
         PORT(VL53L0X_INT_PORT)->IFG  &= ~ONE_HOT_BIT(VL53L0X_INT_PIN);
 
-        uint16_t dummy=0;
-        vl53l0x_read_range_interrupt(&dummy); //clears sensor flags
-        vl53l0x_stop_continuous(); //disable continuous mode
+        if (ToF_ready) {ToF_ready=0; vl53l0x_stop_continuous();}
 
-        xshut_toggle(false); //sensor to standby
-    }
+        PORT(XSHUT_PORT)->OUT &= ~ONE_HOT_BIT(XSHUT_PIN); //sensor to standby
     return;
 }
 
@@ -62,8 +57,6 @@ void ToF_enable(){
     ToF_ready &= vl53l0x_start_continuous();
 
     if (!ToF_ready){  //if init failed
-        i2c_recover();
-        vl53l0x_stop_continuous();
         xshut_toggle(false);
 
         static bool retries=RECOVER_TRIES;
@@ -73,15 +66,12 @@ void ToF_enable(){
     }
     else
     {
-        clear_interrupt(); //clear sensor interrupts
+        if(!clear_interrupt()) printf("clear_interrutp error\n"); //clear sensor interrupts
+
         PORT(VL53L0X_INT_PORT)->IFG  &= ~ONE_HOT_BIT(VL53L0X_INT_PIN);
         PORT(VL53L0X_INT_PORT)->IE  |= ONE_HOT_BIT(VL53L0X_INT_PIN);
     }
     printf("end of T0F_enable: ToF_ready %d\n", ToF_ready);
-
-    uint16_t dummy=0;
-    vl53l0x_read_range_interrupt(&dummy);
-    printf("end of T0F_enable measure: %" PRIu16 "\n", dummy);
 
     return;
 }

@@ -95,6 +95,7 @@ void fn_DOOR_LOCKED(void){
 
     if (check_for_inputs()) // check if there is activity
     {
+        standby = 0;
         already_displayed = 0;
         cur_state = STATE_INSERT_PIN;
     }

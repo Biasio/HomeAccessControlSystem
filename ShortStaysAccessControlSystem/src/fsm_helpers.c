@@ -369,17 +369,18 @@ bool check_for_inputs(){
         ToF_flag = 0;
         uint16_t range=0;
         uint8_t error=0;
-        bool valid = (vl53l0x_read_range_interrupt(&range, &error));
+        bool valid = vl53l0x_read_range_interrupt(&range, &error);
 
-        if(!valid){ // if it wasn't valid re-enable interrupt (disabled in the ISR)
+        // Only treat as "presence detected" if range is genuinely within threshold
+        valid &= ((range <= VL53L0X_LOW_THRESH) && (range > 0));
+
+        if(!valid){ // if it wasn't valid or in threshold, re-enable interrupt (disabled in the ISR)
             PORT(VL53L0X_INT_PORT)->IFG &= ~ONE_HOT_BIT(VL53L0X_INT_PIN);
             PORT(VL53L0X_INT_PORT)->IE  |= ONE_HOT_BIT(VL53L0X_INT_PIN);
         }
 
         printf("check_for_inputs range: %" PRIu16 ", error: %" PRIu8 "\n", range, error);
-
-        // Only treat as "presence detected" if range is genuinely within threshold
-        return (valid && (range <= VL53L0X_LOW_THRESH) && (range > 0));
+        return valid;
     }
 
     return 0; // no interrupts were detected or ToF wasn't valid

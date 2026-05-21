@@ -50,6 +50,7 @@ ShortStaysAccessControlSystem/.launches/
 *Debug/
 *Release/
 *RemoteSystemsTempFiles/
+dvt/
 
 #Driverlib folders
 simplelink_msp432p4_sdk_*/

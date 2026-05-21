@@ -6,11 +6,11 @@
 
 const int64_t ledPin = 38;
 
-const char ssid[] = "Galaxy A52 5G di Michele";
-const char password[] = "michele03";
+const char ssid[] = "your_wifi_ssid_here";
+const char password[] = "your_wifi_password_here";
 WiFiClientSecure client;
 
-const char bot_token[] = "8620740437:AAHVbki-ZPTGqgVfXTVypP7QdyOv1XQ6s78";
+const char bot_token[] = "your_telegram_bot_token_here";
 AsyncTelegram2 myBot(client);
 DoorBotManager botManager(myBot, Serial1);
 

@@ -41,6 +41,56 @@ The system integrates the following components and sensors
 - **Buzzer**: Provides acoustic feedback, such as warning signals for incorrect code inputs and general alerts.
 
 ## Project Layout
+## Repository Structure
+
+```text
+.
+├── ShortStaysAccessControlSystem/     # Firmware project (MSP432 Microcontroller)
+│   ├── msp432p401r.cmd                # Memory linker script
+│   ├── src/                           # Source code directory
+│   │   ├── external_src/              # External hardware libraries
+│   │   │   └── vl53l0x_msp432/        # Distance sensor submodule (Git)
+│   │   │       ├── drivers/           # Sensor native API registers
+│   │   │       │   ├── config.h       # Timing configuration
+│   │   │       │   ├── i2c.c / .h     # I2C driver
+│   │   │       │   ├── macro.h        # Internal macros
+│   │   │       │   └── vl53l0x.c / .h # Main ranging core
+│   │   │       ├── main.c             # Sensor standalone test
+│   │   │       └── README.md          # Submodule info
+│   │   ├── LcdDriver/                 # Display graphics library
+│   │   │   ├── Crystalfontz128x128_ST7735.c / .h                       # ST7735 controller primitives
+│   │   │   └── HAL_MSP_EXP432P401R_Crystalfontz128x128_ST7735.c / .h   # Display pin mapping
+│   │   ├── buzzer.c / .h              # Buzzer acoustic alerts
+│   │   ├── comm_esp.c / .h            # Serial communication with ESP32
+│   │   ├── database.c / .h            # Local access credentials memory
+│   │   ├── display.c / .h             # LCD high-level UI menus
+│   │   ├── fsm_helpers.c / .h         # State machine utilities
+│   │   ├── fsm.c / .h                 # Main application logic (FSM)
+│   │   ├── irqHandlers.c / .h         # Hardware interrupt routines
+│   │   ├── joystick.c / .h            # Analog joystick driver
+│   │   ├── main.c                     # System entry point & loop
+│   │   ├── push_button.c / .h         # Buttons and debouncing
+│   │   ├── sensors.c / .h             # Sensors hardware data polling
+│   │   └── timers.c / .h              # Periodic timer configurations
+│   ├── startup_msp432p401r_ccs.c      # Microcontroller vector table
+│   └── system_msp432p401r.c           # System clock configuration
+├── TelegramBot/                       # PlatformIO project (ESP32 Microcontroller)
+│   ├── include/                       # Global header headers
+│   │   └── README                     # Folder info
+│   ├── lib/                           # Custom local libraries
+│   │   ├── DoorBotManager/            # Telegram connection & events logic
+│   │   │   ├── DoorBotManager.cpp     # Bot API implementation
+│   │   │   └── DoorBotManager.h       # Bot class definition
+│   │   └── README                     # Lib folder info
+│   ├── platformio.ini                 # Build and dependency settings
+│   ├── src/                           # Application source code
+│   │   ├── idf_component.yml          # ESP-IDF component packages
+│   │   ├── main.cpp                   # Main bot loop & Wi-Fi init
+│   │   └── mainTest.txt               # Text test file
+│   └── test/                          # Unit testing folder
+│       └── README                     # Test folder info
+└── README.md                          # Project documentation
+```
 
 ## Requirements
 

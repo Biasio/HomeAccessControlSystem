@@ -182,7 +182,7 @@ Ensure you have the following installed before cloning:
 ## Getting Started
 
 Follow these steps to build the project:
-
+clone the sdk: simplelink_msp432p4_sdk_3_40_01_02](https://www.ti.com/tool/download/SIMPLELINK-MSP432-SDK/3.40.01.02
 ### 1. Clone the Repository
 Because we use Git LFS, make sure LFS is initialized on your machine before cloning:
 ```bash

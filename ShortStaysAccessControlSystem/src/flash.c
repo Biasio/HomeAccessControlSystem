@@ -58,3 +58,4 @@ void save_userArray(){
     MAP_FlashCtl_protectSector(FLASH_MAIN_MEMORY_SPACE_BANK1,FLASH_SECTOR30);
     printf("saved userArray \n");
 }
+

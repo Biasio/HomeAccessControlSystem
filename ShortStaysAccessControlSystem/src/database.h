@@ -74,3 +74,4 @@ void write_number(int page);                    //to overwrite the array "buffer
 
 
 #endif /* SRC_DATABASE_H_ */
+

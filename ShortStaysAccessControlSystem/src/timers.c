@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 #include "timers.h"
 
 void _ClockSystemInit() {

@@ -45,6 +45,8 @@ void _hwInit(void){
     //to restore data from flash
     database_init();
 
+    //motor Pins
+    motor_init();
     //display
     _graphicsInit();
 }
@@ -184,8 +186,14 @@ uint8_t insert_pin(){
 
 void open_door(void){
     // - turn on servo
+    printf("open door \n");
+    moveMotor(360);
 }
 
+void close_door(void){
+    printf("closing door \n");
+    moveMotor(-360);
+}
 
 
 bool wait_RFID(void){
@@ -412,4 +420,3 @@ char* get_date_hour(){
     }
     return buffer;
 }
-

@@ -50,5 +50,3 @@ bool data_aquired(void){
 }
 
 
-
-

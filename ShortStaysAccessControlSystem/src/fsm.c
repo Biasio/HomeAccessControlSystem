@@ -159,9 +159,15 @@ void fn_OPEN_DOOR(void){
     uint32_t t_start = system_millis;
     display_door_open();
     buzzerPWMgen(&CorrectPin);
-    while(system_millis - t_start < 1500);
 
     open_door();
+
+    while(system_millis - t_start < 3000);
+
+    display_door_closed();
+
+
+    close_door();
 
     cur_state = STATE_DOOR_LOCKED;
 }

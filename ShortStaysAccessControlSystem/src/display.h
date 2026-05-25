@@ -75,6 +75,7 @@ void display_menu_block_pin(void);
 
 void display_clock(int hour, int minute);
 void display_door_open(void);
+void display_door_closed(void);
 void display_wait_RFID(void);
 void display_wrong_pin(int error_pin);
 void display_block_access(void);
@@ -82,3 +83,4 @@ void display_block_access(void);
 void display_string(const char* string);
 
 #endif
+

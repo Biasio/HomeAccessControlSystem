@@ -14,8 +14,9 @@
 
 
 void moveMotor(int angle);
-
+void motor_init();
 
 
 
 #endif /* MOTOR_H_ */
+

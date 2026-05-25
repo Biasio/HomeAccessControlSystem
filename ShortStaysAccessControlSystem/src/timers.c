@@ -45,10 +45,7 @@ static const Timer_A_UpModeConfig idleTimerConfig =
 void _idleTimerInit()
 {
     Timer_A_configureUpMode(TIMER_A2_BASE, &idleTimerConfig);
-    Timer_A_stopTimer(TIMER_A2_BASE); // initialize it already stopped
-    Timer_A_clearInterruptFlag(TIMER_A2_BASE);
     Interrupt_enableInterrupt(INT_TA2_0);
-
     standby = 0;
 }
 
@@ -75,7 +72,7 @@ void _debounceTimerInit()
 static const Timer_A_ContinuousModeConfig continuousModeConfig =
 {
     TIMER_A_CLOCKSOURCE_SMCLK,
-    TIMER_A_CLOCKSOURCE_DIVIDER_4,
+    TIMER_A_CLOCKSOURCE_DIVIDER_16,
     TIMER_A_TAIE_INTERRUPT_ENABLE,      // Enable Overflow ISR
     TIMER_A_DO_CLEAR                    // Clear Counter
 };
@@ -92,9 +89,8 @@ void _ADCtimerInit(){
 }
 
 void _SysTickInit(){
-    SysTick_setPeriod(48000); //1ms period
-    HWREG(NVIC_ST_CURRENT) = 1;
     SysTick_enableModule();
+    SysTick_setPeriod((CS_getMCLK()/1000)-1); //1ms period
     SysTick_enableInterrupt();
     system_millis = 0;
 }

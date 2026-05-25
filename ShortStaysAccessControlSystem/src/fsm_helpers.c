@@ -17,17 +17,14 @@ void _hwInit(void){
 
     /* Initializes Clock & FLASH System */
     _ClockSystemInit();
-
     _SysTickInit();
+
+    //display
+    _graphicsInit();
 
     //joystick
     _adcInit();
     _ADCtimerInit();
-
-    //disable the CS gpio for RFID It might be
-    // left low after a reset without power interruption
-    GPIO_setAsOutputPin(RFID_CS_PORT, RFID_CS_PIN);
-    GPIO_setOutputHighOnPin(RFID_CS_PORT, RFID_CS_PIN);
 
     //buttons
     _pushButtonsInit();
@@ -41,20 +38,8 @@ void _hwInit(void){
 
     // Initialize UART communication with ESP32
     ESP_Comm_Init();
-
-    //to restore data from flash
+    //flash
     database_init();
-
-    //display
-    _graphicsInit();
-}
-
-
-
-void reset_flags(){
-    move_rectangle=0;
-    buttonA_pressed = 0;
-    buttonB_pressed = 0;
 }
 
 
@@ -141,40 +126,26 @@ uint8_t insert_pin(){
     for(k=0; k < MAX_TEMP_USERS; ++k) {
         if(activeTempUsers[k].active && strcmp(typed_pin_str, activeTempUsers[k].pin) == 0) {
             pin_correct = 1;
-            printf("%c \n",activeTempUsers[k].pin[0]);                  //only to debug
-
-            //to save the access data in db:
-            dbstate = USER;
-            add_log(dbstate, get_date_hour(), selected_pin_user);
-            save_database();
-
             break; //break if correct
         }
     }
-
 
     if(pin_correct != 1){
     // Check for Admin PIN
         for(i=0; i<4; i++) {
             if(selected_pin_user[i] != saved_pin_admin[i]) {
                 pin_correct = 0;
-                //to save the access data in db:
                 dbstate = DENIED;
-                add_log(dbstate, get_date_hour(), selected_pin_user);
+                add_log(dbstate, "dd/mm hh:mm", selected_pin_user);
                 save_database();
-
                 break;
             }
             else
             {
                 pin_correct = 2;
-
-                if(i==3){           //this way i save admin access on db only if all 4 digits are right. it saves when the last digit is checked
-                    dbstate = ADMIN;
-                    add_log(dbstate, get_date_hour(), selected_pin_user);
-                    save_database();
-                }
-
+                dbstate = ADMIN;
+                add_log(dbstate, "dd/mm hh:mm", selected_pin_user);
+                save_database();
             }
         }
     }
@@ -183,107 +154,23 @@ uint8_t insert_pin(){
 
 
 void open_door(void){
+    // - show on display that door is opening
     // - turn on servo
+    // - turn on LED
+    // ? make a sound to signal that the code is correct
+
+    display_door_open();
+    //buzzerPWMgen(&StarWars);
+    delay_ms(2500);
+
 }
 
 
 
-bool wait_RFID(void){
-    // clear previous set flags
-    buttonA_pressed=0;
-    buttonB_pressed=0;
-
+void wait_RFID(void){
     Graphics_setForegroundColor(&g_sContext, ClrBlack);
-    GrContextFontSet(&g_sContext, &g_sFontCmss16);
-    Graphics_clearDisplay(&g_sContext);
-        GrContextFontSet(&g_sContext, &g_sFontCmss16);
-        Graphics_setForegroundColor(&g_sContext, ClrBlack);
-        Graphics_drawStringCentered(&g_sContext, (int8_t *) "USE RFID TAG",
-                                    AUTO_STRING_LENGTH, 64, 40, OPAQUE_TEXT);
-        Graphics_drawStringCentered(&g_sContext, (int8_t *) "Press A to cancel",
-                                    AUTO_STRING_LENGTH, 64, 60, OPAQUE_TEXT);
-
-    if(!RFID_Enable()){
-        goto ERROR;
-    }
-
-    uint8_t read_uid[10] = {0};
-    uint8_t uid_len=0;
-    bool read_status = 0;
-    bool tag_valid =0;
-
-    //polling loop
-    while (1) {
-        // Check for button A
-        if (buttonA_pressed) {buttonA_pressed = 0; goto CANCEL;}
-
-        // Try to read a tag
-        if (RFID_ReadTag(read_uid, &uid_len))
-        {
-            // If tag found, check if it matches the saved UID length first
-            tag_valid = (uid_len == RFID_UID_LENGTH);
-            if (tag_valid)
-            {
-                for (int i = 0; i < RFID_UID_LENGTH; i++)
-                {
-                    if (read_uid[i] != RFID_saved[i])
-                    {
-                        tag_valid = 0;
-                        break;
-                    }
-                }
-            }
-
-            if (tag_valid)
-            {
-                // Valid tag, success
-                RFID_Disable();
-                _graphicsInit();
-
-                uint32_t t_start = system_millis;
-                Graphics_setForegroundColor(&g_sContext, ClrGreen);
-                display_string("VALID RFID");
-                buzzerPWMgen(&CorrectRFID);
-                while(system_millis - t_start < 1500);
-
-                return true;
-            }
-            else
-            {
-                // Invalid tag, show feedback but continue scanning
-                RFID_Disable();
-                _graphicsInit();
-
-                uint32_t t_start = system_millis;
-                Graphics_setForegroundColor(&g_sContext, ClrRed);
-                display_string("WRONG RFID");
-                buzzerPWMgen(&WrongPin);
-                while(system_millis - t_start < 1500);
-
-                return false;
-            }
-        }
-        else {
-            // No tag – short delay to avoid busy‑looping and reduce power
-            delay_ms(50);
-        }
-    }
-
-    /* Reset logic on error before exiting */
-    ERROR:
-        RFID_Disable();
-        _graphicsInit();
-        display_string("ERROR");
-        delay_ms(2000);
-        return false;
-
-    /* Reset logic on cancel before exiting */
-    CANCEL:
-        RFID_Disable();
-        _graphicsInit();
-        display_string("CANCELLED");
-        delay_ms(1500);
-        return false;
+    display_string("PLEASE, USE RFID");
+    delay_ms(10000);
 }
 
 
@@ -336,7 +223,8 @@ void menu_block_pin(void){
 void wrong_pin(void){
     // - turn on LED
     // - make a sound to signal that the code is incorrect
-    ++error_pin;
+
+    error_pin++;
 
     display_wrong_pin(error_pin);
 }
@@ -344,53 +232,45 @@ void wrong_pin(void){
 
 void block_access(void){
     display_block_access();
-    delay_ms(3000);
+
+    delay_ms(10000);
 }
 
 void door_lock(){
     Graphics_setForegroundColor(&g_sContext, ClrBlack);
     display_string("DOOR LOCKED");
-    delay_ms(2000);
 }
 
 
+void wait_reset_door(void){
+
+}
+
 
 bool check_for_inputs(){
-    printf("check_for_inputs: ToF_ready:%d, ToF_flag:%d\n", ToF_ready, ToF_flag);
-    if (buttonA_pressed || buttonB_pressed)
+    if (ToF_flag || buttonA_pressed || buttonB_pressed)
     {
         buttonB_pressed=0;
         buttonA_pressed=0;
+
+        ToF_disable(); // Disable ToF interrupt and change state
+        ToF_flag = 0; // safety measure if ToF has been re-triggered meanwhile
+
         return 1; //signal that an input was detected
     }
-
-    if (ToF_flag)
+    else // no input was received
     {
-        ToF_flag = 0;
-        uint16_t range=0;
-        uint8_t error=0;
-        bool valid = vl53l0x_read_range_interrupt(&range, &error);
-
-        // Only treat as "presence detected" if range is genuinely within threshold
-        valid &= ((range <= VL53L0X_LOW_THRESH) && (range > 0));
-
-        if(!valid){ // if it wasn't valid or in threshold, re-enable interrupt (disabled in the ISR)
-            PORT(VL53L0X_INT_PORT)->IFG &= ~ONE_HOT_BIT(VL53L0X_INT_PIN);
-            PORT(VL53L0X_INT_PORT)->IE  |= ONE_HOT_BIT(VL53L0X_INT_PIN);
-        }
-
-        printf("check_for_inputs range: %" PRIu16 ", error: %" PRIu8 "\n", range, error);
-        return valid;
+        // if the ToF interrupt gpio isn't enabled
+        if (!(P4->IE & BIT6)) ToF_enable();
     }
+    return 0; // no interrupts were detected
 
-    return 0; // no interrupts were detected or ToF wasn't valid
 }
 
 
 void menu_last_access_log(int db_page){
-    display_menu_last_access_log();     //it displays only the title
+    display_menu_last_access_log();     //it display only the title
 //    serial_print_db();
-
     display_db(db_page);                //to display only the correct page of the database
 }
 
@@ -398,18 +278,5 @@ void menu_factory_reset(void){
     display_menu_factory_reset();
 }
 
-char* get_date_hour(){
-    char buffer[15];
-    int hour = 0, minute = 0, day = 1, month = 1;
-    if(timeSynced){             //so only if the esp has sinced and sent the current time
-        hour = RTC_C_getCalendarTime().hours;
-        minute = RTC_C_getCalendarTime().minutes;
-        day = RTC_C_getCalendarTime().dayOfmonth;
-        month = RTC_C_getCalendarTime().month;
-        sprintf(buffer, "%02d/%02d %02d:%02d", day, month, hour, minute);   //"%02d" specifies i want to stamp 2 character in any case, and to add a 0 if necessary (ex 7 -> 07)
-    } else {
-        sprintf(buffer, "--/-- --:--");         //if time data not available, print this
-    }
-    return buffer;
-}
+
 

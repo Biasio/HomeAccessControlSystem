@@ -30,24 +30,37 @@
 *.x86_64
 *.hex
 
-# Compiler and linker generated files
-/ShortStaysAccessControlSystem/Debug
-/ShortStaysAccessControlSystem/Release
 # Debug files
 *.dSYM/
 *.su
 *.idb
 *.pdb
 
-# debug information files
+
+# Compiler and linker generated files
+/ShortStaysAccessControlSystem/Debug
+/ShortStaysAccessControlSystem/Release
+
+# IDE files
 *.dwo
 /.metadata/
+*.settings/
+/.project
+ShortStaysAccessControlSystem/.launches/
+*Debug/
+*Release/
+*RemoteSystemsTempFiles/
+dvt/
 
+#Driverlib folders
+simplelink_msp432p4_sdk_*/
 
 # cache files
 .jxbrowser.userdata/
 
-# IDE files
-*.settings/
-
+# mac system files
 .DS_Store
+
+
+#remove .pio
+TelegramBot/.pio/

@@ -17,8 +17,6 @@ void SysTick_Handler(void) {
     ++system_millis;
 }
 
-
-
 void PORT5_IRQHandler(void)
 {
     uint_fast16_t status = GPIO_getEnabledInterruptStatus(GPIO_PORT_P5);
@@ -70,11 +68,11 @@ void TA1_0_IRQHandler(void) {
 
     if (GPIO_getInputPinValue(GPIO_PORT_P5, GPIO_PIN1) == GPIO_INPUT_PIN_LOW) {
         buttonA_pressed = 1;
-        Timer_A_clearTimer(TIMER_A2_BASE);
+        TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE);
     }
     if (GPIO_getInputPinValue(GPIO_PORT_P3, GPIO_PIN5) == GPIO_INPUT_PIN_LOW) {
         buttonB_pressed = 1;
-        Timer_A_clearTimer(TIMER_A2_BASE);
+        TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE);
     }
     GPIO_clearInterruptFlag(GPIO_PORT_P5, GPIO_PIN1);
     GPIO_clearInterruptFlag(GPIO_PORT_P3, GPIO_PIN5);
@@ -91,8 +89,9 @@ void TA2_0_IRQHandler(void)
 
     standby = 1;
 
-    // This will enable the interrupt for ToF sensor
+    // Enable interrupt for ToF sensor
     ToF_flag = 0;
+    ToF_enable();
 }
 
 

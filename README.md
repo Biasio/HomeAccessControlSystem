@@ -1,3 +1,129 @@
+# Home Access Control System 
+
+<!-- TABLE OF CONTENTS -->
+<details>
+  <summary>Table of Contents</summary>
+  <ol>
+    <li><a href="#about-the-project">About The Project</a></li>
+    <li><a href="#project-layout">Project Layout</a></li>
+    <li>
+      <a href="#requirements">Requirements</a>
+      <ul>
+        <li><a href="#hardware-setup">Hardware Setup</a></li>
+      </ul>
+      <ul>
+        <li><a href="#software-setup">Software Setup</a></li>
+      </ul>
+    </li>
+    <li><a href="#iot-integration">IoT Integration</a></li>
+    <li><a href="#authors">Authors</a></li>
+    <li><a href="#links">Links</a></li>
+  </ol>
+</details>
+
+## About The Project
+Welcome to the Home Access Control System!
+
+This project implements a smart door access control system that combines local hardware interaction with IoT remote management.
+Users can authenticate using unlock codes, while the administrator can access a dedicated secure menu using an RFID tag.
+Beyond the physical interface, an integrated Telegram bot handles remote interactions, enabling the administrator to oversee access permissions and allowing users to request or manage their own codes.
+The system also features a database that logs all access events for monitoring purposes.
+
+The architecture is split between two microcontrollers to safely separate local hardware logic from network tasks:
+- **MSP432**: Acts as the brain for local operations, handling sensor inputs, the user interface, and mechanical outputs.
+- **ESP32-S3**: Connected to the MSP, this board is dedicated to WiFi connectivity, fetching the clock time, and handling the Telegram Bot logic.
+
+The system integrates the following components and sensors
+- **RFID**: Scans tags to allow the administrator to access the local admin menu.
+- **Stepper Motor**: Controls the physical opening and closing mechanism of the door.
+- **Display**: Renders the local user interface.
+- **Buttons and Joystick**: Allow users to navigate through the system interface.
+- **Buzzer**: Provides acoustic feedback, such as warning signals for incorrect code inputs and general alerts.
+
+## Project Layout
+## Repository Structure
+
+```text
+.
+├── ShortStaysAccessControlSystem/     # Firmware project (MSP432 Microcontroller)
+│   ├── msp432p401r.cmd                # Memory linker script
+│   ├── src/                           # Source code directory
+│   │   ├── external_src/              # External hardware libraries
+│   │   │   └── vl53l0x_msp432/        # Distance sensor submodule (Git)
+│   │   │       ├── drivers/           # Sensor native API registers
+│   │   │       │   ├── config.h       # Timing configuration
+│   │   │       │   ├── i2c.c / .h     # I2C driver
+│   │   │       │   ├── macro.h        # Internal macros
+│   │   │       │   └── vl53l0x.c / .h # Main ranging core
+│   │   │       ├── main.c             # Sensor standalone test
+│   │   │       └── README.md          # Submodule info
+│   │   ├── LcdDriver/                 # Display graphics library
+│   │   │   ├── Crystalfontz128x128_ST7735.c / .h                       # ST7735 controller primitives
+│   │   │   └── HAL_MSP_EXP432P401R_Crystalfontz128x128_ST7735.c / .h   # Display pin mapping
+│   │   ├── buzzer.c / .h              # Buzzer acoustic alerts
+│   │   ├── comm_esp.c / .h            # Serial communication with ESP32
+│   │   ├── database.c / .h            # Local access credentials memory
+│   │   ├── display.c / .h             # LCD high-level UI menus
+│   │   ├── fsm_helpers.c / .h         # State machine utilities
+│   │   ├── fsm.c / .h                 # Main application logic (FSM)
+│   │   ├── irqHandlers.c / .h         # Hardware interrupt routines
+│   │   ├── joystick.c / .h            # Analog joystick driver
+│   │   ├── main.c                     # System entry point & loop
+│   │   ├── push_button.c / .h         # Buttons and debouncing
+│   │   ├── sensors.c / .h             # Sensors hardware data polling
+│   │   └── timers.c / .h              # Periodic timer configurations
+│   ├── startup_msp432p401r_ccs.c      # Microcontroller vector table
+│   └── system_msp432p401r.c           # System clock configuration
+├── TelegramBot/                       # PlatformIO project (ESP32 Microcontroller)
+│   ├── include/                       # Global header headers
+│   │   └── README                     # Folder info
+│   ├── lib/                           # Custom local libraries
+│   │   ├── DoorBotManager/            # Telegram connection & events logic
+│   │   │   ├── DoorBotManager.cpp     # Bot API implementation
+│   │   │   └── DoorBotManager.h       # Bot class definition
+│   │   └── README                     # Lib folder info
+│   ├── platformio.ini                 # Build and dependency settings
+│   ├── src/                           # Application source code
+│   │   ├── idf_component.yml          # ESP-IDF component packages
+│   │   ├── main.cpp                   # Main bot loop & Wi-Fi init
+│   │   └── mainTest.txt               # Text test file
+│   └── test/                          # Unit testing folder
+│       └── README                     # Test folder info
+└── README.md                          # Project documentation
+```
+
+## Requirements
+
+### Hardware Setup (+ Project wiring)
+
+### Software Setup (CCSTudio + PlatformIO)
+
+## IoT Integration
+
+## Authors
+
+- Pietro Baroni:
+  1. Display
+  2. Joystick and push buttons
+
+- Michele Martini:
+  1. Telegram bot
+  2. UART Communication
+
+- Michele Casagrande:
+  1. Database
+  2. Motor
+
+- Alessandro Biasoli
+  1. RFID
+  2. ToF Senosor
+  3. Buzzer
+  
+
+## Links
+
+-------------------------
+
 # EmbeddedProject
 Access control for door opening in short stays
 
@@ -56,7 +182,7 @@ Ensure you have the following installed before cloning:
 ## Getting Started
 
 Follow these steps to build the project:
-
+clone the sdk: simplelink_msp432p4_sdk_3_40_01_02](https://www.ti.com/tool/download/SIMPLELINK-MSP432-SDK/3.40.01.02
 ### 1. Clone the Repository
 Because we use Git LFS, make sure LFS is initialized on your machine before cloning:
 ```bash
@@ -68,3 +194,4 @@ cd <your-repository-name>
 ### 2. Import the project in CCStudio
 1. The git repo is a full workspace for ccstudio, so when opening the IDE select the cloned folder as the active workspace. 
 2. The project should be already configured and working out of the box; if no project is automatically imported do "Import Project > Code Composer Studio > CCS Projects > Browse... > Select the ShortStaysAccessControlSystem folder inside the repo location > tick the ccs project > click Finish "
+```

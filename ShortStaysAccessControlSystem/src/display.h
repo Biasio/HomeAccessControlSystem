@@ -9,7 +9,6 @@
 #include <inttypes.h>
 #include "timers.h"
 
-#define MAX_PIN_TRIES 3
 
 #define RECTANGLE_SHIFT_X_ON_GRID 30
 #define RECTANGLE_SHIFT_Y_ON_GRID 22
@@ -38,12 +37,11 @@ typedef enum {
 typedef enum {
     LAST_ACCESS_LOG,
     //SETUP_PIN, no longer used
-    //WIFI_SETUP,
-    //FACTORY_RESET,
+    WIFI_SETUP,
+    FACTORY_RESET,
     UNLOCK_DOOR,
-    //BLOCK_PIN,
-    //NUM_FUNCTION
-    RFID_REGISTER
+    BLOCK_PIN,
+    NUM_FUNCTION
 } enum_menu_functions;
 
 

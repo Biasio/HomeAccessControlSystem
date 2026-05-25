@@ -1,35 +1,6 @@
 #include "buzzer.h"
 
 
-const note StarWars_Notes[] = {
-        {NOTE_AS4, 250}, {NOTE_AS4, 250}, {NOTE_AS4, 250},
-        {NOTE_F5, 1000}, {NOTE_C6, 1000},
-        {NOTE_AS5, 250}, {NOTE_A5, 250}, {NOTE_G5, 250}, {NOTE_F6, 1000}, {NOTE_C6, 500},
-        {NOTE_AS5, 250}, {NOTE_A5, 250}, {NOTE_G5, 250}, {NOTE_F6, 1000}, {NOTE_C6, 500},
-        {NOTE_AS5, 250}, {NOTE_A5, 250}, {NOTE_AS5, 250}, {NOTE_G5, 1000}, {NOTE_C5, 250}, {NOTE_C5, 250}, {NOTE_C5, 250},
-        {NOTE_F5, 1000}, {NOTE_C6, 1000},
-        {NOTE_AS5, 250}, {NOTE_A5, 250}, {NOTE_G5, 250}, {NOTE_F6, 1000}, {NOTE_C6, 500},
-
-        {NOTE_AS5, 250}, {NOTE_A5, 250}, {NOTE_G5, 250}, {NOTE_F6, 1000}, {NOTE_C6, 500},
-        {NOTE_AS5, 250}, {NOTE_A5, 250}, {NOTE_AS5, 250}, {NOTE_G5, 1000}, {NOTE_C5, 375}, {NOTE_C5, 125},
-        {NOTE_D5, 750},  {NOTE_D5, 250},  {NOTE_AS5, 250}, {NOTE_A5, 250}, {NOTE_G5, 250}, {NOTE_F5, 250},
-        {NOTE_F5, 250},  {NOTE_G5, 250},  {NOTE_A5, 250},  {NOTE_G5, 500}, {NOTE_D5, 250}, {NOTE_E5, 500}, {NOTE_C5, 375}, {NOTE_C5, 125},
-        {NOTE_D5, 750},  {NOTE_D5, 250},  {NOTE_AS5, 250}, {NOTE_A5, 250}, {NOTE_G5, 250}, {NOTE_F5, 250},
-
-        {NOTE_C6, 375},  {NOTE_G5, 125},  {NOTE_G5, 1000}, {REST, 250},    {NOTE_C5, 250},
-        {NOTE_D5, 750},  {NOTE_D5, 250},  {NOTE_AS5, 250}, {NOTE_A5, 250}, {NOTE_G5, 250}, {NOTE_F5, 250},
-        {NOTE_F5, 250},  {NOTE_G5, 250},  {NOTE_A5, 250},  {NOTE_G5, 500}, {NOTE_D5, 250}, {NOTE_E5, 500}, {NOTE_C6, 375}, {NOTE_C6, 125},
-        {NOTE_F6, 500},  {NOTE_DS6, 250}, {NOTE_CS6, 500}, {NOTE_C6, 250}, {NOTE_AS5, 500}, {NOTE_GS5, 250}, {NOTE_G5, 500}, {NOTE_F5, 250},
-        {NOTE_C6, 2000}
-};
-
-const audio_data StarWars = {
-    StarWars_Notes,
-    (sizeof(StarWars_Notes) / sizeof(StarWars_Notes[0]))
-};
-
-
-
 volatile Timer_A_PWMConfig buzzerPWMconfig =
 {
     TIMER_A_CLOCKSOURCE_SMCLK,
@@ -80,3 +51,92 @@ void buzzerPWMgen(const audio_data* song){
 }
 
 
+
+/* ########## SONGS ######## */
+
+const note StarWars_Notes[] = {
+        {NOTE_AS4, 250}, {NOTE_AS4, 250}, {NOTE_AS4, 250},
+        {NOTE_F5, 1000}, {NOTE_C6, 1000},
+        {NOTE_AS5, 250}, {NOTE_A5, 250}, {NOTE_G5, 250}, {NOTE_F6, 1000}, {NOTE_C6, 500},
+        {NOTE_AS5, 250}, {NOTE_A5, 250}, {NOTE_G5, 250}, {NOTE_F6, 1000}, {NOTE_C6, 500},
+        {NOTE_AS5, 250}, {NOTE_A5, 250}, {NOTE_AS5, 250}, {NOTE_G5, 1000}, {NOTE_C5, 250}, {NOTE_C5, 250}, {NOTE_C5, 250},
+        {NOTE_F5, 1000}, {NOTE_C6, 1000},
+        {NOTE_AS5, 250}, {NOTE_A5, 250}, {NOTE_G5, 250}, {NOTE_F6, 1000}, {NOTE_C6, 500},
+
+        {NOTE_AS5, 250}, {NOTE_A5, 250}, {NOTE_G5, 250}, {NOTE_F6, 1000}, {NOTE_C6, 500},
+        {NOTE_AS5, 250}, {NOTE_A5, 250}, {NOTE_AS5, 250}, {NOTE_G5, 1000}, {NOTE_C5, 375}, {NOTE_C5, 125},
+        {NOTE_D5, 750},  {NOTE_D5, 250},  {NOTE_AS5, 250}, {NOTE_A5, 250}, {NOTE_G5, 250}, {NOTE_F5, 250},
+        {NOTE_F5, 250},  {NOTE_G5, 250},  {NOTE_A5, 250},  {NOTE_G5, 500}, {NOTE_D5, 250}, {NOTE_E5, 500}, {NOTE_C5, 375}, {NOTE_C5, 125},
+        {NOTE_D5, 750},  {NOTE_D5, 250},  {NOTE_AS5, 250}, {NOTE_A5, 250}, {NOTE_G5, 250}, {NOTE_F5, 250},
+
+        {NOTE_C6, 375},  {NOTE_G5, 125},  {NOTE_G5, 1000}, {REST, 250},    {NOTE_C5, 250},
+        {NOTE_D5, 750},  {NOTE_D5, 250},  {NOTE_AS5, 250}, {NOTE_A5, 250}, {NOTE_G5, 250}, {NOTE_F5, 250},
+        {NOTE_F5, 250},  {NOTE_G5, 250},  {NOTE_A5, 250},  {NOTE_G5, 500}, {NOTE_D5, 250}, {NOTE_E5, 500}, {NOTE_C6, 375}, {NOTE_C6, 125},
+        {NOTE_F6, 500},  {NOTE_DS6, 250}, {NOTE_CS6, 500}, {NOTE_C6, 250}, {NOTE_AS5, 500}, {NOTE_GS5, 250}, {NOTE_G5, 500}, {NOTE_F5, 250},
+        {NOTE_C6, 2000}
+};
+
+const audio_data StarWars = {
+    StarWars_Notes,
+    (sizeof(StarWars_Notes) / sizeof(StarWars_Notes[0]))
+};
+
+
+
+const note CorrectPin_Notes[] = {
+                                 {NOTE_E6, 125},
+                                     {NOTE_G6, 125},
+                                     {NOTE_E7, 125},
+                                     {NOTE_C7, 125},
+                                     {NOTE_D7, 125},
+                                     {NOTE_G7, 125}
+};
+
+const audio_data CorrectPin = {
+                               CorrectPin_Notes,
+                               (sizeof(CorrectPin_Notes) / sizeof(CorrectPin_Notes[0]))
+};
+
+
+
+const note WrongPin_Notes[] = {
+                               {NOTE_DS3, 300},
+                                   {NOTE_D3,  300},
+                                   {NOTE_CS3, 300},
+                                   {NOTE_C3,  800}
+};
+
+const audio_data WrongPin = {
+                             WrongPin_Notes,
+                             (sizeof(WrongPin_Notes) / sizeof(WrongPin_Notes[0]))
+};
+
+
+
+const note LockOut_Notes[] = {
+                              {NOTE_B4, 100},
+                                  {REST,     50},
+                                  {NOTE_F5, 300},
+                                  {REST,    100},
+                                  {NOTE_F5, 150},
+                                  {NOTE_F5, 150},
+                                  {NOTE_E5, 150},
+                                  {NOTE_D5, 150},
+                                  {NOTE_C5, 500}
+};
+
+const audio_data LockOut = {
+                            LockOut_Notes,
+                             (sizeof(LockOut_Notes) / sizeof(LockOut_Notes[0]))
+};
+
+
+const note CorrectRFID_Notes[] = {
+                                  {NOTE_B5, 80},
+                                  {NOTE_E6, 400}
+};
+
+const audio_data CorrectRFID = {
+                                CorrectRFID_Notes,
+                                (sizeof(CorrectRFID_Notes) / sizeof(CorrectRFID_Notes[0]))
+};

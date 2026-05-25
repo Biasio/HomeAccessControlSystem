@@ -1,7 +1,7 @@
 #include "fsm.h"
 
 
-int db_page;
+int db_page = 1;
 
 
 int32_t displayX = 64;
@@ -22,11 +22,8 @@ StateMachine_t fsm[] = {
      {STATE_ADMIN_MENU, fn_ADMIN_MENU},
 
      {STATE_LAST_ACCESS_LOG, fn_menu_lal},
-     //{STATE_SETUP_PIN, fn_menu_setup_pin}, no longer used
-     {STATE_SETUP_WIFI, fn_menu_wifi},
-     {STATE_FACTORY_RESET, fn_menu_fact_reset},
      {STATE_UNLOCK_DOOR, fn_menu_unlock_door},
-     {STATE_BLOCK_PIN, fn_menu_block_pin},
+     {STATE_RFID_REGISTER, fn_rfid_register},
 
      {STATE_WRONG_PIN, fn_WRONG_PIN},
      {STATE_BLOCK_ACCESS, fn_BLOCK_ACCESS},
@@ -38,7 +35,6 @@ StateMachine_t fsm[] = {
 
 void fn_BOOT(void){
     _hwInit();
-    TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE);
     cur_state = STATE_SYNC_TIME;
 }
 
@@ -60,25 +56,14 @@ void fn_SYNC_TIME(void){
         display_string("SYNCING TIME...");
     }
 
-    // CRITICAL: Keep restarting the hardware idle timer (A2) to prevent
-    // the system from going into standby/sleep while waiting for the ESP32.
-    TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE);
-
-    // SUCCESS CASE: The UART Interrupt has received a valid time packet
+    // SUCCESS CASE and FALLBACK CASE: The UART Interrupt has received a valid time packet
     // and initialized the hardware RTC.
-    if (timeSynced) {
+    // If 10 seconds pass without a response from the ESP32,
+    // exit the sync state to prevent the system from hanging.
+    if (timeSynced || ((system_millis - entry_time) > 10000)) {
         req_sent = false;
         entry_time = 0; // Reset entry time for future re-synchronizations
         cur_state = STATE_AOD;  // Transition directly to Always On Display
-        return;
-    }
-
-    // FALLBACK CASE: If 10 seconds pass without a response from the ESP32,
-    // exit the sync state to prevent the system from hanging.
-    if ((system_millis - entry_time) > 10000) {
-        req_sent = false;
-        entry_time = 0; // Resetta
-        cur_state = STATE_AOD; // Forza l'uscita, la tastiera torner� a funzionare
         return;
     }
 
@@ -95,70 +80,107 @@ void fn_SYNC_TIME(void){
 
 void fn_DOOR_LOCKED(void){
     static bool already_displayed = 0;
+    Timer_A_stop(TIMER_A2_BASE);
 
     if(already_displayed == 0){
         door_lock();
         already_displayed = 1;
     }
 
-    if (standby) {
-        standby = 0;
-        cur_state= STATE_AOD;
-    }
+    TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE);
 
-    if (check_for_inputs()) {
+    // Here the door is assumend locked since the previous one will be
+    // executed at least once per state transition to fn_DOOR_LOCKED
+
+    if (check_for_inputs()) // if idle timer hasn't fired check if there is activity
+    {
         already_displayed = 0;
         cur_state = STATE_INSERT_PIN;
     }
+    else if (standby) // if no activity and the idle timer has fired go to aod
+    {
+        standby = 0;
+        already_displayed = 0;
+        cur_state= STATE_AOD;
+    }
+
+    return;
 }
 
 
 
 void fn_INSERT_PIN(void){
+    Timer_A_startCounter(TIMER_A2_BASE, TIMER_A_UP_MODE);
     Graphics_setForegroundColor(&g_sContext, ClrBlack);
     display_string("INSERT PIN");
     draw_grid();
 
-    bool pin_correct=0;
-
-    pin_correct = insert_pin();
-
-    // --- 2. Check if the User PIN was Correct ---
-    if(pin_correct == 1)
+    switch ( insert_pin() )
     {
-        error_pin = 0;
-        cur_state = STATE_OPEN_DOOR;
-    }
-    else if (pin_correct == 2)
-    {
+        case 1: // USER pin detected
             error_pin = 0;
+            TIMER_CLEAR_STOP(TIMER_A2_BASE);
+            cur_state = STATE_OPEN_DOOR;
+
+            break;
+
+        case 2: // ADMIN pin detected
+            error_pin = 0;
+            TIMER_CLEAR_STOP(TIMER_A2_BASE);
             cur_state = STATE_WAIT_RFID;
+
+            break;
+
+        default: // wrong pin detected
+            TIMER_CLEAR_STOP(TIMER_A2_BASE);
+            cur_state = STATE_WRONG_PIN;
+
+            break;
     }
-    else
-    {
-        cur_state = STATE_WRONG_PIN; // Increment error_pin in the next state [cite: 601]
-    }
+
+    return;
 }
 
 
 void fn_OPEN_DOOR(void){
+
+    uint32_t t_start = system_millis;
+    display_door_open();
+    buzzerPWMgen(&CorrectPin);
+
     open_door();
-    TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE);
+
+    while(system_millis - t_start < 3000);    //because, after a certain time, door closes
+
+    display_door_closed();
+
+
+    close_door();
+
     cur_state = STATE_DOOR_LOCKED;
 }
 
 
 void fn_WAIT_RFID(void){
-    wait_RFID();
+    TIMER_CLEAR_STOP(TIMER_A2_BASE);
+    buzzerPWMgen(&CorrectPin);
 
-    //if RFID signal doesn't arrive after a certain amount of time, display a message and go back to INSERT_PIN
-
-    cur_state = STATE_ADMIN_MENU;
+    if (wait_RFID()) {
+        buzzerPWMgen(&CorrectRFID);
+        cur_state = STATE_ADMIN_MENU;
+    }
+    else
+    {
+        //cur_state = STATE_INSERT_PIN;
+        cur_state = STATE_ADMIN_MENU;
+    }
+    return;
 }
 
 
 
 void fn_ADMIN_MENU(void){
+    Timer_A_startCounter(TIMER_A2_BASE, TIMER_A_UP_MODE);
     int selected_function;
     selected_function = admin_menu();
 
@@ -168,34 +190,27 @@ void fn_ADMIN_MENU(void){
             db_page=1;                              //when you enter the db, the first page is shown
             cur_state = STATE_LAST_ACCESS_LOG;
             break;
-    // case SETUP_PIN no longer used
-    case WIFI_SETUP:
-        cur_state = STATE_SETUP_WIFI;
-        break;
-    case FACTORY_RESET:
-        cur_state = STATE_FACTORY_RESET;
-        break;
     case UNLOCK_DOOR:
         cur_state = STATE_UNLOCK_DOOR;
         break;
-    case BLOCK_PIN:
-        cur_state = STATE_BLOCK_PIN;
+    case RFID_REGISTER:
+        cur_state = STATE_RFID_REGISTER;
         break;
     default:
         cur_state = STATE_INSERT_PIN;
         break;
     }
+    TIMER_CLEAR_STOP(TIMER_A2_BASE);
 }
 
 
 void fn_WRONG_PIN(void){
-    printf("Wrong pin \n");
     wrong_pin(); //show an error message on display
 
-    if(error_pin<3){
+    if(error_pin<MAX_PIN_TRIES){
         cur_state = STATE_INSERT_PIN;
-    }else if(error_pin==3){
-        error_pin = 0; //pin wrong for 3 times, reset counter of errors
+    }else if(error_pin==MAX_PIN_TRIES){
+        error_pin = 0; //pin wrong for max tries, reset counter of errors
         cur_state = STATE_BLOCK_ACCESS;
     }
 }
@@ -203,6 +218,7 @@ void fn_WRONG_PIN(void){
 
 
 void fn_BLOCK_ACCESS(void){
+    TIMER_CLEAR_STOP(TIMER_A2_BASE);
     printf("Access blocked \n");
     block_access();
     cur_state = STATE_WAIT_RESET_DOOR;
@@ -211,11 +227,9 @@ void fn_BLOCK_ACCESS(void){
 
 
 void fn_WAIT_RESET_DOOR(void){
+    /*NOTE: this function never goes to AOD (sleep) */
     printf("Wait door to be reset \n");
-    wait_reset_door();
-    cur_state = STATE_INSERT_PIN;
-    //if telegram or RFID
-    //  cur_state = STATE_INSERT_PIN;
+    if(wait_RFID()) cur_state=STATE_INSERT_PIN;
 }
 
 
@@ -230,8 +244,6 @@ void fn_AOD(void){
 
     // Stop the idle timer since we are already in the sleep/AOD state
     Timer_A_stop(TIMER_A2_BASE);
-
-
 
     if (timeSynced) {
         // Fetch the current real time directly from the hardware RTC module
@@ -264,16 +276,18 @@ void fn_AOD(void){
 
     // Check for any user interaction (buttons, joystick, or ToF sensor)
     if (check_for_inputs()) {
-        cur_state = STATE_INSERT_PIN;
-        TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE); // restart the idle timer
         unsynced_drawn = false;
+        cur_state = STATE_INSERT_PIN;
     }
-
-    // The VL53L0X interrupt on P4.6 will wake the CPU automatically
-    // TODO: set a 30 sec interrupt to wake the cpu and increment the clock.
-    // TODO: disable unnecessary interrupts so cpu isn't woke up
-    PCM_gotoLPM0(); // is a blocking call: the CPU halts execution at this instruction and only resumes when an interrupt fires.
-
+    else // no input was received
+    {
+        // if the ToF interrupt gpio isn't enabled it
+        if(ToF_ready) ToF_enable();
+        // The VL53L0X interrupt on P4.6 will wake the CPU automatically
+        // TODO: set a 30 sec interrupt to wake the cpu and increment the clock.
+        // TODO: disable unnecessary interrupts so cpu isn't woke up
+        PCM_gotoLPM0(); // is a blocking call: the CPU halts execution at this instruction and only resumes when an interrupt fires.
+    }
 }
 
 
@@ -282,8 +296,8 @@ void fn_AOD(void){
 // --------------------------------------------- //
 
 void fn_menu_lal(void){
-    int dp_page;
-    uint16_t* current_results;
+    //int dp_page;                  //this is defined in the top of the file!
+    const uint16_t* current_results;
     bool menu_lal_active = 1;
     int tmp;
     menu_last_access_log(db_page);         //to display the first page of db
@@ -298,7 +312,7 @@ void fn_menu_lal(void){
 
            if(tmp != db_page){  //i re-screen all infos only if i change page
                db_page = tmp;
-               menu_last_access_log(dp_page);
+               menu_last_access_log(db_page);
            }
         }
         if(buttonB_pressed){
@@ -358,6 +372,10 @@ void fn_menu_block_pin(void){
     }
 }
 
+
+void fn_rfid_register(void){
+
+}
 
 // ---------------------------------------------//
 // Function to run in the main

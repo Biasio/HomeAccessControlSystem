@@ -19,12 +19,14 @@ void _hwInit(void){
     _ClockSystemInit();
     _SysTickInit();
 
-    //display
-    _graphicsInit();
-
     //joystick
     _adcInit();
     _ADCtimerInit();
+
+    //disable the CS gpio for RFID It might be
+    // left low after a reset without power interruptionn
+    GPIO_setAsOutputPin(RFID_CS_PORT, RFID_CS_PIN);
+    RFID_CS_High();
 
     //buttons
     _pushButtonsInit();
@@ -41,6 +43,14 @@ void _hwInit(void){
 
     //to restore data from flash
     database_init();
+
+    //display
+    _graphicsInit();
+
+    //motor Pins
+    motor_init();
+
+    TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE); //start the idle timer
 }
 
 
@@ -132,12 +142,12 @@ uint8_t insert_pin(){
             //to save the access data in db:
             dbstate = USER;
             add_log(dbstate, get_date_hour(), selected_pin_user);
-            //add_log(dbstate, "taao", selected_pin_user);
             save_database();
 
             break; //break if correct
         }
     }
+
 
     if(pin_correct != 1){
     // Check for Admin PIN
@@ -148,16 +158,18 @@ uint8_t insert_pin(){
                 dbstate = DENIED;
                 add_log(dbstate, get_date_hour(), selected_pin_user);
                 save_database();
+
                 break;
             }
             else
             {
                 pin_correct = 2;
-                //to save the access data in db:
-                dbstate = ADMIN;
-               // add_log(dbstate, "taao", selected_pin_user);
-                add_log(dbstate, get_date_hour(), selected_pin_user);
-                save_database();
+
+                if(i==3){           //this way i save admin access on db only if all 4 digits are right. it saves when the last digit is checked
+                    dbstate = ADMIN;
+                    add_log(dbstate, get_date_hour(), selected_pin_user);
+                    save_database();
+                }
             }
         }
     }
@@ -166,23 +178,83 @@ uint8_t insert_pin(){
 
 
 void open_door(void){
-    // - show on display that door is opening
-    // - turn on servo
-    // - turn on LED
-    // ? make a sound to signal that the code is correct
-
-    display_door_open();
-    //buzzerPWMgen(&StarWars);
-    delay_ms(2500);
-
+    // - turn on motor
+    printf("open door \n");
+    moveMotor(360);
+}
+void close_door(void){
+    printf("closing door \n");
+    moveMotor(-360);
 }
 
 
 
-void wait_RFID(void){
+bool wait_RFID(void){
     Graphics_setForegroundColor(&g_sContext, ClrBlack);
     display_string("PLEASE, USE RFID");
-    delay_ms(10000);
+
+    uint32_t start_t = system_millis;
+    while ((system_millis - start_t) < 4000){
+        if(buttonB_pressed){ //if back button is pressed, go back
+            buttonB_pressed=0;
+            RFID_Disable();
+            return false; //exit if a button is pressed
+        }
+    }
+
+    if(!RFID_Enable()){
+        goto FALSE;
+    }
+
+    uint8_t read_uid[10] = {0};
+    uint8_t uidLength=10;
+    bool read_status = 0;
+
+    while(1){ //polling loop
+        if(buttonA_pressed || buttonB_pressed){
+            buttonA_pressed=0;
+            buttonB_pressed=0;
+        }
+
+        if(RFID_ready) read_status = RFID_ReadTag(read_uid, &uidLength);
+
+        if (read_status && (uidLength <= RFID_UID_LENGTH))
+        {
+            printf("Read RFID:");
+            for(int i=uidLength; i>0;) printf("%" PRIu8, read_uid[--i]);
+
+            //check for valid RFID
+            while((uidLength--) > 0)
+            {
+                if(read_uid[uidLength]!=RFID_saved[uidLength]){
+                    read_status = 0;
+                    break;
+                }
+            }
+            if(read_status) //rfid data is valid
+            {
+
+                RFID_Disable(); //restore button functionality and disables SPI
+                _graphicsInit();
+                display_string("valid RFID");
+                delay_ms(2000);
+                return true;
+            }
+        }
+        else
+        {
+            goto FALSE;
+        }
+    }
+    return true;
+
+    /* Reset logic before exiting */
+    FALSE:
+    RFID_Disable();
+    _graphicsInit();
+    display_string("ERROR");
+    delay_ms(2000);
+    return false; //exit if a button is pressed
 }
 
 
@@ -236,53 +308,58 @@ void wrong_pin(void){
     // - turn on LED
     // - make a sound to signal that the code is incorrect
 
-    error_pin++;
+    ++error_pin;
 
+    uint32_t t_start = system_millis;
     display_wrong_pin(error_pin);
+    if (error_pin<MAX_PIN_TRIES) buzzerPWMgen(&WrongPin);
+    else buzzerPWMgen(&LockOut);
+    while(t_start-system_millis < 3000);
+
 }
 
 
 void block_access(void){
     display_block_access();
-
-    delay_ms(10000);
+    delay_ms(3000);
 }
 
 void door_lock(){
     Graphics_setForegroundColor(&g_sContext, ClrBlack);
     display_string("DOOR LOCKED");
+    delay_ms(2000);
 }
 
-
-void wait_reset_door(void){
-
-}
 
 
 bool check_for_inputs(){
-    if (ToF_flag || buttonA_pressed || buttonB_pressed)
+    if (buttonA_pressed || buttonB_pressed)
     {
         buttonB_pressed=0;
         buttonA_pressed=0;
-
-        ToF_disable(); // Disable ToF interrupt and change state
-        ToF_flag = 0; // safety measure if ToF has been re-triggered meanwhile
+        Timer_A_stop(TIMER_A2_BASE);
 
         return 1; //signal that an input was detected
     }
-    else // no input was received
+    else if (ToF_flag)
     {
-        // if the ToF interrupt gpio isn't enabled
-        if (!(P4->IE & BIT6)) ToF_enable();
-    }
-    return 0; // no interrupts were detected
+        ToF_flag = 0; // safety measure if ToF has been re-triggered meanwhile
 
+        if (ToF_validate_interrupt()){
+            Timer_A_stop(TIMER_A2_BASE);
+            ToF_disable(); // Disable ToF interrupt and change state
+
+            return 1;
+        }
+    }
+    return 0; // no interrupts were detected or ToF wasn't valid
 }
 
 
 void menu_last_access_log(int db_page){
     display_menu_last_access_log();     //it displays only the title
 //    serial_print_db();
+
     display_db(db_page);                //to display only the correct page of the database
 }
 

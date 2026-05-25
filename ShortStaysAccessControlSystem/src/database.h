@@ -53,8 +53,6 @@ void display_db(int page);
 int return_number_count();
 int calc_num_pages_db(int numElements);
 
-void save_database();
-
 void write_date(const AccessData* d);           //to overwrite the array "buffer" with infos about date
 void write_pin(const AccessData* d);            //to overwrite the array "buffer" with infos about the pin used
 void write_accessType(const AccessData* d);     //to overwrite the array "buffer" with infos about the access type
@@ -77,3 +75,4 @@ void write_number(int page);                    //to overwrite the array "buffer
 
 
 #endif /* SRC_DATABASE_H_ */
+

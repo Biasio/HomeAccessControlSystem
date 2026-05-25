@@ -9,6 +9,7 @@
 #include <inttypes.h>
 #include "timers.h"
 
+#define MAX_PIN_TRIES 3
 
 #define RECTANGLE_SHIFT_X_ON_GRID 30
 #define RECTANGLE_SHIFT_Y_ON_GRID 22
@@ -37,11 +38,12 @@ typedef enum {
 typedef enum {
     LAST_ACCESS_LOG,
     //SETUP_PIN, no longer used
-    WIFI_SETUP,
-    FACTORY_RESET,
+    //WIFI_SETUP,
+    //FACTORY_RESET,
     UNLOCK_DOOR,
-    BLOCK_PIN,
-    NUM_FUNCTION
+    //BLOCK_PIN,
+    //NUM_FUNCTION
+    RFID_REGISTER
 } enum_menu_functions;
 
 
@@ -73,6 +75,7 @@ void display_menu_block_pin(void);
 
 void display_clock(int hour, int minute);
 void display_door_open(void);
+void display_door_closed(void);
 void display_wait_RFID(void);
 void display_wrong_pin(int error_pin);
 void display_block_access(void);
@@ -80,3 +83,4 @@ void display_block_access(void);
 void display_string(const char* string);
 
 #endif
+

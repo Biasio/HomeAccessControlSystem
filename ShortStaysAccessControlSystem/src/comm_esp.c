@@ -1,7 +1,5 @@
 #include "comm_esp.h"
-// Include some libraries for random pin generation
-#include "irqHandlers.h"
-#include "joystick.h"
+
 
 // --- GLOBAL VARIABLES (Declared extern in the header) ---
 volatile bool newUartMessage = false;
@@ -17,11 +15,23 @@ volatile uint8_t uartBufferIndex = 0;
 
 // --- INITIALIZATION ---
 void ESP_Comm_Init(void) {
-    // Initialize all temporary user slots as "free"
-    int i;
-    for(i = 0; i < MAX_TEMP_USERS; i++) {
-        activeTempUsers[i].active = false;
+                                                                //non mi torna. quando programmo la prima volta, gli users sono active o no? come faccio a imporre
+    // initialize users from flash                              // che la prima volta siano tutti non active? non posso farlo nell'init, ne tantomeno mettere un
+                                                                // valore di default nella struct.
+    ptrUserArray = (volatile TempUser *) USER_ARRAY_START;
+    memcpy(activeTempUsers, ptrUserArray, sizeof(activeTempUsers)); // memcpy() is used to copy data from flash into the RAM instance "activeTempUser"
+
+    // Check if data restored from flash contains right value or no
+    if(activeTempUsers[0].magicNumber != FLASH_MAGIC_NUMBER){   // if data restored from flash are WRONG (like the first time) i initialize them
+        int i;
+        for(i = 0; i < MAX_TEMP_USERS; i++) {
+            // Initialize all temporary user slots as "free" and set the right magic number
+            activeTempUsers[i].active = false;
+            activeTempUsers[i].magicNumber = FLASH_MAGIC_NUMBER;
+        }
+       save_userArray();       //save on flash initialized array
     }
+
     // Configure pins P3.2 (RX) and P3.3 (TX) for UART function
     GPIO_setAsPeripheralModuleFunctionInputPin(GPIO_PORT_P3, GPIO_PIN2 | GPIO_PIN3, GPIO_PRIMARY_MODULE_FUNCTION);
     // Configure eUSCI_A2 hardware (115200 baud with SMCLK at 12 MHz)
@@ -118,7 +128,7 @@ static void handleGenTempPin(const char* payload) {
 
         // Seed the random number generator with a combination of the current time and some noise from the ADC to improve randomness
         const uint16_t* adc_noise = get_results_buffer();
-        srand(system_millis ^ adc_noise[0] ^ adc_noise[1]);
+        srand(system_millis ^ adc_noise[0] ^ adc_noise[1] ^ rand());
 
         // Generate a random PIN and check for duplicates with...
         do {
@@ -147,6 +157,9 @@ static void handleGenTempPin(const char* payload) {
 
         // Save the generated PIN in the activeTempUsers array
         strncpy(activeTempUsers[slot].pin, newPinStr, sizeof(activeTempUsers[slot].pin));
+
+        // Save the activeTempUsers array in flash memory
+        save_userArray();
 
         // Send response to ESP32
         char response[64];
@@ -283,3 +296,4 @@ void requestRealTime(void) {
     // Mandiamo "0" come finto ChatID per rispettare il parser dell'ESP32
     sendUartMessage("REQ_TIME:0");
 }
+

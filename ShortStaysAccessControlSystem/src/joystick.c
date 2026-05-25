@@ -8,7 +8,7 @@ void _adcInit(){
 
         /* Initializing ADC (ADCOSC/64/8) */
         ADC14_enableModule();
-        ADC14_initModule(ADC_CLOCKSOURCE_ACLK, ADC_PREDIVIDER_4, ADC_DIVIDER_4, 0);
+        ADC14_initModule(ADC_CLOCKSOURCE_ACLK, ADC_PREDIVIDER_4, ADC_DIVIDER_3, 0);
 
         /* Configuring ADC Memory (ADC_MEM0 - ADC_MEM1 (A15, A9)  with repeat)
              * with internal 2.5v reference */
@@ -48,7 +48,5 @@ bool data_aquired(void){
     move_rectangle = 0;
     return state;
 }
-
-
 
 

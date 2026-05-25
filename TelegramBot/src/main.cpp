@@ -4,66 +4,103 @@
 #include <DoorBotManager.h>
 #include "time.h"
 
-const int64_t ledPin = 38;
+#if __has_include("credential.h")
+    #include "credential.h"
+#else
+    #error "FATAL ERROR: 'credential.h' missing! Please copy 'credential-template.h' to 'credential.h' and fill in your data."
+#endif
 
-const char ssid[] = "your_wifi_ssid_here";
-const char password[] = "your_wifi_password_here";
+const int64_t ledPin = 38;
 WiFiClientSecure client;
 
-const char bot_token[] = "your_telegram_bot_token_here";
 AsyncTelegram2 myBot(client);
 DoorBotManager botManager(myBot, Serial1);
 
 void setup() {
-    // Serial + RGB LED setup
     Serial.begin(115200);
     delay(3000);
     pinMode(ledPin, OUTPUT);
     rgbLedWrite(ledPin, 0, 0, 0);
 
-    // 1. Wi-Fi Connection
-    Serial.print("Connecting to Wi-Fi: ");
-    Serial.println(ssid);
-    WiFi.begin(ssid, password);
+    Serial.println("\n========================================");
+    Serial.println("    SYSTEM INITIALIZATION STARTING      ");
+    Serial.println("========================================\n");
+
+    // 1. Wi-Fi Connection with timeout
+    Serial.print("Connecting to Wi-Fi SSID: ");
+    Serial.println(WIFI_SSID);
+    WiFi.begin(WIFI_SSID, WIFI_PASS);
+    
+    uint32_t wifiStart = millis();
     while (WiFi.status() != WL_CONNECTED) {
+        if (millis() - wifiStart > 15000) {
+            Serial.println("\n[FATAL] Wi-Fi connection timeout! Restarting...");
+            ESP.restart();
+        }
         Serial.print(".");
         delay(500);
     }
-    Serial.println("\nWi-Fi Connected! IP: " + WiFi.localIP().toString());
+    
+    Serial.println("\n[OK] Wi-Fi Connected!");
+    Serial.print("     Assigned IP Address: ");
+    Serial.println(WiFi.localIP());
+    Serial.println("----------------------------------------\n");
 
-    // 2. NTP Time Synchronization
-    Serial.print("Sinchronizing clock via NTP...\n");
+    // 2. NTP Time Synchronization with timeout
+    Serial.println("Synchronizing system clock via NTP:");
     configTzTime("CET-1CEST,M3.5.0,M10.5.0/3", "pool.ntp.org", "time.nist.gov");
+    
     time_t now = time(nullptr);
-    // Wait until the time is synchronized 
+    uint32_t ntpStart = millis();
+    
     while (now < 100000) { 
-        delay(500);
+        if (millis() - ntpStart > 20000) {
+            Serial.println("\n[FATAL] NTP synchronization timeout! Restarting...");
+            ESP.restart();
+        }
         Serial.print(".");
+        delay(500);
         now = time(nullptr);
     }
-    Serial.println("\nReal time clock synchronized!");
+    
+    Serial.println("\n[OK] Real-time clock synchronized successfully!");
+    Serial.println("----------------------------------------\n");
 
-    // 3. Set Telegram certificate for secure connection
-    client.setCACert(telegram_cert);
+    // 3. SSL Configuration
+    client.setInsecure();
 
     // 4. Start the Telegram bot
-    myBot.setUpdateTime(TELEGRAM_UPDATE_TIME);
-    myBot.setTelegramToken(bot_token);
+    myBot.setUpdateTime(TELEGRAM_UPDATE_TIME); 
+    myBot.setTelegramToken(BOT_TOKEN);
 
-    Serial.println("Connecting to Telegram... ");
-    if (myBot.begin()) {
-        // If the connection is successful, the LED RGB becomes GREEN and we initialize the bot manager
-        rgbLedWrite(ledPin, 0, 10, 0);
-        botManager.begin(); // Initialize the door bot manager
-        Serial.println("Telegram connected!");
+    Serial.println("Testing secure connection to Telegram servers...");
+    if (!client.connect("api.telegram.org", 443)) {
+        Serial.println("[ERROR] Network Fail: Cannot reach api.telegram.org");
+        char err_buf[100];
+        client.lastError(err_buf, 100);
+        Serial.print("        SSL Error Details: ");
+        Serial.println(err_buf);
+        Serial.println("----------------------------------------\n");
     } else {
-        // Otherwise, if the connection fails, the LED RGB becomes RED and we print an error message on the serial monitor
-        Serial.println("Telegram error. Turn on red LED!");
+        Serial.println("[OK] SSL Handshake test successful.");
+        client.stop(); 
+        Serial.println("----------------------------------------\n");
+    }
+
+    Serial.println("Launching Telegram Bot Instance...");
+    if (myBot.begin()) {
+        rgbLedWrite(ledPin, 0, 10, 0);
+        botManager.begin();
+        Serial.println("[SUCCESS] Telegram bot is online and polling updates.");
+        Serial.println("========================================\n");
+    } else {
+        Serial.println("[FATAL] Telegram initialization (myBot.begin()) failed.");
         rgbLedWrite(ledPin, 10, 0, 0);
+        Serial.println("========================================\n");
     }
 }
 
 void loop() {
-    botManager.handleTelegramUpdates(); // Handle Telegram updates and user interactions
-    botManager.listenToMSP(); // Listen for responses from MSP
+    botManager.handleTelegramUpdates(); 
+    botManager.listenToMSP(); 
 }

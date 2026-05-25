@@ -42,6 +42,7 @@
 /ShortStaysAccessControlSystem/Release
 
 # IDE files
+.vscode/
 *.dwo
 /.metadata/
 *.settings/

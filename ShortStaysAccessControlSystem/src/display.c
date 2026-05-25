@@ -37,10 +37,11 @@ const Point MENU_POINTS[] = {
 char* function_strings[] = {
     "LAST ACCESS LOG",
     //"SETUP PIN", no longer used
-    "SETUP WIFI",
-    "FACTORY RESET",
+    //"SETUP WIFI",
+    //"FACTORY RESET",
     "UNLOCK DOOR",
-    "BLOCK PIN INSERT"
+    "RFID_REGISTER"
+    //"BLOCK PIN INSERT"
 };
 
 // Initialize display
@@ -146,20 +147,10 @@ void draw_admin_menu(bool screen_number){
          start = 0;
          end = 3;
 
-         Graphics_drawStringCentered(&g_sContext, (int8_t *) "Page 1/2",
+         Graphics_drawStringCentered(&g_sContext, (int8_t *) "Page 1/1",
                                         AUTO_STRING_LENGTH,
                                         23, 5,
                                         OPAQUE_TEXT);
-     }
-     else{   //second page
-         first_screen=0;
-         start = 3;
-         end = 6;
-
-         Graphics_drawStringCentered(&g_sContext, (int8_t *) "Page 2/2",
-                                     AUTO_STRING_LENGTH,
-                                     23, 5,
-                                     OPAQUE_TEXT);
      }
 
     GrContextFontSet(&g_sContext, &g_sFontCmss16);
@@ -321,28 +312,28 @@ void move_rectangle_on_display( uint16_t x, uint16_t y, bool grid_on) {
        if(x>RIGHT) {
            if(sel_rectangle_on_grid.pos_x1 < GRID_UPPER_LIMIT_X) {
                move_rectangle_right(&sel_rectangle_on_grid, RECTANGLE_SHIFT_X_ON_GRID);
-               TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE); //Restart idle timer
+               Timer_A_clearTimer(TIMER_A2_BASE);
            }
        }
        else if(x<LEFT)
        {
            if(sel_rectangle_on_grid.pos_x1 > GRID_LOWER_LIMIT_X) {
                move_rectangle_left(&sel_rectangle_on_grid, RECTANGLE_SHIFT_X_ON_GRID);
-               TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE); //Restart idle timer
+               Timer_A_clearTimer(TIMER_A2_BASE);
            }
        }
        else if(y>UP)
        {
            if(sel_rectangle_on_grid.pos_y1 > GRID_LOWER_LIMIT_Y){
                move_rectangle_up(&sel_rectangle_on_grid, RECTANGLE_SHIFT_Y_ON_GRID);
-               TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE); //Restart idle timer
+               Timer_A_clearTimer(TIMER_A2_BASE);
            }
        }
        else if(y<DOWN)
        {
            if(sel_rectangle_on_grid.pos_y1 < GRID_UPPER_LIMIT_Y) {
                move_rectangle_down(&sel_rectangle_on_grid, RECTANGLE_SHIFT_Y_ON_GRID);
-               TIMER_RESTART(TIMER_A2_BASE, TIMER_A_UP_MODE); //Restart idle timer
+               Timer_A_clearTimer(TIMER_A2_BASE);
            }
        }
     }
@@ -362,6 +353,7 @@ void move_rectangle_on_display( uint16_t x, uint16_t y, bool grid_on) {
 
        //up and down to scroll in the menu
        if(y>UP) {
+           Timer_A_clearTimer(TIMER_A2_BASE);
            // 1. Clear ALL currently drawn menu strings (Draw them in black)
            for(i=start; i<=end; i++){
                int8_t string_index = i + string_offset;
@@ -378,6 +370,7 @@ void move_rectangle_on_display( uint16_t x, uint16_t y, bool grid_on) {
           }
        }
        if(y<DOWN) {
+           Timer_A_clearTimer(TIMER_A2_BASE);
            // 1. Clear ALL currently drawn menu strings (Draw them in black)
            for(i=start; i<=end; i++){
                int8_t string_index = i + string_offset;
@@ -394,25 +387,11 @@ void move_rectangle_on_display( uint16_t x, uint16_t y, bool grid_on) {
           }
        }
 
-       // --- Horizontal Paging Logic --- //
-      if(x>RIGHT) {
-          if(first_screen){
-              first_screen = 0; //change page
-              draw_admin_menu(first_screen);
-          }
-      }
-      if(x<LEFT) {
-          if(!first_screen){
-              first_screen = 1; //change page
-              draw_admin_menu(first_screen);
-          }
-      }
-
       // --- FINAL STEP: Draw the NEWLY selected item in RED --- //
       // This must run after any movement (scroll or page change)
 
       highlight_selected_menu_item();
-}
+    }
 }
 int db_page_selected(uint16_t x, uint16_t y, int numPages, int currentPage){ //this function returns the page selected with joystick
     const int RIGHT = 12000;
@@ -420,11 +399,13 @@ int db_page_selected(uint16_t x, uint16_t y, int numPages, int currentPage){ //t
 
     // --- Horizontal Paging Logic --- //
      if(x>RIGHT) {
+ //        Timer_A_clearTimer(TIMER_A2_BASE);
          if(currentPage < numPages){
              return (currentPage + 1);
          }
      }
      if(x<LEFT) {
+ //        Timer_A_clearTimer(TIMER_A2_BASE);
          if(currentPage>1){
             return (currentPage - 1);
          }
@@ -527,7 +508,7 @@ int number_selected(void){
             Graphics_setForegroundColor(&g_sContext, ClrRed);
             Graphics_fillRectangle(&g_sContext, &rect);
 
-            delay_ms(300);
+            delay_ms(100);
             Graphics_setForegroundColor(&g_sContext, ClrWhite);
             Graphics_fillRectangle(&g_sContext, &rect);
 
@@ -603,47 +584,14 @@ int display_function_selected(void){
                         printf("Last access log \n");
                         selected_function = LAST_ACCESS_LOG;
                         break;
-                    /* no longer used
-                    case 1:
-                        printf("pin_setup \n", i);
-                        selected_function = SETUP_PIN;
-                        break;
-                    */
-                    case 1:
-                        printf("wifi_setup \n");
-                        selected_function = WIFI_SETUP;
-                        break;
-                    case 2:
-                        printf("Factory reset\n");
-                        selected_function = FACTORY_RESET;
-                        break;
-                    default:
-                        printf("Nothing \n");
-                    }
-                    // Break the loop once the selected function is found
-                    return selected_function;
-                }
-            }
 
-    }else{ // --- SECOND SCREEN (Functions 3-5) ---
-        int i;
-            for (i = 0; i <= 2; i++)
-            {
-                // Check if current point (MENU_POINTS[i]) is inside the rectangle rect
-                if (Graphics_isPointWithinRectangle(
-                        &rect,
-                        MENU_POINTS[i].x,
-                        MENU_POINTS[i].y))
-                {
-
-                    switch(i){
-                    case 0:
+                    case 1:
                         printf("Unlock_door \n");
                         selected_function = UNLOCK_DOOR;
                         break;
-                    case 1:
-                        printf("Block_PIN \n");
-                        selected_function = BLOCK_PIN;
+                    case 2:
+                        printf("RFID_REGISTER\n");
+                        selected_function = RFID_REGISTER;
                         break;
                     default:
                         printf("Nothing \n");
@@ -652,7 +600,9 @@ int display_function_selected(void){
                     return selected_function;
                 }
             }
+
     }
+
     // Return the initial value (0) if no menu point was selected on either screen
     return selected_function;
 }
@@ -778,12 +728,11 @@ void display_wrong_pin(int error_pin){
                                     64, 64,
                                     OPAQUE_TEXT);
     char string[20];
-    sprintf(string, "ERROR %" PRIu16 "/3", error_pin);
+    sprintf(string, "ERROR %" PRIu16 "/%d", error_pin, MAX_PIN_TRIES);
     Graphics_drawStringCentered(&g_sContext, (int8_t *) string,
                                         AUTO_STRING_LENGTH,
                                         64, 84,
                                         OPAQUE_TEXT);
-    delay_ms(5000);
 }
 
 void display_block_access(void){
@@ -818,6 +767,6 @@ void display_string(const char* string){
                                     AUTO_STRING_LENGTH,
                                     64, 64,
                                     OPAQUE_TEXT);
-    delay_ms(300);
+    delay_ms(100);
 }
 

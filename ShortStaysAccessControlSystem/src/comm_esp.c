@@ -118,7 +118,7 @@ static void handleGenTempPin(const char* payload) {
 
         // Seed the random number generator with a combination of the current time and some noise from the ADC to improve randomness
         const uint16_t* adc_noise = get_results_buffer();
-        srand(system_millis ^ adc_noise[0] ^ adc_noise[1]);
+        srand(system_millis ^ adc_noise[0] ^ adc_noise[1] ^ rand());
 
         // Generate a random PIN and check for duplicates with...
         do {

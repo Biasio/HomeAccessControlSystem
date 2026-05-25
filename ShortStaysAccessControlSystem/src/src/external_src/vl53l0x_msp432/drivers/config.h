@@ -1,0 +1,27 @@
+#ifndef CONFIG_H
+#define CONFIG_H
+
+// VL53L0X  driver's macro definitions
+#define XSHUT_PORT 4
+#define XSHUT_PIN 1
+#define VL53L0X_INT_PORT 4  // interrupt port
+#define VL53L0X_INT_PIN 6   // interrupt pin
+
+
+#define VL53L0X_EUSCI_SEL EUSCI_B1
+#define VL53L0X_SCL_PORT 6
+#define VL53L0X_SCL_PIN 5
+#define VL53L0X_SDA_PORT 6
+#define VL53L0X_SDA_PIN 4
+
+#define VL53L0X_ADDRESS (0x29)
+
+#define VL53L0X_LOW_THRESH (700U)
+#define VL53L0X_HIGH_THRESH (0xFFFFU)
+
+#define VL53L0X_INT_POLARITY 0  // 0 = active-low; 1 = active-high
+
+#define SMCLK_HZ (12000000UL) // SMCLK frequency in Hz
+#define SCK_FREQ_HZ (400000UL) // I2C clock frequency in Hz (400kHz or 100kHz)
+
+#endif

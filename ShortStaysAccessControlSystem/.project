@@ -27,7 +27,7 @@
 	<variableList>
 		<variable>
 			<name>SIMPLELINK_SDK</name>
-			<value>$%7BWORKSPACE_LOC%7D/simplelink_msp432p4_sdk_3_40_01_02</value>
+			<value>$%7BPARENT-1-WORKSPACE_LOC%7D/simplelink_msp432p4_sdk_3_40_01_02</value>
 		</variable>
 	</variableList>
 </projectDescription>

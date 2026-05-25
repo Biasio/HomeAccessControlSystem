@@ -62,5 +62,5 @@ simplelink_msp432p4_sdk_*/
 .DS_Store
 
 
-#.pio
+#remove .pio
 TelegramBot/.pio/

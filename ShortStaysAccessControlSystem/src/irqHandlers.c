@@ -82,7 +82,7 @@ void TA1_0_IRQHandler(void) {
     GPIO_enableInterrupt(GPIO_PORT_P3, GPIO_PIN5);
 }
 
-// idle timer
+// idle timer or AOD clock sync timer
 void TA2_0_IRQHandler(void)
 {
     Timer_A_stop(TIMER_A2_BASE);
@@ -90,9 +90,6 @@ void TA2_0_IRQHandler(void)
     Timer_A_clearCaptureCompareInterrupt(TIMER_A2_BASE, TIMER_A_CAPTURECOMPARE_REGISTER_0);
 
     standby = 1;
-
-    // This will enable the interrupt for ToF sensor
-    ToF_flag = 0;
 }
 
 

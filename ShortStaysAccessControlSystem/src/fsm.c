@@ -115,6 +115,7 @@ void fn_INSERT_PIN(void){
     Timer_A_startCounter(TIMER_A2_BASE, TIMER_A_UP_MODE);
     Graphics_setForegroundColor(&g_sContext, ClrBlack);
     display_string("INSERT PIN");
+    delay_ms(200);
     draw_grid();
 
     switch (insert_pin())
@@ -313,10 +314,15 @@ void fn_AOD(void){
         if(!ToF_ready) {
             ToF_enable();
         }
-        // The VL53L0X interrupt on P4.6 will wake the CPU automatically
-        // TODO: set a 30 sec interrupt to wake the cpu and increment the clock.
-        // TODO: disable unnecessary interrupts so cpu isn't woke up
+
+        printf("entering LPM0\n");
+        ReconfigInterruptsForSleep(true);
+
         PCM_gotoLPM0(); // is a blocking call: the CPU halts execution at this instruction and only resumes when an interrupt fires.
+
+        printf("exiting LPM0\n");
+        ReconfigInterruptsForSleep(false);
+        standby=0; //triggered by 30s timer because it shares IRQ with the idle timer
     }
 }
 

@@ -15,6 +15,8 @@ void _ClockSystemInit();
 
 void _idleTimerInit();
 
+void AODClockTimerInit();
+
 void _debounceTimerInit();
 
 void _ADCtimerInit();

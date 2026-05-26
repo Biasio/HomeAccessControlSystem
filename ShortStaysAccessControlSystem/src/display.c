@@ -59,6 +59,8 @@ void _graphicsInit()
     Graphics_setBackgroundColor(&g_sContext, ClrWhite);
     GrContextFontSet(&g_sContext, &g_sFontCmss36);
     Graphics_clearDisplay(&g_sContext);
+
+    delay_ms(20); //small delay to ensure display is fully functional before returning
 }
 
 // Draw grid of numbers
@@ -717,10 +719,13 @@ void display_menu_block_pin(void){
 void display_door_open(void){
     Graphics_clearDisplay(&g_sContext);
     GrContextFontSet(&g_sContext, &g_sFontCmss16);
+    Graphics_setForegroundColor(&g_sContext, ClrGreen);
     Graphics_drawStringCentered(&g_sContext, (int8_t *) "CODE CORRECT",
                                     AUTO_STRING_LENGTH,
                                     64, 54,
                                     OPAQUE_TEXT);
+    delay_ms(300);
+    Graphics_setForegroundColor(&g_sContext, ClrBlack);
     Graphics_drawStringCentered(&g_sContext, (int8_t *) "OPENING DOOR",
                                         AUTO_STRING_LENGTH,
                                         64, 74,
@@ -747,6 +752,7 @@ void display_wait_RFID(void){
 void display_wrong_pin(int error_pin){
     Graphics_clearDisplay(&g_sContext);
     GrContextFontSet(&g_sContext, &g_sFontCmss16);
+    Graphics_setForegroundColor(&g_sContext, ClrRed);
     Graphics_drawStringCentered(&g_sContext, (int8_t *) "WRONG PIN",
                                     AUTO_STRING_LENGTH,
                                     64, 64,
@@ -762,6 +768,7 @@ void display_wrong_pin(int error_pin){
 void display_block_access(void){
     Graphics_clearDisplay(&g_sContext);
     GrContextFontSet(&g_sContext, &g_sFontCmss16);
+    Graphics_setForegroundColor(&g_sContext, ClrRed);
     Graphics_drawStringCentered(&g_sContext, (int8_t *) "ACCESS BLOCKED",
                                     AUTO_STRING_LENGTH,
                                     64, 64,
@@ -791,6 +798,5 @@ void display_string(const char* string){
                                     AUTO_STRING_LENGTH,
                                     64, 64,
                                     OPAQUE_TEXT);
-    delay_ms(100);
 }
 

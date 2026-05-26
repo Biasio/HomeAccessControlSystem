@@ -33,19 +33,22 @@ void _ClockSystemInit() {
     CS_initClockSignal(CS_BCLK, CS_HFXTCLK_SELECT, CS_CLOCK_DIVIDER_4);
 }
 
-static const Timer_A_UpModeConfig idleTimerConfig =
-{
-    TIMER_A_CLOCKSOURCE_ACLK,       // VLO ~9.4kHz
-    TIMER_A_CLOCKSOURCE_DIVIDER_64, // ~146 Hz
-    1460,                                   // CCR0 Value (1460 counts = 10s) CCR Value = f_{CLK} x desired_time
-    TIMER_A_TAIE_INTERRUPT_DISABLE,         // Disable Overflow ISR
-    TIMER_A_CCIE_CCR0_INTERRUPT_ENABLE      // Enable interrupt for CCR0
-};
+
 
 void _idleTimerInit()
 {
+    const Timer_A_UpModeConfig idleTimerConfig =
+    {
+        TIMER_A_CLOCKSOURCE_ACLK,       // VLO ~9.4kHz
+        TIMER_A_CLOCKSOURCE_DIVIDER_64, // ~146 Hz
+        1460,                                   // CCR0 Value (1460 counts = 10s) CCR Value = f_{CLK} x desired_time
+        TIMER_A_TAIE_INTERRUPT_DISABLE,         // Disable Overflow ISR
+        TIMER_A_CCIE_CCR0_INTERRUPT_ENABLE      // Enable interrupt for CCR0
+    };
+
+
+    Timer_A_stopTimer(TIMER_A2_BASE);
     Timer_A_configureUpMode(TIMER_A2_BASE, &idleTimerConfig);
-    Timer_A_stopTimer(TIMER_A2_BASE); // initialize it already stopped
     Timer_A_clearInterruptFlag(TIMER_A2_BASE);
     Interrupt_enableInterrupt(INT_TA2_0);
 
@@ -53,43 +56,71 @@ void _idleTimerInit()
 }
 
 
+void AODClockTimerInit(){
+    const Timer_A_UpModeConfig thirtySecTimerConfig =
+    {
+        TIMER_A_CLOCKSOURCE_ACLK,   //9.4 kHz
+        TIMER_A_CLOCKSOURCE_DIVIDER_64,
+        4406,                                   // 30 seconds
+        TIMER_A_TAIE_INTERRUPT_DISABLE,
+        TIMER_A_CCIE_CCR0_INTERRUPT_ENABLE
+    };
 
-static const Timer_A_UpModeConfig debounceTimerConfig =
-{
-    TIMER_A_CLOCKSOURCE_ACLK,       // VLO ~9.4kHz
-    TIMER_A_CLOCKSOURCE_DIVIDER_64, // ~146 Hz = ~6ms
-    4,                                   // CCR0 Value (4 counts = ~24ms) CCR Value = f_{CLK} x desired_time
-    TIMER_A_TAIE_INTERRUPT_DISABLE,         // Disable Overflow ISR
-    TIMER_A_CCIE_CCR0_INTERRUPT_ENABLE      // Enable interrupt for CCR0
-};
+    Timer_A_stopTimer(TIMER_A2_BASE);
+    Timer_A_configureUpMode(TIMER_A2_BASE, &thirtySecTimerConfig);
+    Timer_A_clearInterruptFlag(TIMER_A2_BASE);
+    Interrupt_enableInterrupt(INT_TA2_0);
+    Timer_A_startCounter(TIMER_A2_BASE, TIMER_A_UP_MODE);
+
+}
+
 
 void _debounceTimerInit()
 {
+    const Timer_A_UpModeConfig debounceTimerConfig =
+    {
+        TIMER_A_CLOCKSOURCE_ACLK,       // VLO ~9.4kHz
+        TIMER_A_CLOCKSOURCE_DIVIDER_64, // ~146 Hz = ~6ms
+        4,                                   // CCR0 Value (4 counts = ~24ms) CCR Value = f_{CLK} x desired_time
+        TIMER_A_TAIE_INTERRUPT_DISABLE,         // Disable Overflow ISR
+        TIMER_A_CCIE_CCR0_INTERRUPT_ENABLE      // Enable interrupt for CCR0
+    };
+
+    Timer_A_stopTimer(TIMER_A1_BASE);
     Timer_A_configureUpMode(TIMER_A1_BASE, &debounceTimerConfig);
+    Timer_A_clearInterruptFlag(TIMER_A1_BASE);
     Interrupt_enableInterrupt(INT_TA1_0);
+
 }
 
 
 
-//timer used to slow down the adc conversion from the joystick
-static const Timer_A_ContinuousModeConfig continuousModeConfig =
-{
-    TIMER_A_CLOCKSOURCE_SMCLK,
-    TIMER_A_CLOCKSOURCE_DIVIDER_4,
-    TIMER_A_TAIE_INTERRUPT_ENABLE,      // Enable Overflow ISR
-    TIMER_A_DO_CLEAR                    // Clear Counter
-};
+
+
 
 void _ADCtimerInit(){
+
+    //timer used to slow down the adc conversion from the joystick
+    const Timer_A_ContinuousModeConfig continuousModeConfig =
+    {
+        TIMER_A_CLOCKSOURCE_SMCLK,
+        TIMER_A_CLOCKSOURCE_DIVIDER_4,
+        TIMER_A_TAIE_INTERRUPT_ENABLE,      // Enable Overflow ISR
+        TIMER_A_DO_CLEAR                    // Clear Counter
+    };
+
+    Timer_A_stopTimer(TIMER_A3_BASE);
 
     /* Configuring Continuous Mode */
     Timer_A_configureContinuousMode(TIMER_A3_BASE, &continuousModeConfig);
 
+    Timer_A_clearInterruptFlag(TIMER_A3_BASE);
     Interrupt_enableInterrupt(INT_TA3_N);
 
     /* Starting the Timer_A3 in continuous mode */
     Timer_A_startCounter(TIMER_A3_BASE, TIMER_A_CONTINUOUS_MODE);
 }
+
 
 void _SysTickInit(){
     SysTick_setPeriod(48000); //1ms period

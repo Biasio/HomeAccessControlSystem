@@ -246,6 +246,7 @@ bool wait_RFID(void){
             {
                 // Valid tag, success
                 RFID_Disable();
+
                 uint32_t t_start = system_millis;
                 Graphics_setForegroundColor(&g_sContext, ClrGreen);
                 display_string("VALID RFID");

@@ -111,15 +111,17 @@ Cosa scrivere: protocollo di comunicazione, pin utilizzati, funzioni significati
 Commentare quello che si vede nel video
 Contenuti del video:
 - Intro: spiegazione del problema
-- Spiegazione Admin: accesso al menu, rfid, database (con accessi già presenti)
+- Spiegazione lato MSP:
+  - admin accede al menu, usa rfid e mostra database (con accessi già presenti)
 - IoT:
   - accesso admin al bot telegram, si mostra il menù
   - User richiede un pin
   - Admin accetta il pin
   - User inserisce il pin corretto, apertura porta
-  - Admin rimuove tutti i pin
-  - Admin rimuove lo User
+  - refresh dell'MSP e nuovo tentativo di accesso con vecchio pin user
+  - User verifica durata rimasta del pin e poi se lo revoca autonomamente
   - User inserisce il pin sbagliato, buzzer
+  - Admin rimuove tutti i pin
 
 ## Authors
 

@@ -33,12 +33,6 @@ The architecture is split between two microcontrollers to safely separate local 
 - **MSP432**: Acts as the brain for local operations, handling sensor inputs, the user interface, and mechanical outputs.
 - **ESP32-S3**: Connected to the MSP, this board is dedicated to WiFi connectivity, fetching the clock time, and handling the Telegram Bot logic.
 
-The system integrates the following components and sensors
-- **RFID**: Scans tags to allow the administrator to access the local admin menu.
-- **Stepper Motor**: Controls the physical opening and closing mechanism of the door.
-- **Display**: Renders the local user interface.
-- **Buttons and Joystick**: Allow users to navigate through the system interface.
-- **Buzzer**: Provides acoustic feedback, such as warning signals for incorrect code inputs and general alerts.
 
 
 ## Repository Structure
@@ -96,10 +90,14 @@ The system integrates the following components and sensors
 
 ### Hardware Setup (+ Project wiring) (Pietro)
 - You will need an MSP432p401r of the Texas Instrument company with its own expansion: the BOOSTXL-EDUMKII. 
-- ESP-01
-- RFID
-- ToF Sensor
-- Motor with driver
+The system integrates the following components and sensors
+- **RFID**: Scans tags to allow the administrator to access the local admin menu.
+- **Stepper Motor**: Controls the physical opening and closing mechanism of the door.
+- **Display**: Renders the local user interface.
+- **Buttons and Joystick**: Allow users to navigate through the system interface.
+- **Buzzer**: Provides acoustic feedback, such as warning signals for incorrect code inputs and general alerts.
+
+Cosa scrivere: protocollo di comunicazione, pin utilizzati, funzioni significative.
 
   (Basic Project wiring: schema con tutti i pin, come in questo schema)
 <img width="990" height="720" alt="image" src="https://github.com/user-attachments/assets/c90ca7c7-3b36-445c-9efc-e507df5f13b0" />
@@ -109,8 +107,19 @@ The system integrates the following components and sensors
 
 ## IoT Integration
 
-## User Guide
-Da valutare cosa metterci o se tenerla.
+## User Guide + Youtube Video and PowerPoint
+Commentare quello che si vede nel video
+Contenuti del video:
+- Intro: spiegazione del problema
+- Spiegazione Admin: accesso al menu, rfid, database (con accessi già presenti)
+- IoT:
+  - accesso admin al bot telegram, si mostra il menù
+  - User richiede un pin
+  - Admin accetta il pin
+  - User inserisce il pin corretto, apertura porta
+  - Admin rimuove tutti i pin
+  - Admin rimuove lo User
+  - User inserisce il pin sbagliato, buzzer
 
 ## Authors
 
@@ -131,8 +140,6 @@ Da valutare cosa metterci o se tenerla.
   2. ToF Senosor
   3. Buzzer
   
-
-## Links to powerpoint presentation and to Youtube video 
 
 -------------------------
 

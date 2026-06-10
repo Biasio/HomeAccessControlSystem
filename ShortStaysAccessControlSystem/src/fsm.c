@@ -261,6 +261,8 @@ void fn_AOD(void){
     Timer_A_stopTimer(TIMER_A2_BASE);
     standby = 0;
 
+    static uint_fast8_t redraw =0; //variable to let clock redraw in case the minute hasn't passed and coming from a different state like door locked
+
     if (!timeSynced) {
 
         // Draw the unsynced placeholder on the screen
@@ -276,11 +278,13 @@ void fn_AOD(void){
 
         static uint_fast8_t minutes=0xFF; //set to 255 so it's not reachable by RTC_C_getCalendarTime()
 
-        if(now.minutes != minutes){ //sync only if a different minute is available
+        if(now.minutes != minutes || redraw){ //sync only if a different minute is available
             // Refresh the clock
             Graphics_setForegroundColor(&g_sContext, ClrBlack);
             minutes = now.minutes;
             display_clock(now.hours, now.minutes);
+
+            redraw = 0;
         }
     }
 
@@ -290,6 +294,8 @@ void fn_AOD(void){
         ToF_disable(); // Disable ToF interrupt and change state
 
         cur_state = STATE_INSERT_PIN;
+        redraw = 1;
+
     }
     else // no input was received
     {

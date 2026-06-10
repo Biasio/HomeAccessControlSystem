@@ -4,8 +4,9 @@
 #include <DoorBotManager.h>
 #include "time.h"
 
+// Check for required credentials file
 #if __has_include("credential.h")
-    #include "credential.h"
+    #include "credential.h" // This file should define the following constants: WIFI_SSID, WIFI_PASS, BOT_TOKEN
 #else
     #error "FATAL ERROR: 'credential.h' missing! Please copy 'credential-template.h' to 'credential.h' and fill in your data."
 #endif
@@ -19,6 +20,8 @@ DoorBotManager botManager(myBot, Serial1);
 void setup() {
     Serial.begin(115200);
     delay(3000);
+
+    // Initialize status LED
     pinMode(ledPin, OUTPUT);
     rgbLedWrite(ledPin, 0, 0, 0);
 
@@ -31,9 +34,10 @@ void setup() {
     Serial.println(WIFI_SSID);
     WiFi.begin(WIFI_SSID, WIFI_PASS);
     
-    uint32_t wifiStart = millis();
+    // Wait for Wi-Fi or restart ESP after 15s
+    uint32_t startMs = millis();
     while (WiFi.status() != WL_CONNECTED) {
-        if (millis() - wifiStart > 15000) {
+        if (millis() - startMs > 15000) {
             Serial.println("\n[FATAL] Wi-Fi connection timeout! Restarting...");
             ESP.restart();
         }
@@ -48,26 +52,25 @@ void setup() {
 
     // 2. NTP Time Synchronization with timeout
     Serial.println("Synchronizing system clock via NTP:");
-    configTzTime("CET-1CEST,M3.5.0,M10.5.0/3", "pool.ntp.org", "time.nist.gov");
+    configTzTime("CET-1CEST,M3.5.0,M10.5.0/3", "ntp1.inrim.it", "ntp2.inrim.it", "europe.pool.ntp.org");    // Sync time via INRiM and European NTP servers
+    startMs = millis();
     
-    time_t now = time(nullptr);
-    uint32_t ntpStart = millis();
-    
-    while (now < 100000) { 
-        if (millis() - ntpStart > 20000) {
+    // Loop until system clock receives a valid internet timestamp (>1970)
+    while (time(nullptr) < 100000) { 
+        // Reboot the ESP if time sync fails within 20 seconds
+        if (millis() - startMs > 20000) {
             Serial.println("\n[FATAL] NTP synchronization timeout! Restarting...");
             ESP.restart();
         }
         Serial.print(".");
         delay(500);
-        now = time(nullptr);
     }
     
     Serial.println("\n[OK] Real-time clock synchronized successfully!");
     Serial.println("----------------------------------------\n");
 
     // 3. SSL Configuration
-    client.setInsecure();
+    client.setInsecure();   // Bypass SSL certificate validation (To avoid issues with the telegram certificate verification change)
 
     // 4. Start the Telegram bot
     myBot.setUpdateTime(TELEGRAM_UPDATE_TIME); 
@@ -77,13 +80,13 @@ void setup() {
     if (!client.connect("api.telegram.org", 443)) {
         Serial.println("[ERROR] Network Fail: Cannot reach api.telegram.org");
         char err_buf[100];
-        client.lastError(err_buf, 100);
+        client.lastError(err_buf, 100); // Get SSL error details
         Serial.print("        SSL Error Details: ");
         Serial.println(err_buf);
         Serial.println("----------------------------------------\n");
     } else {
         Serial.println("[OK] SSL Handshake test successful.");
-        client.stop(); 
+        client.stop();  // Close the test connection
         Serial.println("----------------------------------------\n");
     }
 
@@ -101,6 +104,6 @@ void setup() {
 }
 
 void loop() {
-    botManager.handleTelegramUpdates(); 
-    botManager.listenToMSP(); 
+    botManager.handleTelegramUpdates(); // Check for new Telegram messages and handle user interactions
+    botManager.listenToMSP();           // Check for new events from the MSP via UART and handle them accordingly
 }

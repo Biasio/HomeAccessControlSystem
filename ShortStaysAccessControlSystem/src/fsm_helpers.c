@@ -5,6 +5,7 @@ uint8_t saved_pin_admin[4] = {9,9,9,9};
 uint16_t error_pin = 0; //variable to count the number of wrong pin, when is equal to 3, block access
 dbStates dbstate;
 
+
 // -----------------------------------------------//
 // Implementation of the state's functions
 
@@ -428,7 +429,7 @@ void menu_factory_reset(void){
 
 
 char* get_date_hour(){
-    char buffer[15];
+    static char buffer[15];
     int hour = 0, minute = 0, day = 1, month = 1;
     if(timeSynced){             //so only if the esp has sinced and sent the current time
         hour = RTC_C_getCalendarTime().hours;

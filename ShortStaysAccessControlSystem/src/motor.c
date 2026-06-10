@@ -44,6 +44,10 @@ void moveMotor(int angle){
         }
         delay_ms(MOTOR_DELAY);
       }
+    GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN3);
+    GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN5);
+    GPIO_setOutputLowOnPin(GPIO_PORT_P6, GPIO_PIN6);
+    GPIO_setOutputLowOnPin(GPIO_PORT_P6, GPIO_PIN7);
 }
 
 
@@ -53,6 +57,11 @@ void motor_init(){
     GPIO_setAsOutputPin(GPIO_PORT_P2, GPIO_PIN5);
     GPIO_setAsOutputPin(GPIO_PORT_P6, GPIO_PIN6);
     GPIO_setAsOutputPin(GPIO_PORT_P6, GPIO_PIN7);
+
+    GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN3);
+    GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN5);
+    GPIO_setOutputLowOnPin(GPIO_PORT_P6, GPIO_PIN6);
+    GPIO_setOutputLowOnPin(GPIO_PORT_P6, GPIO_PIN7);
 }
 
 

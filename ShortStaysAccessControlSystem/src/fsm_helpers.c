@@ -207,7 +207,7 @@ bool wait_RFID(void){
         Graphics_drawStringCentered(&g_sContext, (int8_t *) "USE RFID TAG",
                                     AUTO_STRING_LENGTH, 64, 40, OPAQUE_TEXT);
 
-        Graphics_setForegroundColor(&g_sContext, ClrGold);
+        Graphics_setForegroundColor(&g_sContext, ClrGray);
         Graphics_drawStringCentered(&g_sContext, (int8_t *) "Press A to cancel",
                                     AUTO_STRING_LENGTH, 64, 60, OPAQUE_TEXT);
 
@@ -441,3 +441,4 @@ char* get_date_hour(){
     }
     return buffer;
 }
+

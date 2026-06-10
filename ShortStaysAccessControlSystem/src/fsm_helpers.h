@@ -51,4 +51,5 @@ void ReconfigInterruptsForSleep(bool enable);
 
 void menu_last_access_log(int db_page);
 
+
 #endif

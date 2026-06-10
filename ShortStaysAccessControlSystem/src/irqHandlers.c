@@ -14,7 +14,7 @@ uint16_t *resultsBuffer_ptr = &resultsBuffer[0];
 
 //update
 void SysTick_Handler(void) {
-    ++system_millis;
+    system_millis++;
 }
 
 

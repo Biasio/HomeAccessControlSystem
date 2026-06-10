@@ -19,7 +19,7 @@ void _hwInit(void){
     /* Initializes Clock & FLASH System */
     _ClockSystemInit();
 
-    _SysTickInit();
+    //_SysTickInit((const uint32_t) 48000);
 
     //joystick
     _adcInit();
@@ -29,6 +29,10 @@ void _hwInit(void){
     // left low after a reset without power interruption
     GPIO_setAsOutputPin(RFID_CS_PORT, RFID_CS_PIN);
     GPIO_setOutputHighOnPin(RFID_CS_PORT, RFID_CS_PIN);
+
+
+    _SysTickInit();
+    system_millis = 0;
 
     //buttons
     _pushButtonsInit();
@@ -208,7 +212,7 @@ bool wait_RFID(void){
         Graphics_drawStringCentered(&g_sContext, (int8_t *) "USE RFID TAG",
                                     AUTO_STRING_LENGTH, 64, 40, OPAQUE_TEXT);
 
-        Graphics_setForegroundColor(&g_sContext, ClrGold);
+        Graphics_setForegroundColor(&g_sContext, ClrGray);
         Graphics_drawStringCentered(&g_sContext, (int8_t *) "Press A to cancel",
                                     AUTO_STRING_LENGTH, 64, 60, OPAQUE_TEXT);
 
@@ -399,10 +403,9 @@ bool check_for_inputs(){
 void ReconfigInterruptsForSleep(bool enable){
     if(enable)
     {
-        AODClockTimerInit();                    //reconfigure the idle timer as a 30s timer
         Interrupt_disableInterrupt(INT_TA3_N);  //(joystick)
         SysTick_disableInterrupt();
-
+        AODClockTimerInit();                    //reconfigure the idle timer as a 30s timer
     }
     else
     {
@@ -442,3 +445,4 @@ char* get_date_hour(){
     }
     return buffer;
 }
+

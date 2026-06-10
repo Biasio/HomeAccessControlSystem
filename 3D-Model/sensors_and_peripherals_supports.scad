@@ -6,6 +6,7 @@ board_hole_diameter = 3;
 height_to_board = 8.3;
 board_width = 58.5;
 board_thickness=1.5;
+base_length=30;
 tolerance=0.01;
 
 base_wall_external=2;
@@ -22,7 +23,7 @@ notch_height=board_thickness*1.0;
 
 RFID_hole_to_board_distance=25;
 RFID_width=40;
-RFID_length=60;
+RFID_length=60-12.8;
 
 
 
@@ -40,7 +41,7 @@ hole_cone_top_r=fixed_board_hole_r*0.7;
 
 
 
-base_length=board_hole_diameter*4;
+
 
 //base cube
 module base_cube(width=board_width,length=base_length,height=fixed_height_to_board){
@@ -113,8 +114,8 @@ module board_base(offset_x=0,offset_y=0,offset_z=0){
 
 module RFID(){
 	//calculate size with notches
-	width=RFID_width+2*(notch_width+tolerance);
-	length=RFID_length+notch_width+tolerance;
+	width=RFID_width+2*(notch_thickness+tolerance);
+	length=RFID_length+notch_thickness+tolerance;
 
 	arm_width=5; // note the usb plug allows for max 5mm
 	translate([arm_width/2-board_width/2,RFID_hole_to_board_distance/2-0.001+base_length/2,0])

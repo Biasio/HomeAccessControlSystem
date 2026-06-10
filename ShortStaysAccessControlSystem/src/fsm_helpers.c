@@ -18,7 +18,7 @@ void _hwInit(void){
     /* Initializes Clock & FLASH System */
     _ClockSystemInit();
 
-    _SysTickInit();
+    //_SysTickInit((const uint32_t) 48000);
 
     //joystick
     _adcInit();
@@ -28,6 +28,10 @@ void _hwInit(void){
     // left low after a reset without power interruption
     GPIO_setAsOutputPin(RFID_CS_PORT, RFID_CS_PIN);
     GPIO_setOutputHighOnPin(RFID_CS_PORT, RFID_CS_PIN);
+
+
+    _SysTickInit();
+    system_millis = 0;
 
     //buttons
     _pushButtonsInit();
@@ -398,10 +402,9 @@ bool check_for_inputs(){
 void ReconfigInterruptsForSleep(bool enable){
     if(enable)
     {
-        AODClockTimerInit();                    //reconfigure the idle timer as a 30s timer
         Interrupt_disableInterrupt(INT_TA3_N);  //(joystick)
         SysTick_disableInterrupt();
-
+        AODClockTimerInit();                    //reconfigure the idle timer as a 30s timer
     }
     else
     {

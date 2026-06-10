@@ -28,8 +28,7 @@ StateMachine_t fsm[] = {
      {STATE_WRONG_PIN, fn_WRONG_PIN},
      {STATE_BLOCK_ACCESS, fn_BLOCK_ACCESS},
      {STATE_WAIT_RESET_DOOR, fn_WAIT_RESET_DOOR},
-     {STATE_AOD, fn_AOD},
-     {STATE_SYNC_TIME, fn_SYNC_TIME}
+     {STATE_AOD, fn_AOD}
 };
 
 
@@ -38,52 +37,6 @@ void fn_BOOT(void){
     cur_state = STATE_DOOR_LOCKED;
 }
 
-void fn_SYNC_TIME(void){
-    Timer_A_stopTimer(TIMER_A2_BASE);
-    standby = 0;
-
-    // add a sync placeholder on screen to the bottom right
-    Graphics_setForegroundColor(&g_sContext, ClrGray);
-    Graphics_drawStringCentered(&g_sContext, (int8_t *) "Synchronizing....",
-                                        AUTO_STRING_LENGTH, 85, 115, OPAQUE_TEXT);
-
-    // Static flag to ensure the time request is sent to the ESP32 only once
-        static bool req_sent = false;
-
-        // Track when we last sent the request
-        static uint32_t last_req_time = 0;
-
-        // Timestamp to manage the state's timeout and first-run logic
-        static uint32_t last_state_access = 0;
-
-        // Initialization: runs only the first time the FSM enters this state
-
-
-        // SUCCESS CASE and FALLBACK CASE: The UART Interrupt has received a valid time packet
-        // and initialized the hardware RTC.
-        // If 1 second pass without a response from the ESP32,
-        // exit the sync state to prevent the system from hanging.
-        if (last_state_access == 0) {
-                last_state_access = system_millis;
-        }
-
-        if (timeSynced || ((system_millis - last_state_access) > 1000)) {
-            req_sent = false;
-            last_state_access = 0; // Reset entry time for future re-synchronizations
-            cur_state= STATE_AOD;
-            return;
-        }
-
-        // TRANSMISSION LOGIC:
-        // Send the first request immediately, then retry every 3000ms (3 seconds) if no response.
-        if (!req_sent || ((system_millis - last_req_time) > 3000)) {
-            requestRealTime();  // Send the REQ_TIME command via UART
-
-            // Update timing trackers
-            last_req_time = system_millis;
-            req_sent = true;
-        }
-}
 
 void fn_DOOR_LOCKED(void){
     Timer_A_stopTimer(TIMER_A2_BASE);
@@ -256,37 +209,15 @@ void fn_WAIT_RESET_DOOR(void){
 
 void fn_AOD(void){
 
-
     // Stop the idle timer since we are already in the sleep/AOD state
     Timer_A_stopTimer(TIMER_A2_BASE);
     standby = 0;
 
-    static uint_fast8_t redraw =0; //variable to let clock redraw in case the minute hasn't passed and coming from a different state like door locked
+    //variable to let clock redraw in case the minute hasn't passed and coming from a different state like door locked
+    static uint_fast8_t redraw =0;
 
-    if (!timeSynced) {
+    static uint32_t last_sync_req = 0;
 
-        // Draw the unsynced placeholder on the screen
-        display_string("-- : --");
-
-        cur_state = STATE_SYNC_TIME;
-        return; //interrupt aod state and go to sync
-    }
-    else
-    {
-        // Fetch the current real time directly from the hardware RTC module since it's has been synced once
-        RTC_C_Calendar now = RTC_C_getCalendarTime();
-
-        static uint_fast8_t minutes=0xFF; //set to 255 so it's not reachable by RTC_C_getCalendarTime()
-
-        if(now.minutes != minutes || redraw){ //sync only if a different minute is available
-            // Refresh the clock
-            Graphics_setForegroundColor(&g_sContext, ClrBlack);
-            minutes = now.minutes;
-            display_clock(now.hours, now.minutes);
-
-            redraw = 0;
-        }
-    }
 
     // Check for any user interaction (buttons, joystick, or ToF sensor)
     if (check_for_inputs()) {
@@ -304,12 +235,60 @@ void fn_AOD(void){
             ToF_enable();
         }
 
+        // 1. Update clock display (if time synced)
+        if (timeSynced) {
+            // Fetch the current real time directly from the hardware RTC module since it's has been synced once
+            RTC_C_Calendar now = RTC_C_getCalendarTime();
+
+            static uint_fast8_t minutes=0xFF; //set to 255 so it's not reachable by RTC_C_getCalendarTime()
+
+            if(now.minutes != minutes || redraw){ //sync only if a different minute is available
+                // Refresh the clock
+                Graphics_setForegroundColor(&g_sContext, ClrBlack);
+                minutes = now.minutes;
+                display_clock(now.hours, now.minutes);
+
+                redraw = 0;
+            }
+        }
+        else
+        {
+            display_string("-- : --");
+
+            // Sync request
+            if((system_millis - last_sync_req) > 15000){
+
+                last_sync_req = system_millis;
+                Graphics_setForegroundColor(&g_sContext, ClrGray);
+                Graphics_drawStringCentered(&g_sContext, (int8_t *) "Synchronizing....",
+                                            AUTO_STRING_LENGTH, 85, 115, OPAQUE_TEXT);
+
+                requestRealTime();   // send "REQ_TIME:0" to ESP32
+            }
+        }
+
         printf("entering LPM0\n");
         ReconfigInterruptsForSleep(true);
+        Timer_A_getCounterValue(TIMER_A2_BASE);
 
         PCM_gotoLPM0(); // is a blocking call: the CPU halts execution at this instruction and only resumes when an interrupt fires.
 
         printf("exiting LPM0\n");
+
+        // If the wake was due to the 30s timer (standby=1), we know it's exactly 30000 ms.
+        // For other wakes, use elapsed_ms to adjust system_millis.
+        if (standby) // Woke by TA2 interrupt: exactly 30 seconds
+        {
+            system_millis += 30000;
+        }
+        else // Woke by button or ToF: add to the sys millis the actual elapsed time
+        {
+            // Convert to milliseconds: each tick = (1000 / (ACLK/divider)) ms
+            // ACLK is approximately 9400 Hz, divider = 64 -> 146.875 Hz -> 6.8085 ms/tick
+            uint32_t elapsed_ms = (uint32_t) Timer_A_getCounterValue(TIMER_A2_BASE) * 6809 / 1000;
+            system_millis += elapsed_ms;
+        }
+
         ReconfigInterruptsForSleep(false);
         standby=0; //triggered by 30s timer because it shares IRQ with the idle timer
     }
@@ -382,14 +361,6 @@ void FSM_Run(void){
     if (timeSynced) {
         if (system_millis - lastTimeSync > TIME_SYNC_INTERVAL_MS) {
             lastTimeSync = system_millis;
-            requestRealTime();
-        }
-    }
-    // Auto-Recovery: if the system is not SYNCED, try again every 30 seconds
-    else {
-        static uint32_t last_retry = 0;
-        if (system_millis - last_retry > 30000) {
-            last_retry = system_millis;
             requestRealTime();
         }
     }

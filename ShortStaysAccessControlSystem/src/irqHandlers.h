@@ -1,11 +1,12 @@
 #ifndef IRQ_HANDLERS_H
 #define IRQ_HANDLERS_H
 
-#include <src/sensors.h>
-#include "push_button.h"
-#include "fsm.h"
 #include <stdint.h>
 
+#include "sensors.h"
+#include "push_button.h"
+#include "fsm.h"
+#include "timers.h"
 
 extern volatile uint8_t standby;
 extern volatile bool move_rectangle;

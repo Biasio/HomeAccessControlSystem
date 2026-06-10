@@ -32,7 +32,6 @@ typedef enum{
     STATE_BLOCK_ACCESS,
     STATE_WAIT_RESET_DOOR, //after this return to STATE_DOOR_LOCKED o STATE_INSERT_PIN
     STATE_AOD,
-    STATE_SYNC_TIME,
     NUM_STATES
 }State_t;
 
@@ -44,7 +43,6 @@ typedef struct{
 
 
 void fn_BOOT(void);
-void fn_SYNC_TIME(void);
 void fn_DOOR_LOCKED(void);
 
 void fn_DRAW_GRID(void);

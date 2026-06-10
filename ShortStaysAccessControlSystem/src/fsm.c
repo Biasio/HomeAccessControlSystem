@@ -35,7 +35,7 @@ StateMachine_t fsm[] = {
 
 void fn_BOOT(void){
     _hwInit();
-    cur_state = STATE_SYNC_TIME;
+    cur_state = STATE_DOOR_LOCKED;
 }
 
 void fn_SYNC_TIME(void){
@@ -45,7 +45,7 @@ void fn_SYNC_TIME(void){
     // add a sync placeholder on screen to the bottom right
     Graphics_setForegroundColor(&g_sContext, ClrGray);
     Graphics_drawStringCentered(&g_sContext, (int8_t *) "Synchronizing....",
-                                        AUTO_STRING_LENGTH, 128, 128, OPAQUE_TEXT);
+                                        AUTO_STRING_LENGTH, 85, 115, OPAQUE_TEXT);
 
     // Static flag to ensure the time request is sent to the ESP32 only once
         static bool req_sent = false;
@@ -54,7 +54,7 @@ void fn_SYNC_TIME(void){
         static uint32_t last_req_time = 0;
 
         // Timestamp to manage the state's timeout and first-run logic
-        static uint32_t entry_time = 0;
+        static uint32_t last_state_access = 0;
 
         // Initialization: runs only the first time the FSM enters this state
 
@@ -63,13 +63,13 @@ void fn_SYNC_TIME(void){
         // and initialized the hardware RTC.
         // If 1 second pass without a response from the ESP32,
         // exit the sync state to prevent the system from hanging.
-        if (entry_time == 0) {
-                entry_time = system_millis;
+        if (last_state_access == 0) {
+                last_state_access = system_millis;
         }
 
-        if (timeSynced || ((system_millis - entry_time) > 1000)) {
+        if (timeSynced || ((system_millis - last_state_access) > 1000)) {
             req_sent = false;
-            entry_time = 0; // Reset entry time for future re-synchronizations
+            last_state_access = 0; // Reset entry time for future re-synchronizations
             cur_state= STATE_AOD;
             return;
         }
@@ -261,38 +261,26 @@ void fn_AOD(void){
     Timer_A_stopTimer(TIMER_A2_BASE);
     standby = 0;
 
-
-    // Static variable to track the last drawn minute.
-    // Initialized to -1 so it instantly draws the clock the first time it enters AOD.
-    static int lastMinute = -1;
-
-
     if (!timeSynced) {
-
-        // Reset the minute tracker to force the display to update immediately, without waiting for the next minute
-        lastMinute = -1;
 
         // Draw the unsynced placeholder on the screen
         display_string("-- : --");
 
-
         cur_state = STATE_SYNC_TIME;
+        return; //interrupt aod state and go to sync
     }
-
-    if (timeSynced)
+    else
     {
         // Fetch the current real time directly from the hardware RTC module since it's has been synced once
         RTC_C_Calendar now = RTC_C_getCalendarTime();
 
-        // Refresh the clock ONLY when the minute actually changes
-        if(now.minutes != lastMinute){
+        static uint_fast8_t minutes=0xFF; //set to 255 so it's not reachable by RTC_C_getCalendarTime()
+
+        if(now.minutes != minutes){ //sync only if a different minute is available
+            // Refresh the clock
             Graphics_setForegroundColor(&g_sContext, ClrBlack);
-
-            // Update the display with the current hours and minutes
+            minutes = now.minutes;
             display_clock(now.hours, now.minutes);
-
-            // Update the tracker
-            lastMinute = now.minutes;
         }
     }
 
@@ -319,6 +307,8 @@ void fn_AOD(void){
         ReconfigInterruptsForSleep(false);
         standby=0; //triggered by 30s timer because it shares IRQ with the idle timer
     }
+
+    return;
 }
 
 

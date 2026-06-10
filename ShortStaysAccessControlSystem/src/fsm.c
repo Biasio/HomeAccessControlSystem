@@ -39,72 +39,60 @@ void fn_BOOT(void){
 }
 
 void fn_SYNC_TIME(void){
-    Timer_A_stop(TIMER_A2_BASE);
+    Timer_A_stopTimer(TIMER_A2_BASE);
+    standby = 0;
+
+    // add a sync placeholder on screen to the bottom right
+    Graphics_setForegroundColor(&g_sContext, ClrGray);
+    Graphics_drawStringCentered(&g_sContext, (int8_t *) "Synchronizing....",
+                                        AUTO_STRING_LENGTH, 128, 128, OPAQUE_TEXT);
+
     // Static flag to ensure the time request is sent to the ESP32 only once
-    static bool req_sent = false;
+        static bool req_sent = false;
 
-    // Track when we last sent the request
-    static uint32_t last_req_time = 0;
+        // Track when we last sent the request
+        static uint32_t last_req_time = 0;
 
-    // Timestamp to manage the state's timeout and first-run logic
-    static uint32_t entry_time = 0;
+        // Timestamp to manage the state's timeout and first-run logic
+        static uint32_t entry_time = 0;
 
-    // Initialization: runs only the first time the FSM enters this state
-    if (entry_time == 0) {
-        entry_time = system_millis;
-        // Setup display color and show the loading string.
-        Graphics_setForegroundColor(&g_sContext, ClrBlack);
-        display_string("SYNCING TIME...");
-    }
+        // Initialization: runs only the first time the FSM enters this state
 
-    // SUCCESS CASE and FALLBACK CASE: The UART Interrupt has received a valid time packet
-    // and initialized the hardware RTC.
-    // If 10 seconds pass without a response from the ESP32,
-    // exit the sync state to prevent the system from hanging.
-    if (timeSynced || ((system_millis - entry_time) > 10000)) {
-        req_sent = false;
-        entry_time = 0; // Reset entry time for future re-synchronizations
 
-        cur_state = STATE_AOD;  // Transition directly to Always On Display
-        return;
-    }
+        // SUCCESS CASE and FALLBACK CASE: The UART Interrupt has received a valid time packet
+        // and initialized the hardware RTC.
+        // If 1 second pass without a response from the ESP32,
+        // exit the sync state to prevent the system from hanging.
+        if (entry_time == 0) {
+                entry_time = system_millis;
+        }
 
-    // TRANSMISSION LOGIC:
-    // Send the first request immediately, then retry every 3000ms (3 seconds) if no response.
-    if (!req_sent || ((system_millis - last_req_time) > 3000)) {
-        requestRealTime();  // Send the REQ_TIME command via UART
+        if (timeSynced || ((system_millis - entry_time) > 1000)) {
+            req_sent = false;
+            entry_time = 0; // Reset entry time for future re-synchronizations
+            cur_state= STATE_AOD;
+            return;
+        }
 
-        // Update timing trackers
-        last_req_time = system_millis;
-        req_sent = true;
-    }
+        // TRANSMISSION LOGIC:
+        // Send the first request immediately, then retry every 3000ms (3 seconds) if no response.
+        if (!req_sent || ((system_millis - last_req_time) > 3000)) {
+            requestRealTime();  // Send the REQ_TIME command via UART
+
+            // Update timing trackers
+            last_req_time = system_millis;
+            req_sent = true;
+        }
 }
 
 void fn_DOOR_LOCKED(void){
-    Timer_A_stop(TIMER_A2_BASE);
+    Timer_A_stopTimer(TIMER_A2_BASE);
+    standby = 0;
+    Timer_A_clearTimer(TIMER_A2_BASE);
 
-    static bool already_displayed = 0;
+    door_lock();
 
-    if(already_displayed == 0){
-        door_lock();
-        already_displayed = 1;
-    }
-
-    // Here the door is assumend locked since the previous one will be
-    // executed at least once per state transition to fn_DOOR_LOCKED
-
-    if (check_for_inputs()) // check if there is activity
-    {
-        standby = 0;
-        already_displayed = 0;
-        cur_state = STATE_INSERT_PIN;
-    }
-    else if (standby) // if no activity and the idle timer has fired go to aod
-    {
-        standby = 0;
-        already_displayed = 0;
-        cur_state= STATE_AOD;
-    }
+    cur_state= STATE_AOD;
 
     return;
 }
@@ -115,6 +103,7 @@ void fn_INSERT_PIN(void){
     Timer_A_startCounter(TIMER_A2_BASE, TIMER_A_UP_MODE);
     Graphics_setForegroundColor(&g_sContext, ClrBlack);
     display_string("INSERT PIN");
+    delay_ms(200);
     draw_grid();
 
     switch (insert_pin())
@@ -154,7 +143,8 @@ void fn_INSERT_PIN(void){
 
 
 void fn_OPEN_DOOR(void){
-    Timer_A_stop(TIMER_A2_BASE);
+    Timer_A_stopTimer(TIMER_A2_BASE);
+    standby = 0;
 
     uint32_t t_start = system_millis;
     display_door_open();
@@ -175,7 +165,8 @@ void fn_OPEN_DOOR(void){
 
 void fn_WAIT_RFID(void){
 
-    Timer_A_stop(TIMER_A2_BASE);
+    Timer_A_stopTimer(TIMER_A2_BASE);
+    standby = 0;
     reset_flags(); //clear input actions
 
     if (wait_RFID()) {
@@ -214,12 +205,14 @@ void fn_ADMIN_MENU(void){
     }
 
     //stops the idle timer so the admin can work without interruption
-    Timer_A_stop(TIMER_A2_BASE);
+    Timer_A_stopTimer(TIMER_A2_BASE);
+    standby = 0;
 }
 
 
 void fn_WRONG_PIN(void){
-    Timer_A_stop(TIMER_A2_BASE);
+    Timer_A_stopTimer(TIMER_A2_BASE);
+    standby = 0;
 
     wrong_pin(); //show an error message on display
 
@@ -240,7 +233,8 @@ void fn_WRONG_PIN(void){
 
 
 void fn_BLOCK_ACCESS(void){
-    Timer_A_stop(TIMER_A2_BASE);
+    Timer_A_stopTimer(TIMER_A2_BASE);
+    standby = 0;
 
     printf("Access blocked \n");
     block_access();
@@ -251,7 +245,8 @@ void fn_BLOCK_ACCESS(void){
 
 void fn_WAIT_RESET_DOOR(void){
     /*NOTE: this function never goes to AOD (sleep) */
-    Timer_A_stop(TIMER_A2_BASE);
+    Timer_A_stopTimer(TIMER_A2_BASE);
+    standby = 0;
 
     printf("Wait door to be reset \n");
     if(wait_RFID()) cur_state=STATE_INSERT_PIN;
@@ -261,17 +256,32 @@ void fn_WAIT_RESET_DOOR(void){
 
 void fn_AOD(void){
 
+
+    // Stop the idle timer since we are already in the sleep/AOD state
+    Timer_A_stopTimer(TIMER_A2_BASE);
+    standby = 0;
+
+
     // Static variable to track the last drawn minute.
     // Initialized to -1 so it instantly draws the clock the first time it enters AOD.
     static int lastMinute = -1;
 
-    static bool unsynced_drawn = false; // Flag to ensure the placeholder is drawn only once per sleep cycle
 
-    // Stop the idle timer since we are already in the sleep/AOD state
-    Timer_A_stop(TIMER_A2_BASE);
+    if (!timeSynced) {
 
-    if (timeSynced) {
-        // Fetch the current real time directly from the hardware RTC module
+        // Reset the minute tracker to force the display to update immediately, without waiting for the next minute
+        lastMinute = -1;
+
+        // Draw the unsynced placeholder on the screen
+        display_string("-- : --");
+
+
+        cur_state = STATE_SYNC_TIME;
+    }
+
+    if (timeSynced)
+    {
+        // Fetch the current real time directly from the hardware RTC module since it's has been synced once
         RTC_C_Calendar now = RTC_C_getCalendarTime();
 
         // Refresh the clock ONLY when the minute actually changes
@@ -285,23 +295,9 @@ void fn_AOD(void){
             lastMinute = now.minutes;
         }
     }
-    else {
-        // Check if the placeholder hasn't been drawn yet in the current AOD cycle
-        if (!unsynced_drawn) {
-            // Reset the minute tracker to force the display to update immediately, without waiting for the next minute
-            lastMinute = -1;
-
-            // Draw the unsynced placeholder on the screen
-            display_string("-- : --");
-
-            // Set the flag to true so the FSM skips this drawing block in future loop iterations
-            unsynced_drawn = true;
-        }
-    }
 
     // Check for any user interaction (buttons, joystick, or ToF sensor)
     if (check_for_inputs()) {
-        unsynced_drawn = false;
 
         ToF_disable(); // Disable ToF interrupt and change state
 
@@ -313,10 +309,15 @@ void fn_AOD(void){
         if(!ToF_ready) {
             ToF_enable();
         }
-        // The VL53L0X interrupt on P4.6 will wake the CPU automatically
-        // TODO: set a 30 sec interrupt to wake the cpu and increment the clock.
-        // TODO: disable unnecessary interrupts so cpu isn't woke up
+
+        printf("entering LPM0\n");
+        ReconfigInterruptsForSleep(true);
+
         PCM_gotoLPM0(); // is a blocking call: the CPU halts execution at this instruction and only resumes when an interrupt fires.
+
+        printf("exiting LPM0\n");
+        ReconfigInterruptsForSleep(false);
+        standby=0; //triggered by 30s timer because it shares IRQ with the idle timer
     }
 }
 
@@ -369,7 +370,7 @@ void fn_menu_unlock_door(void){
 
 
 void fn_rfid_register(void){
-
+    cur_state = STATE_ADMIN_MENU;
 }
 
 // ---------------------------------------------//
@@ -388,10 +389,10 @@ void FSM_Run(void){
             requestRealTime();
         }
     }
-    // Auto-Recovery: if the system is not SYNCED, try again every minute
+    // Auto-Recovery: if the system is not SYNCED, try again every 30 seconds
     else {
         static uint32_t last_retry = 0;
-        if (system_millis - last_retry > 60000) {
+        if (system_millis - last_retry > 30000) {
             last_retry = system_millis;
             requestRealTime();
         }
@@ -404,6 +405,7 @@ void FSM_Run(void){
 
         if (standby == 1)
         {
+            standby = 0;
             cur_state = STATE_DOOR_LOCKED;
         }
 

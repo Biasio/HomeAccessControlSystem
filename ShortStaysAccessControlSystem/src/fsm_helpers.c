@@ -206,6 +206,8 @@ bool wait_RFID(void){
         Graphics_setForegroundColor(&g_sContext, ClrBlack);
         Graphics_drawStringCentered(&g_sContext, (int8_t *) "USE RFID TAG",
                                     AUTO_STRING_LENGTH, 64, 40, OPAQUE_TEXT);
+
+        Graphics_setForegroundColor(&g_sContext, ClrGray);
         Graphics_drawStringCentered(&g_sContext, (int8_t *) "Press A to cancel",
                                     AUTO_STRING_LENGTH, 64, 60, OPAQUE_TEXT);
 
@@ -244,7 +246,6 @@ bool wait_RFID(void){
             {
                 // Valid tag, success
                 RFID_Disable();
-                _graphicsInit();
 
                 uint32_t t_start = system_millis;
                 Graphics_setForegroundColor(&g_sContext, ClrGreen);
@@ -258,7 +259,6 @@ bool wait_RFID(void){
             {
                 // Invalid tag, show feedback but continue scanning
                 RFID_Disable();
-                _graphicsInit();
 
                 uint32_t t_start = system_millis;
                 Graphics_setForegroundColor(&g_sContext, ClrRed);
@@ -278,7 +278,6 @@ bool wait_RFID(void){
     /* Reset logic on error before exiting */
     ERROR:
         RFID_Disable();
-        _graphicsInit();
         display_string("ERROR");
         delay_ms(2000);
         return false;
@@ -286,7 +285,6 @@ bool wait_RFID(void){
     /* Reset logic on cancel before exiting */
     CANCEL:
         RFID_Disable();
-        _graphicsInit();
         display_string("CANCELLED");
         delay_ms(1500);
         return false;
@@ -367,7 +365,8 @@ bool check_for_inputs(){
     {
         buttonB_pressed=0;
         buttonA_pressed=0;
-        return 1; //signal that an input was detected
+        ToF_flag = 0;
+        return true; //signal that an input was detected
     }
 
     if (ToF_flag)
@@ -385,12 +384,35 @@ bool check_for_inputs(){
             PORT(VL53L0X_INT_PORT)->IE  |= ONE_HOT_BIT(VL53L0X_INT_PIN);
         }
 
-        printf("check_for_inputs range: %" PRIu16 ", error: %" PRIu8 "\n", range, error);
+        if(valid)
+        {
+            printf("check_for_inputs range: %" PRIu16 ", error: %" PRIu8 "\n", range, error);
+        }
         return valid;
     }
 
-    return 0; // no interrupts were detected or ToF wasn't valid
+    return false; // no interrupts were detected or ToF wasn't valid
 }
+
+
+void ReconfigInterruptsForSleep(bool enable){
+    if(enable)
+    {
+        AODClockTimerInit();                    //reconfigure the idle timer as a 30s timer
+        Interrupt_disableInterrupt(INT_TA3_N);  //(joystick)
+        SysTick_disableInterrupt();
+
+    }
+    else
+    {
+        SysTick_enableInterrupt();
+        Interrupt_enableInterrupt(INT_TA3_N);
+        _idleTimerInit();                       // reconfigure TA2 as idle timer
+    }
+
+    return;
+}
+
 
 
 void menu_last_access_log(int db_page){
@@ -419,3 +441,4 @@ char* get_date_hour(){
     }
     return buffer;
 }
+

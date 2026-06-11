@@ -1,5 +1,6 @@
 #include "timers.h"
 
+
 void _ClockSystemInit() {
     // Increase core voltage to safely support 48 MHz operation
     PCM_setCoreVoltageLevel(PCM_VCORE1);
@@ -123,11 +124,17 @@ void _ADCtimerInit(){
 
 
 void _SysTickInit(){
-    SysTick_setPeriod(48000); //1ms period
+    SysTick_disableModule();
+    SysTick_disableInterrupt();
+
+    SysTick_setPeriod(CS_getMCLK()/1000);
     HWREG(NVIC_ST_CURRENT) = 1;
+
+    SysTick->CTRL; // reading CTRL clears COUNTFLAG
+    NVIC_ClearPendingIRQ(SysTick_IRQn);
+
     SysTick_enableModule();
     SysTick_enableInterrupt();
-    system_millis = 0;
 }
 
 

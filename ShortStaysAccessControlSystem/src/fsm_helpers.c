@@ -5,6 +5,7 @@ uint8_t saved_pin_admin[4] = {9,9,9,9};
 uint16_t error_pin = 0; //variable to count the number of wrong pin, when is equal to 3, block access
 dbStates dbstate;
 
+
 // -----------------------------------------------//
 // Implementation of the state's functions
 
@@ -18,7 +19,7 @@ void _hwInit(void){
     /* Initializes Clock & FLASH System */
     _ClockSystemInit();
 
-    _SysTickInit();
+    //_SysTickInit((const uint32_t) 48000);
 
     //joystick
     _adcInit();
@@ -28,6 +29,10 @@ void _hwInit(void){
     // left low after a reset without power interruption
     GPIO_setAsOutputPin(RFID_CS_PORT, RFID_CS_PIN);
     GPIO_setOutputHighOnPin(RFID_CS_PORT, RFID_CS_PIN);
+
+
+    _SysTickInit();
+    system_millis = 0;
 
     //buttons
     _pushButtonsInit();
@@ -292,6 +297,8 @@ bool wait_RFID(void){
 
 
 
+
+
 int admin_menu(void){
     draw_admin_menu(1); // 1 = FIRST_SCREEN
 
@@ -320,21 +327,11 @@ int admin_menu(void){
     return 6; //return to INSERT PIN
 }
 
-void menu_setup_wifi(void){
-    display_menu_setup_wifi();
-}
-
-
 
 void menu_unlock_door(void){
     display_menu_unlock_door();
 }
 
-
-
-void menu_block_pin(void){
-    display_menu_block_pin();
-}
 
 
 void wrong_pin(void){
@@ -398,10 +395,9 @@ bool check_for_inputs(){
 void ReconfigInterruptsForSleep(bool enable){
     if(enable)
     {
-        AODClockTimerInit();                    //reconfigure the idle timer as a 30s timer
         Interrupt_disableInterrupt(INT_TA3_N);  //(joystick)
         SysTick_disableInterrupt();
-
+        AODClockTimerInit();                    //reconfigure the idle timer as a 30s timer
     }
     else
     {
@@ -428,7 +424,7 @@ void menu_factory_reset(void){
 
 
 char* get_date_hour(){
-    char buffer[15];
+    static char buffer[15];
     int hour = 0, minute = 0, day = 1, month = 1;
     if(timeSynced){             //so only if the esp has sinced and sent the current time
         hour = RTC_C_getCalendarTime().hours;

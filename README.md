@@ -42,10 +42,24 @@ The system also features a database that logs all access events for monitoring p
 
 ```
 .
+├── 3D-Model/                          # Hardware 3D printable components
+│   ├── All components.3mf             # All components in 1 file
+│   ├── door.stl                       # Door model
+│   ├── doorframe.3mf                  # Door frame model
+│   ├── gear.stl                       # Gear mechanism model
+│   ├── sensors_and_peripherals_supports.scad  # OpenSCAD parametric supports
+│   └── sensors_and_peripherals_supports.stl   # Exported supports model
+├── RepoImages/                        # Documentation media and images
+│   ├── HardwareSetup/                 # Schematic diagram
+│   ├── SoftwareSetup/                 # IDE setup screenshots
+│   └── TelegramBot/                   # Bot usage demonstrations (GIFs & Images)
 ├── ShortStaysAccessControlSystem/     # Firmware project (MSP432 Microcontroller)
 │   ├── msp432p401r.cmd                # Memory linker script
 │   ├── src/                           # Source code directory
 │   │   ├── external_src/              # External hardware libraries
+│   │   │   ├── LCD/                   # Display graphics library
+│   │   │   │   ├── Crystalfontz128x128_ST7735.c / .h                     # ST7735 controller primitives
+│   │   │   │   └── HAL_MSP_EXP432P401R_Crystalfontz128x128_ST7735.c / .h # Display pin mapping
 │   │   │   └── vl53l0x_msp432/        # Distance sensor submodule (Git)
 │   │   │       ├── drivers/           # Sensor native API registers
 │   │   │       │   ├── config.h       # Timing configuration
@@ -54,39 +68,41 @@ The system also features a database that logs all access events for monitoring p
 │   │   │       │   └── vl53l0x.c / .h # Main ranging core
 │   │   │       ├── main.c             # Sensor standalone test
 │   │   │       └── README.md          # Submodule info
-│   │   ├── LcdDriver/                 # Display graphics library
-│   │   │   ├── Crystalfontz128x128_ST7735.c / .h                       # ST7735 controller primitives
-│   │   │   └── HAL_MSP_EXP432P401R_Crystalfontz128x128_ST7735.c / .h   # Display pin mapping
 │   │   ├── buzzer.c / .h              # Buzzer acoustic alerts
 │   │   ├── comm_esp.c / .h            # Serial communication with ESP32
 │   │   ├── database.c / .h            # Local access credentials memory
 │   │   ├── display.c / .h             # LCD high-level UI menus
+│   │   ├── flash.c / .h               # Flash memory storage driver
 │   │   ├── fsm_helpers.c / .h         # State machine utilities
 │   │   ├── fsm.c / .h                 # Main application logic (FSM)
 │   │   ├── irqHandlers.c / .h         # Hardware interrupt routines
 │   │   ├── joystick.c / .h            # Analog joystick driver
 │   │   ├── main.c                     # System entry point & loop
+│   │   ├── motor.c / .h               # Motor control driver
 │   │   ├── push_button.c / .h         # Buttons and debouncing
 │   │   ├── sensors.c / .h             # RFID and Distance sensor drivers
 │   │   └── timers.c / .h              # Periodic timer configurations
 │   ├── startup_msp432p401r_ccs.c      # Microcontroller vector table
-│   └── system_msp432p401r.c           # System clock configuration
+│   ├── system_msp432p401r.c           # System clock configuration
+│   └── targetConfigs/                 # IDE target configurations
+│       ├── MSP432P401R.ccxml          # Target configuration file
+│       └── readme.txt                 # Target config info
 ├── TelegramBot/                       # PlatformIO project (ESP32 Microcontroller)
-│   ├── include/                       # Global header headers
-│   │   └── README                     # Folder info
+│   ├── include/                       # Global header files
+│   │   ├── credential-template.h      # Wi-Fi and Token template
+│   │   └── README.md                  # Folder info
 │   ├── lib/                           # Custom local libraries
 │   │   ├── DoorBotManager/            # Telegram connection & events logic
 │   │   │   ├── DoorBotManager.cpp     # Bot API implementation
 │   │   │   └── DoorBotManager.h       # Bot class definition
-│   │   └── README                     # Lib folder info
+│   │   └── README.md                  # Lib folder info
 │   ├── platformio.ini                 # Build and dependency settings
 │   ├── src/                           # Application source code
 │   │   ├── idf_component.yml          # ESP-IDF component packages
-│   │   ├── main.cpp                   # Main bot loop & Wi-Fi init
-│   │   └── mainTest.txt               # Text test file
+│   │   └── main.cpp                   # Main bot loop & Wi-Fi init
 │   └── test/                          # Unit testing folder
-│       └── README                     # Test folder info
-└── README.md                          # Project documentation
+│       └── README.md                  # Test folder info
+└── README.md                        # Project documentation
 ```
 
 ## Hardware Setup 

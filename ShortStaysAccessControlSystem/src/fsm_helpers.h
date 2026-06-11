@@ -32,10 +32,7 @@ void close_door(void);
 bool wait_RFID(void);
 int admin_menu(void);
 
-void menu_setup_pin(void);
-void menu_setup_wifi(void);
 void menu_unlock_door(void);
-void menu_block_pin(void);
 
 void wrong_pin(void);
 void last_pin(void);

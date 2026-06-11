@@ -5,14 +5,33 @@
   <summary>Table of Contents</summary>
   <ol>
     <li><a href="#about-the-project">About The Project</a></li>
-    <li><a href="#project-layout">Project Layout</a></li>
+    <li><a href="#repository-structure">Repository Structure</a></li>
     <li>
       <a href="#requirements">Requirements</a>
       <ul>
         <li><a href="#hardware-setup">Hardware Setup</a></li>
-      </ul>
       <ul>
+            <li><a href="#1-rfid-reader">1. RFID Reader</a></li>
+            <li><a href="#2-stepper-motor">2. Stepper Motor</a></li>
+            <li><a href="#3-display---crystalfontz-128x128-tft-lcd-boostxl-edumkii-onboard">3. Display - Crystalfontz 128x128 TFT LCD (BOOSTXL-EDUMKII Onboard)</a></li>
+            <li><a href="#4-input-peripherals-buttons--joystick-boostxl-edumkii-onboard">4. Input Peripherals: Buttons & Joystick (BOOSTXL-EDUMKII Onboard)</a></li>
+            <li><a href="#5-piezo-buzzer-boostxl-edumkii-onboard">5. Piezo Buzzer (BOOSTXL-EDUMKII Onboard)</a></li>
+            <li>
+              <a href="#6-vl53l0x---distance-sensor">6. VL53L0X - Distance Sensor</a>
+              <ul>
+                <li><a href="#project-wiring">Project wiring</a></li>
+              </ul>
+            </li>
+          </ul>
         <li><a href="#software-setup">Software Setup</a></li>
+        <li><a href="#software-setup">Software Setup</a>
+          <ul>
+            <li><a href="#ccstudio">CCStudio</a></li>
+            <li><a href="#telegram-bot">Telegram Bot</a></li>
+            <li><a href="#visual-studio-code--platformio">Visual Studio Code + PlatformIO</a></li>
+          </ul>
+        </li>
+>>>>>>> ef023c3ee0f83f9825ad3ba35af355a2f7ead56a
       </ul>
     </li>
     <li><a href="#iot-integration">IoT Integration</a></li>
@@ -30,12 +49,12 @@ Beyond the physical interface, an integrated Telegram bot handles remote interac
 The system also features a database that logs all access events for monitoring purposes.
 
 The architecture is split between two microcontrollers to safely separate local hardware logic from network tasks:
-- **MSP432**: Acts as the brain for local operations, handling sensor inputs, the user interface, and mechanical outputs.
+- **MSP432P401R**: Acts as the brain for local operations, handling sensor inputs, the user interface, and mechanical outputs.
 - **ESP32-S3**: Connected to the MSP, this board is dedicated to WiFi connectivity, fetching the clock time, and handling the Telegram Bot logic.
 
 
 
-## Repository Structure
+## Project Layout
 
 ```text
 .
@@ -64,7 +83,7 @@ The architecture is split between two microcontrollers to safely separate local 
 │   │   ├── joystick.c / .h            # Analog joystick driver
 │   │   ├── main.c                     # System entry point & loop
 │   │   ├── push_button.c / .h         # Buttons and debouncing
-│   │   ├── sensors.c / .h             # Sensors hardware data polling
+│   │   ├── sensors.c / .h             # RFID and Distance sensor drivers
 │   │   └── timers.c / .h              # Periodic timer configurations
 │   ├── startup_msp432p401r_ccs.c      # Microcontroller vector table
 │   └── system_msp432p401r.c           # System clock configuration
@@ -88,24 +107,286 @@ The architecture is split between two microcontrollers to safely separate local 
 
 ## Requirements
 
-### Hardware Setup (+ Project wiring) (Pietro)
-- You will need an MSP432p401r of the Texas Instrument company with its own expansion: the BOOSTXL-EDUMKII. 
-The system integrates the following components and sensors
-- **RFID**: Scans tags to allow the administrator to access the local admin menu.
-- **Stepper Motor**: Controls the physical opening and closing mechanism of the door.
-- **Display**: Renders the local user interface.
-- **Buttons and Joystick**: Allow users to navigate through the system interface.
-- **Buzzer**: Provides acoustic feedback, such as warning signals for incorrect code inputs and general alerts.
 
-Cosa scrivere: protocollo di comunicazione, pin utilizzati, funzioni significative.
+### Hardware Setup 
+The core of this system is driven by the **Texas Instruments MSP432P401R** microcontroller, interfaced with the **Educational BoosterPack MKII (BOOSTXL-EDUMKII)** to utilize its integrated peripherals. The system integrates several external and onboard sensors and actuators to manage access control and user interaction.
 
-  (Basic Project wiring: schema con tutti i pin, come in questo schema)
-<img width="990" height="720" alt="image" src="https://github.com/user-attachments/assets/c90ca7c7-3b36-445c-9efc-e507df5f13b0" />
 
+**System Components**
+
+Below is the technical breakdown of each hardware module integrated into the system, including their designated communication protocols, pin mapping, and core logic.
+
+---
+
+### 1. RFID Reader
+Handles secure tag scanning and authentication, granting administrator-level access to the local configuration menu.
+
+* **Communication Protocol:** `SPI`
+* **Hardware Connections:**
+  * `SDA / CS`: Pin `[X.X]`
+  * `SCK`: Pin `[X.X]`
+  * `MOSI`: Pin `[X.X]`
+  * `MISO`: Pin `[X.X]`
+  * `RST`: Pin `[X.X]`
+
+**Core Implementation:**
+```c
+// Initialize RFID module and configure SPI
+void initRFID() {
+    // Insert core RFID setup logic here
+}
+
+// Read tag UID
+bool readRFIDTag() {
+    // Insert logic to read and validate the tag
+}
+```
+
+### 2. Stepper Motor
+Actuates the physical locking and unlocking mechanism of the door via precise rotational control.
+
+* **Communication Protocol:** `dedicated driver interface`
+* **Hardware Connections:**
+  * `IN1`: Pin `[X.X]`
+  * `IN2`: Pin `[X.X]`
+  * `IN3`: Pin `[X.X]`
+  * `IN4`: Pin `[X.X]`
+
+**Core Implementation:**
+```c
+// Insert core implementation here
+```
+
+### 3. Display - Crystalfontz 128x128 TFT LCD (BOOSTXL-EDUMKII Onboard)
+
+
+------------- **ADD AN IMAGE OF THE GRID AND ADMIN MENU** -------------------
+
+
+
+The **Crystalfontz CFAF128128B-0145T color 128x128-pixel TFT LCD** renders the local Graphical User Interface (GUI), to display the keypad interface and the admin menu.
+
+* **Communication Protocol:** `SPI`
+* **Hardware Connections:**
+  * `LCD_SCLK`: Pin `P1.5`
+  * `LCD_MOSI`: Pin `P1.6`
+  * `LCD_CS`: Pin `P5.0`
+  * `LCD_RST`: Pin `P5.7` 
+  * `LCD_BACKLIGHT`: Pin `P3.7` 
+
+#### Core UI Features
+* **Numeric PIN Grid:** Renders a 3x4 interactive keypad interface for standard user authentication.
+* **Administrator Menu:** A scrollable, paginated menu allowing authorized admins to view the last access log and manually unlock the door.
+* **Dynamic Joystick Navigation:** Translates raw X/Y analog inputs from the joystick to move a red selection rectangle (`Rectangle` struct) across the screen, supporting both grid-based navigation and vertical menu scrolling.
+* **Interactive Selection & Feedback:** Evaluates the position of the selection rectangle against a predefined array of coordinates (e.g., `GRID_POINTS`). When a user confirms a selection, the system executes a temporary visual flash (red-to-white fill) over the selected item to provide immediate confirmation feedback.
+* **System Status Prompts:** Delivers instant, color-coded visual alerts for real-time events (e.g., `display_door_open()`, `display_wrong_pin()`, `display_block_access()`).
+
+#### Core Implementation
+
+```c
+// Initialize the graphics context, display orientation, and default fonts
+void _graphicsInit() {
+    Crystalfontz128x128_Init();
+    Crystalfontz128x128_SetOrientation(LCD_ORIENTATION_UP);
+    Graphics_initContext(&g_sContext, &g_sCrystalfontz128x128, &g_sCrystalfontz128x128_funcs);
+    Graphics_setForegroundColor(&g_sContext, ClrBlack);
+    Graphics_setBackgroundColor(&g_sContext, ClrWhite);
+    GrContextFontSet(&g_sContext, &g_sFontCmss36);
+    // ...
+}
+
+// Routes joystick input to update the UI based on the active screen state
+void move_rectangle_on_display(uint16_t x, uint16_t y, bool grid_on) {
+    if(grid_on) {
+        // Calculate bounds and shift the selection box across the numeric keypad
+    } else {
+        // Handle vertical scrolling, pagination, and highlighting in the Admin Menu
+    }
+}
+
+// Detects selected grid point and triggers visual feedback
+int number_selected(void) {
+    for (int i = NUM1; i < NUM_POINTS; i++) {
+        // Check if the current grid point's coordinates (x, y) fall within 
+        // the selection rectangle's boundaries.
+        if (Graphics_isPointWithinRectangle(&rect, GRID_POINTS[i].x, GRID_POINTS[i].y)) {
+            // Trigger visual flash feedback and return selected number
+            // ...
+            return i;
+        }
+    }
+    return -1; // No number selected
+}
+```
+
+
+
+
+### 4. Input Peripherals: Buttons & Joystick (BOOSTXL-EDUMKII Onboard)
+Captures analog and digital user inputs for menu navigation, selection, and system interaction. 
+
+* **Communication Protocol:** `GPIO` (Digital Input with Interrupts) & `ADC` (Analog-to-Digital Converter)
+* **Hardware Connections:**
+  * `Button 1`: Pin `P5.1`
+  * `Button 2`: Pin `P3.5`
+  * `Joystick X-Axis`: Pin `P6.0`
+  * `Joystick Y-Axis`: Pin `P4.4`
+
+#### Core Features
+* **Interrupt-Driven Architecture:** Utilizes hardware interrupts for both the ADC (joystick) and GPIO (buttons) to capture inputs asynchronously. This prevents the system from blocking the main execution loop while waiting for user interaction.
+* **Pull-Up Configuration:** Pushbuttons are configured with internal pull-up resistors, meaning they trigger on a high-to-low voltage transition (active-low) when pressed.
+* **Timer-Based Software Debouncing:** To prevent mechanical switch bounce from registering as multiple rapid presses, the system temporarily disables the button interrupt and triggers a hardware timer. The input state is only validated after the timer expires.
+
+#### Core Implementation
+```c
+// ADC Interrupt: Reads joystick X/Y values when the conversion timer finishes
+void ADC14_IRQHandler(void) {
+    uint64_t status = ADC14_getEnabledInterruptStatus();
+    ADC14_clearInterruptFlag(status);
+
+    if (status & ADC_INT1) {
+        resultsBuffer[0] = ADC14_getResult(ADC_MEM0); // X-Axis
+        resultsBuffer[1] = ADC14_getResult(ADC_MEM1); // Y-Axis
+        move_rectangle = 1;                           // Flag to update UI
+        TIMER_RESTART(TIMER_A3_BASE, TIMER_A_CONTINUOUS_MODE); 
+    }
+}
+
+// GPIO Interrupt: Detects initial button press
+void PORT5_IRQHandler(void) {
+    uint_fast16_t status = GPIO_getEnabledInterruptStatus(GPIO_PORT_P5);
+
+    if (status & GPIO_PIN1) {
+        ButtonA_IRQHandler();
+        return;
+    }
+    GPIO_clearInterruptFlag(GPIO_PORT_P5, status);
+}
+
+// Initiates debounce sequence
+void ButtonA_IRQHandler(void) {
+    // Disable interrupt for PORT5 to ignore mechanical bounce
+    GPIO_disableInterrupt(GPIO_PORT_P5, GPIO_PIN1);
+    GPIO_clearInterruptFlag(GPIO_PORT_P5, GPIO_PIN1);
+
+    // Start timer to wait for signal to stabilize
+    TIMER_RESTART(TIMER_A1_BASE, TIMER_A_UP_MODE);
+}
+
+// Timer Interrupt: Validates button state after debounce delay
+void TA1_0_IRQHandler(void) {
+    Timer_A_stop(TIMER_A1_BASE);
+    Timer_A_clearCaptureCompareInterrupt(TIMER_A1_BASE, TIMER_A_CAPTURECOMPARE_REGISTER_0);
+
+    // Verify if Button 1 is still pressed
+    if (GPIO_getInputPinValue(GPIO_PORT_P5, GPIO_PIN1) == GPIO_INPUT_PIN_LOW) {
+        buttonA_pressed = 1;
+        Timer_A_clearTimer(TIMER_A2_BASE);
+    }
+    // Verify if Button 2 is still pressed
+    if (GPIO_getInputPinValue(GPIO_PORT_P3, GPIO_PIN5) == GPIO_INPUT_PIN_LOW) {
+        buttonB_pressed = 1;
+        Timer_A_clearTimer(TIMER_A2_BASE);
+    }
+
+    // Clear flags and re-enable button interrupts
+    GPIO_clearInterruptFlag(GPIO_PORT_P5, GPIO_PIN1);
+    GPIO_clearInterruptFlag(GPIO_PORT_P3, GPIO_PIN5);
+    GPIO_enableInterrupt(GPIO_PORT_P5, GPIO_PIN1);
+    GPIO_enableInterrupt(GPIO_PORT_P3, GPIO_PIN5);
+}
+```
+
+### 5. Piezo Buzzer (BOOSTXL-EDUMKII Onboard)
+Generates acoustic feedback, providing auditory warning signals for incorrect authentication attempts and general system alerts.
+
+* **Communication Protocol:** PWM (Pulse Width Modulation)`
+* **Hardware Connections:**
+  * Buzzer Signal: Pin [X.X]
+
+**Core Implementation:**
+```c
+// Insert core implementation here
+```
+
+### 6. VL53L0X - Distance Sensor
+Ultrasound sensor for proximity when in front of the board to lit the display.
+
+* **Communication Protocol:** I2C`
+* **Hardware Connections:**
+  * SCL: Pin [X.X]
+  * SDA: Pin [X.X]
+  * INTERRUPT: Pin [X.X]
+  * XSHUT: Pin [X.X]
+
+**Core Implementation:**
+```c
+// Insert core implementation here
+```
+
+### Project wiring
+<img width="990" height="720" alt="Schematic of the project" src="RepoImages/schematic.png" />
 
 ### Software Setup (CCSTudio + PlatformIO) (Alessandro)
 
-## IoT Integration
+Follow these steps to configure your environment and upload the firmwares on the boards.
+
+#### CCStudio
+
+
+
+#### Telegram Bot
+
+1. Download and install Telegram on your device. We recommend using the [Telegram Desktop application](https://desktop.telegram.org/) on your PC for a more comfortable setup experience.
+Open this link [**@BotFather**](https://t.me/BotFather) to launch the official bot creation tool in Telegram, then start the conversation by sending the command `/start`.
+3. Send the command `/newbot` to create a new bot.
+4. Follow **@BotFather**'s instructions to configure your bot:
+   * First, choose a **name** for your bot (this is the display name users will see).
+   * Then, choose a unique **username** (it must end with `bot`, e.g., `HomeAccess_bot`).
+5. Once the bot is created, BotFather will send you a confirmation message containing your **HTTP API Token**. Copy and save this token securely, as you will need to insert it into the project file for the ESP firmware, as explained in the following section.
+6. To configure the bot's menu, send the command `/setcommands` to **@BotFather**.
+7. Select your newly created bot from the provided list, then copy and paste the following text into the chat to set up your commands:
+
+```
+start - Initialize the bot and authenticate yourself
+menu - Display the main control panel and available features
+cancel - Abort the current operation or transaction
+```
+
+#### Visual Studio Code + PlatformIO
+
+1. Download and install [Visual Studio Code](https://code.visualstudio.com/download).
+2. Install the [PlatformIO IDE Extension](https://docs.platformio.org/en/latest/what-is-platformio.html) from the VSCode extensions marketplace.
+
+<p align="center">
+  <img src="RepoImages/SoftwareSetup/platformio-ide-vscode-pkg-installer.png" width=450>
+</p> 
+
+3. Click the PlatformIO icon on the left sidebar. You will see the screen shown in the image below. Click the **Pick a folder** button. Navigate to the location where you cloned the `EmbeddedHomeAccessControlSystem` repository and select the `TelegramBot` folder inside it to open the project.
+
+<p align="center">
+  <img src="RepoImages/SoftwareSetup/open-platformio-project.jpeg" width=400>
+</p> 
+
+4. Open the configuration file located at `TelegramBot/include/credential-template.h` starting from the root of the repository.
+
+5. Insert your Wi-Fi credentials and the Telegram Bot token you saved earlier by replacing the placeholder text inside the quotes "":
+
+<p align="center">
+  <img src="RepoImages/SoftwareSetup/insert-credential.png">
+</p> 
+
+6. Copy and rename the file from `credential-template.h` to `credential.h`. This ensures your sensitive credentials are not accidentally uploaded to GitHub if you push your changes, as `credential.h` is already included in the `TelegramBot` project's `.gitignore file`.
+
+7. Connect a microUSB cable to the **UART** port on your **ESP32-S3 board**. Go to the top right corner where the **Build** icon (the checkmark) is located, click the down arrow symbol next to it, and select **Upload** to compile the code and upload the firmware.
+
+> **Note:** The first time you perform this action, it will take some time. PlatformIO works in the background to automatically download all the necessary libraries and the updated Arduino core directly from the official Espressif repository.
+
+## IoT Interface
+
+
+
+
 
 ## User Guide + Youtube Video and PowerPoint
 Commentare quello che si vede nel video
@@ -139,7 +420,7 @@ Contenuti del video:
 
 - Alessandro Biasoli
   1. RFID
-  2. ToF Senosor
+  2. ToF Sensor
   3. Buzzer
   
 

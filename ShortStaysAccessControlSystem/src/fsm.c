@@ -65,7 +65,18 @@ void fn_INSERT_PIN(void){
             error_pin = 0;
 
             uint32_t t_start = system_millis;
-            display_string("Welcome user!");
+            Graphics_clearDisplay(&g_sContext);
+            GrContextFontSet(&g_sContext, &g_sFontCmss16);
+            Graphics_setForegroundColor(&g_sContext, ClrGreen);
+            Graphics_drawStringCentered(&g_sContext, (int8_t *) "PIN Correct",
+                                                AUTO_STRING_LENGTH,
+                                                64, 64,
+                                                OPAQUE_TEXT);
+            Graphics_setForegroundColor(&g_sContext, ClrBlack);
+                        Graphics_drawStringCentered(&g_sContext, (int8_t *) "Welcome user!",
+                                                            AUTO_STRING_LENGTH,
+                                                            64, 74,
+                                                            OPAQUE_TEXT);
             buzzerPWMgen(&CorrectPin);
             while(system_millis - t_start < 1500);
 
@@ -101,11 +112,10 @@ void fn_OPEN_DOOR(void){
 
     uint32_t t_start = system_millis;
     display_door_open();
-    buzzerPWMgen(&CorrectPin);
 
     open_door();
 
-    while(system_millis - t_start < 3000);
+    delay_ms(5000);
 
     display_door_closed();
 
@@ -135,13 +145,19 @@ void fn_WAIT_RFID(void){
 
 
 void fn_ADMIN_MENU(void){
-    Timer_A_startCounter(TIMER_A2_BASE, TIMER_A_UP_MODE);
+    //stops the idle timer so the admin can work without interruption
+    Timer_A_stopTimer(TIMER_A2_BASE);
+    standby = 0;
 
     int selected_function;
     selected_function = admin_menu();
 
+
     //decide to which state of admin menu go
     switch(selected_function){
+    case -1:
+        cur_state = STATE_AOD;
+        break;
     case LAST_ACCESS_LOG:
             db_page=1;                              //when you enter the db, the first page is shown
             cur_state = STATE_LAST_ACCESS_LOG;
@@ -156,10 +172,6 @@ void fn_ADMIN_MENU(void){
         cur_state = STATE_INSERT_PIN;
         break;
     }
-
-    //stops the idle timer so the admin can work without interruption
-    Timer_A_stopTimer(TIMER_A2_BASE);
-    standby = 0;
 }
 
 
@@ -345,16 +357,29 @@ void fn_menu_lal(void){
 void fn_menu_unlock_door(void){
     menu_unlock_door();
 
-    //move servo (same function of when opening door)
+    Timer_A_stopTimer(TIMER_A2_BASE);
+    standby = 0;
 
-    if(buttonB_pressed){
-        buttonB_pressed=0;
-        cur_state = STATE_ADMIN_MENU;
-    }
+    uint32_t t_start = system_millis;
+    display_door_open();
+
+    open_door();
+
+    delay_ms(5000);
+
+    display_door_closed();
+
+
+    close_door();
+
+    cur_state = STATE_ADMIN_MENU;
 }
 
 
 void fn_rfid_register(void){
+
+
+
     cur_state = STATE_ADMIN_MENU;
 }
 

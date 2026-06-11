@@ -720,12 +720,6 @@ void display_door_open(void){
     Graphics_clearDisplay(&g_sContext);
     GrContextFontSet(&g_sContext, &g_sFontCmss16);
     Graphics_setForegroundColor(&g_sContext, ClrGreen);
-    Graphics_drawStringCentered(&g_sContext, (int8_t *) "CODE CORRECT",
-                                    AUTO_STRING_LENGTH,
-                                    64, 54,
-                                    OPAQUE_TEXT);
-    delay_ms(300);
-    Graphics_setForegroundColor(&g_sContext, ClrBlack);
     Graphics_drawStringCentered(&g_sContext, (int8_t *) "OPENING DOOR",
                                         AUTO_STRING_LENGTH,
                                         64, 74,

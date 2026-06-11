@@ -310,6 +310,8 @@ bool wait_RFID(void){
 
 
 
+
+
 int admin_menu(void){
     draw_admin_menu(1); // 1 = FIRST_SCREEN
 
@@ -338,21 +340,11 @@ int admin_menu(void){
     return 6; //return to INSERT PIN
 }
 
-void menu_setup_wifi(void){
-    display_menu_setup_wifi();
-}
-
-
 
 void menu_unlock_door(void){
     display_menu_unlock_door();
 }
 
-
-
-void menu_block_pin(void){
-    display_menu_block_pin();
-}
 
 
 void wrong_pin(void){

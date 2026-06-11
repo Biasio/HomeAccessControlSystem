@@ -6,24 +6,17 @@
   <ol>
     <li><a href="#about-the-project">About The Project</a></li>
     <li><a href="#repository-structure">Repository Structure</a></li>
-    <li>
-      <a href="#requirements">Requirements</a>
-      <ul>
-        <li><a href="#hardware-setup">Hardware Setup</a></li>
+    <li><a href="#hardware-setup">Hardware Setup</a></li>
       <ul>
             <li><a href="#1-rfid-reader">1. RFID Reader</a></li>
             <li><a href="#2-stepper-motor">2. Stepper Motor</a></li>
             <li><a href="#3-display---crystalfontz-128x128-tft-lcd-boostxl-edumkii-onboard">3. Display - Crystalfontz 128x128 TFT LCD (BOOSTXL-EDUMKII Onboard)</a></li>
             <li><a href="#4-input-peripherals-buttons--joystick-boostxl-edumkii-onboard">4. Input Peripherals: Buttons & Joystick (BOOSTXL-EDUMKII Onboard)</a></li>
             <li><a href="#5-piezo-buzzer-boostxl-edumkii-onboard">5. Piezo Buzzer (BOOSTXL-EDUMKII Onboard)</a></li>
-            <li>
-              <a href="#6-vl53l0x---distance-sensor">6. VL53L0X - Distance Sensor</a>
-              <ul>
-                <li><a href="#project-wiring">Project wiring</a></li>
-              </ul>
-            </li>
-          </ul>
-        <li><a href="#software-setup">Software Setup</a></li>
+            <li><a href="#6-vl53l0x---distance-sensor">6. VL53L0X - Distance Sensor</a></li>
+            <li><a href="#7-esp32-s3-uart-communication">7. ESP32-S3 UART Communication</a></li>
+            <li><a href="#project-wiring">Project wiring</a></li>
+        </ul>
         <li><a href="#software-setup">Software Setup</a>
           <ul>
             <li><a href="#ccstudio">CCStudio</a></li>
@@ -31,12 +24,9 @@
             <li><a href="#visual-studio-code--platformio">Visual Studio Code + PlatformIO</a></li>
           </ul>
         </li>
->>>>>>> ef023c3ee0f83f9825ad3ba35af355a2f7ead56a
       </ul>
-    </li>
-    <li><a href="#iot-integration">IoT Integration</a></li>
+    <li><a href="#user-guide">User Guide</a></li>
     <li><a href="#authors">Authors</a></li>
-    <li><a href="#links">Links</a></li>
   </ol>
 </details>
 
@@ -48,20 +38,28 @@ Users can authenticate using unlock codes, while the administrator can access a 
 Beyond the physical interface, an integrated Telegram bot handles remote interactions, enabling the administrator to oversee access permissions and allowing users to request or manage their own codes.
 The system also features a database that logs all access events for monitoring purposes.
 
-The architecture is split between two microcontrollers to safely separate local hardware logic from network tasks:
-- **MSP432P401R**: Acts as the brain for local operations, handling sensor inputs, the user interface, and mechanical outputs.
-- **ESP32-S3**: Connected to the MSP, this board is dedicated to WiFi connectivity, fetching the clock time, and handling the Telegram Bot logic.
-
-
-
-## Project Layout
+## Repository Structure
 
 ```
 .
+├── 3D-Model/                          # Hardware 3D printable components
+│   ├── All components.3mf             # All components in 1 file
+│   ├── door.stl                       # Door model
+│   ├── doorframe.3mf                  # Door frame model
+│   ├── gear.stl                       # Gear mechanism model
+│   ├── sensors_and_peripherals_supports.scad  # OpenSCAD parametric supports
+│   └── sensors_and_peripherals_supports.stl   # Exported supports model
+├── RepoImages/                        # Documentation media and images
+│   ├── HardwareSetup/                 # Schematic diagram
+│   ├── SoftwareSetup/                 # IDE setup screenshots
+│   └── TelegramBot/                   # Bot usage demonstrations (GIFs & Images)
 ├── ShortStaysAccessControlSystem/     # Firmware project (MSP432 Microcontroller)
 │   ├── msp432p401r.cmd                # Memory linker script
 │   ├── src/                           # Source code directory
 │   │   ├── external_src/              # External hardware libraries
+│   │   │   ├── LCD/                   # Display graphics library
+│   │   │   │   ├── Crystalfontz128x128_ST7735.c / .h                     # ST7735 controller primitives
+│   │   │   │   └── HAL_MSP_EXP432P401R_Crystalfontz128x128_ST7735.c / .h # Display pin mapping
 │   │   │   └── vl53l0x_msp432/        # Distance sensor submodule (Git)
 │   │   │       ├── drivers/           # Sensor native API registers
 │   │   │       │   ├── config.h       # Timing configuration
@@ -70,53 +68,52 @@ The architecture is split between two microcontrollers to safely separate local 
 │   │   │       │   └── vl53l0x.c / .h # Main ranging core
 │   │   │       ├── main.c             # Sensor standalone test
 │   │   │       └── README.md          # Submodule info
-│   │   ├── LcdDriver/                 # Display graphics library
-│   │   │   ├── Crystalfontz128x128_ST7735.c / .h                       # ST7735 controller primitives
-│   │   │   └── HAL_MSP_EXP432P401R_Crystalfontz128x128_ST7735.c / .h   # Display pin mapping
 │   │   ├── buzzer.c / .h              # Buzzer acoustic alerts
 │   │   ├── comm_esp.c / .h            # Serial communication with ESP32
 │   │   ├── database.c / .h            # Local access credentials memory
 │   │   ├── display.c / .h             # LCD high-level UI menus
+│   │   ├── flash.c / .h               # Flash memory storage driver
 │   │   ├── fsm_helpers.c / .h         # State machine utilities
 │   │   ├── fsm.c / .h                 # Main application logic (FSM)
 │   │   ├── irqHandlers.c / .h         # Hardware interrupt routines
 │   │   ├── joystick.c / .h            # Analog joystick driver
 │   │   ├── main.c                     # System entry point & loop
+│   │   ├── motor.c / .h               # Motor control driver
 │   │   ├── push_button.c / .h         # Buttons and debouncing
 │   │   ├── sensors.c / .h             # RFID and Distance sensor drivers
 │   │   └── timers.c / .h              # Periodic timer configurations
 │   ├── startup_msp432p401r_ccs.c      # Microcontroller vector table
-│   └── system_msp432p401r.c           # System clock configuration
+│   ├── system_msp432p401r.c           # System clock configuration
+│   └── targetConfigs/                 # IDE target configurations
+│       ├── MSP432P401R.ccxml          # Target configuration file
+│       └── readme.txt                 # Target config info
 ├── TelegramBot/                       # PlatformIO project (ESP32 Microcontroller)
-│   ├── include/                       # Global header headers
-│   │   └── README                     # Folder info
+│   ├── include/                       # Global header files
+│   │   ├── credential-template.h      # Wi-Fi and Token template
+│   │   └── README.md                  # Folder info
 │   ├── lib/                           # Custom local libraries
 │   │   ├── DoorBotManager/            # Telegram connection & events logic
 │   │   │   ├── DoorBotManager.cpp     # Bot API implementation
 │   │   │   └── DoorBotManager.h       # Bot class definition
-│   │   └── README                     # Lib folder info
+│   │   └── README.md                  # Lib folder info
 │   ├── platformio.ini                 # Build and dependency settings
 │   ├── src/                           # Application source code
 │   │   ├── idf_component.yml          # ESP-IDF component packages
-│   │   ├── main.cpp                   # Main bot loop & Wi-Fi init
-│   │   └── mainTest.txt               # Text test file
+│   │   └── main.cpp                   # Main bot loop & Wi-Fi init
 │   └── test/                          # Unit testing folder
-│       └── README                     # Test folder info
-└── README.md                          # Project documentation
+│       └── README.md                  # Test folder info
+└── README.md                        # Project documentation
 ```
 
-## Requirements
+## Hardware Setup 
 
+To securely isolate local hardware operations from network tasks, the system architecture is divided between two interconnected microcontrollers:
 
-### Hardware Setup 
-The core of this system is driven by the **Texas Instruments MSP432P401R** microcontroller, interfaced with the **Educational BoosterPack MKII (BOOSTXL-EDUMKII)** to utilize its integrated peripherals. The system integrates several external and onboard sensors and actuators to manage access control and user interaction.
+- **Texas Instruments MSP432P401R**: The core of the system, interfaced with the **Educational BoosterPack MKII (BOOSTXL-EDUMKII)**. It handles several external and onboard sensors and actuators to manage physical access control and user interaction.
 
-
-**System Components**
+- **Espressif ESP32-S3**: Operating as a dedicated network coprocessor, it connects to the MSP to handle all Wi-Fi connectivity, system time synchronization, and the Telegram Bot logic.
 
 Below is the technical breakdown of each hardware module integrated into the system, including their designated communication protocols, pin mapping, and core logic.
-
----
 
 ### 1. RFID Reader
 Handles secure tag scanning and authentication, granting administrator-level access to the local configuration menu.
@@ -129,7 +126,7 @@ Handles secure tag scanning and authentication, granting administrator-level acc
   * `MISO`: Pin `[X.X]`
   * `RST`: Pin `[X.X]`
 
-**Core Implementation:**
+#### Core Implementation
 ```c
 // Initialize RFID module and configure SPI
 void initRFID() {
@@ -152,7 +149,7 @@ Actuates the physical locking and unlocking mechanism of the door via precise ro
   * `IN3`: Pin `[X.X]`
   * `IN4`: Pin `[X.X]`
 
-**Core Implementation:**
+#### Core Implementation
 ```c
 // Insert core implementation here
 ```
@@ -218,9 +215,6 @@ int number_selected(void) {
     return -1; // No number selected
 }
 ```
-
-
-
 
 ### 4. Input Peripherals: Buttons & Joystick (BOOSTXL-EDUMKII Onboard)
 Captures analog and digital user inputs for menu navigation, selection, and system interaction. 
@@ -304,7 +298,7 @@ Generates acoustic feedback, providing auditory warning signals for incorrect au
 * **Hardware Connections:**
   * Buzzer Signal: Pin [X.X]
 
-**Core Implementation:**
+#### Core Implementation
 ```c
 // Insert core implementation here
 ```
@@ -324,18 +318,42 @@ Ultrasound sensor for proximity when in front of the board to lit the display.
 // Insert core implementation here
 ```
 
-### Project wiring
-<img width="990" height="720" alt="Schematic of the project" src="RepoImages/schematic.png" />
+### 7. ESP32-S3 UART Communication
 
-### Software Setup (CCSTudio + PlatformIO) (Alessandro)
+An `UART` serial communication interface was configured to enable data exchange and command execution between the two microcontrollers.
+
+* **Communication Protocol:** `UART`
+
+* **Hardware Connections:**
+  * Texas Instruments MSP432P401R:
+    * TX: Pin `P3.3`
+    * RX: Pin `P3.2`
+  * Espressif ESP32-S3:
+    * TX: Pin `P17`
+    * RX: Pin `P16`
+
+#### Core Features
+
+* **Message Handling & Dispatching:** Uses hardware interrupts (`EUSCIA2_IRQHandler`) to asynchronously buffer incoming messages and routes them to specific handlers based on predefined prefixes (`processUartMessage`).
+
+
+* **PIN Management:** Manages access by generating unique 4-digit PINs (`handleGenTempPin`), verifying user inputs against stored credentials (`handleVerifyPin`), and processing early revocation requests (`handleRevokePin`).
+
+
+* **Time Synchronization:** Requests network time (`requestRealTime`) and parses the ESP32 payload to accurately configure the hardware Real-Time Clock (`handleTimeSync`).
+
+### Project wiring
+<img width="990" height="720" alt="Schematic of the project" src="RepoImages/HardwareSetup/schematic.png" />
+
+## Software Setup (CCSTudio + PlatformIO) (Alessandro)
 
 Follow these steps to configure your environment and upload the firmwares on the boards.
 
-#### CCStudio
+### CCStudio
 
 
 
-#### Telegram Bot
+### Telegram Bot
 
 1. Download and install Telegram on your device. We recommend using the [Telegram Desktop application](https://desktop.telegram.org/) on your PC for a more comfortable setup experience.
 Open this link [**@BotFather**](https://t.me/BotFather) to launch the official bot creation tool in Telegram, then start the conversation by sending the command `/start`.
@@ -353,19 +371,19 @@ menu - Display the main control panel and available features
 cancel - Abort the current operation or transaction
 ```
 
-#### Visual Studio Code + PlatformIO
+### Visual Studio Code + PlatformIO
 
 1. Download and install [Visual Studio Code](https://code.visualstudio.com/download).
 2. Install the [PlatformIO IDE Extension](https://docs.platformio.org/en/latest/what-is-platformio.html) from the VSCode extensions marketplace.
 
 <p align="center">
-  <img src="RepoImages/SoftwareSetup/platformio-ide-vscode-pkg-installer.png" width=450>
+  <img src="RepoImages/SoftwareSetup/VSCode+PlatformIO/platformio-ide-vscode-pkg-installer.png" width=450>
 </p> 
 
 3. Click the PlatformIO icon on the left sidebar. You will see the screen shown in the image below. Click the **Pick a folder** button. Navigate to the location where you cloned the `EmbeddedHomeAccessControlSystem` repository and select the `TelegramBot` folder inside it to open the project.
 
 <p align="center">
-  <img src="RepoImages/SoftwareSetup/open-platformio-project.jpeg" width=400>
+  <img src="RepoImages/SoftwareSetup/VSCode+PlatformIO/open-platformio-project.jpeg" width=400>
 </p> 
 
 4. Open the configuration file located at `TelegramBot/include/credential-template.h` starting from the root of the repository.
@@ -373,7 +391,7 @@ cancel - Abort the current operation or transaction
 5. Insert your Wi-Fi credentials and the Telegram Bot token you saved earlier by replacing the placeholder text inside the quotes "":
 
 <p align="center">
-  <img src="RepoImages/SoftwareSetup/insert-credential.png">
+  <img src="RepoImages/SoftwareSetup/VSCode+PlatformIO/insert-credential.png">
 </p> 
 
 6. Copy and rename the file from `credential-template.h` to `credential.h`. This ensures your sensitive credentials are not accidentally uploaded to GitHub if you push your changes, as `credential.h` is already included in the `TelegramBot` project's `.gitignore file`.

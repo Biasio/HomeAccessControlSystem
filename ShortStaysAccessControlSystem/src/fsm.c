@@ -239,6 +239,7 @@ void fn_AOD(void){
     // Check if the user access is locked, if yes go to rfid validation
     if(myDb.userAccessBlocked){
         cur_state = STATE_WAIT_RESET_DOOR;
+        return;
     }
 
     // Check for any user interaction (buttons, joystick, or ToF sensor)

@@ -202,6 +202,8 @@ void fn_BLOCK_ACCESS(void){
     standby = 0;
 
     printf("Access blocked \n");
+    myDb.userAccessBlocked = true;      //in flash is stored that user access is blocked
+    save_database();
     block_access();
     cur_state = STATE_WAIT_RESET_DOOR;
 }
@@ -214,7 +216,11 @@ void fn_WAIT_RESET_DOOR(void){
     standby = 0;
 
     printf("Wait door to be reset \n");
-    if(wait_RFID()) cur_state=STATE_INSERT_PIN;
+    if(wait_RFID()) {
+        myDb.userAccessBlocked = false;             //to store in flash that user access is no longer blocked
+        save_database();
+        cur_state=STATE_INSERT_PIN;
+    }
 }
 
 
@@ -229,6 +235,12 @@ void fn_AOD(void){
     static uint_fast8_t redraw =0;
 
     static uint32_t last_sync_req = 0;
+
+    // Check if the user access is locked, if yes go to rfid validation
+    if(myDb.userAccessBlocked){
+        cur_state = STATE_WAIT_RESET_DOOR;
+        return;
+    }
 
     // Check for any user interaction (buttons, joystick, or ToF sensor)
     if (check_for_inputs()) {
@@ -305,6 +317,7 @@ void fn_AOD(void){
     }
 
     return;
+
 }
 
 
@@ -313,7 +326,6 @@ void fn_AOD(void){
 // --------------------------------------------- //
 
 void fn_menu_lal(void){
-    //int dp_page;                  //this is defined in the top of the file!
     const uint16_t* current_results;
     bool menu_lal_active = 1;
     int tmp;

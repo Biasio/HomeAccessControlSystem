@@ -33,12 +33,13 @@ typedef struct {                               //this is the structure that will
   AccessData dbArray[MAX_NUMBER_LOG_SAVED];
   int count;
   int head;
+  bool userAccessBlocked;
+  bool isDoorOpen;
 }LogDB;
 
 
 static LogDB myDb;                 //the instance of logDB which contains the array
-LogDB *ptr1;                 //pointer to myDb
-LogDB *ptr2;
+LogDB *ptr2;                        //pointer to myDb
 
 
 

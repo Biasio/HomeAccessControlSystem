@@ -1,0 +1,67 @@
+# Prerequisites
+*.d
+
+# Object files
+*.o
+*.ko
+*.obj
+*.elf
+
+# Linker output
+*.ilk
+*.map
+*.exp
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# Executables
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+
+# Compiler and linker generated files
+/ShortStaysAccessControlSystem/Debug
+/ShortStaysAccessControlSystem/Release
+
+# IDE files
+.vscode/
+*.dwo
+/.metadata/
+*.settings/
+/.project
+ShortStaysAccessControlSystem/.launches/
+*Debug/
+*Release/
+*RemoteSystemsTempFiles/
+dvt/
+
+#Driverlib folders
+simplelink_msp432p4_sdk_*/
+
+# cache files
+.jxbrowser.userdata/
+
+# mac system files
+.DS_Store
+
+
+#remove .pio
+TelegramBot/.pio/

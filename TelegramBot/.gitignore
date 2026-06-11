@@ -1,0 +1,6 @@
+.pio
+.vscode/
+
+# Ignore local credentials
+include/credential.h
+

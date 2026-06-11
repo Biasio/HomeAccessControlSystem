@@ -1,0 +1,40 @@
+name: Aggiorna submodule quando arriva la notifica
+
+on:
+  repository_dispatch:
+    types: [child-updated]
+
+jobs:
+  update-submodule:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout del parent
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configura identità Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Aggiorna submodule all'ultimo commit del suo branch
+        run: |
+          cd ShortStaysAccessControlSystem/src/external_src/vl53l0x_msp432
+          git fetch origin
+          git checkout main
+          git pull --recurse-submodules
+          cd -
+          git add ShortStaysAccessControlSystem/src/external_src/vl53l0x_msp432
+
+      - name: Commit e push delle modifiche
+        run: |
+          if git diff --staged --quiet; then
+            echo "Nessun aggiornamento disponibile"
+          else
+            git commit -m "Aggiorna submodule (triggerato da push nel child)"
+            git push
+          fi

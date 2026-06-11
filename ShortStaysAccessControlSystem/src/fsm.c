@@ -224,26 +224,6 @@ void fn_AOD(void){
 
     static uint32_t last_sync_req = 0;
 
-            // Update the display with the current hours and minutes
-            display_clock(now.hours, now.minutes);
-
-            // Update the tracker
-            lastMinute = now.minutes;
-        }
-    }
-    else {
-        // Check if the placeholder hasn't been drawn yet in the current AOD cycle
-        if (!unsynced_drawn) {
-            // Reset the minute tracker to force the display to update immediately, without waiting for the next minute
-            lastMinute = -1;
-
-            // Draw the unsynced placeholder on the screen
-            display_string("-- : --");
-
-            // Set the flag to true so the FSM skips this drawing block in future loop iterations
-            unsynced_drawn = true;
-        }
-    }
     // Check if the user access is locked, if yes go to rfid validation
     if(myDb.userAccessBlocked){
         cur_state = STATE_WAIT_RESET_DOOR;
@@ -289,10 +269,6 @@ void fn_AOD(void){
             if((system_millis - last_sync_req) > 15000){
 
                 last_sync_req = system_millis;
-                Graphics_setForegroundColor(&g_sContext, ClrGray);
-                Graphics_drawStringCentered(&g_sContext, (int8_t *) "Synchronizing....",
-                                            AUTO_STRING_LENGTH, 85, 115, OPAQUE_TEXT);
-
                 requestRealTime();   // send "REQ_TIME:0" to ESP32
             }
         }
@@ -304,6 +280,10 @@ void fn_AOD(void){
         PCM_gotoLPM0(); // is a blocking call: the CPU halts execution at this instruction and only resumes when an interrupt fires.
 
         printf("exiting LPM0\n");
+        uint32_t ispr0 = NVIC->ISPR[0];   // IRQ 0-31
+
+        // Check individual bits:
+        printf("NVIC: %" PRIu32 "\n", ispr0);
 
         // If the wake was due to the 30s timer (standby=1), we know it's exactly 30000 ms.
         // For other wakes, use elapsed_ms to adjust system_millis.
@@ -324,6 +304,7 @@ void fn_AOD(void){
     }
 
     return;
+
 }
 
 

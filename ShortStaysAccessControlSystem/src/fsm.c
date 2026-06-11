@@ -34,12 +34,7 @@ StateMachine_t fsm[] = {
 
 void fn_BOOT(void){
     _hwInit();
-<<<<<<< HEAD
     cur_state = STATE_DOOR_LOCKED;
-=======
-    cur_state = STATE_SYNC_TIME;
-
->>>>>>> d1a80b94 (added door position on flash and userAccessBlocked control)
 }
 
 
@@ -229,8 +224,6 @@ void fn_AOD(void){
 
     static uint32_t last_sync_req = 0;
 
-<<<<<<< HEAD
-=======
             // Update the display with the current hours and minutes
             display_clock(now.hours, now.minutes);
 
@@ -255,7 +248,6 @@ void fn_AOD(void){
     if(myDb.userAccessBlocked){
         cur_state = STATE_WAIT_RESET_DOOR;
     }
->>>>>>> d1a80b94 (added door position on flash and userAccessBlocked control)
 
     // Check for any user interaction (buttons, joystick, or ToF sensor)
     if (check_for_inputs()) {

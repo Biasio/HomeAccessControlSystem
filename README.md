@@ -5,19 +5,23 @@
   <summary>Table of Contents</summary>
   <ol>
     <li><a href="#about-the-project">About The Project</a></li>
-    <li><a href="#project-layout">Project Layout</a></li>
+    <li><a href="#repository-structure">Repository Structure</a></li>
     <li>
       <a href="#requirements">Requirements</a>
       <ul>
         <li><a href="#hardware-setup">Hardware Setup</a></li>
       </ul>
       <ul>
-        <li><a href="#software-setup">Software Setup</a></li>
+        <li><a href="#software-setup">Software Setup</a>
+          <ul>
+            <li><a href="#ccstudio">CCStudio</a></li>
+            <li><a href="#visual-studio-code--platformio">Visual Studio Code + PlatformIO</a></li>
+          </ul>
+        </li>
       </ul>
     </li>
     <li><a href="#iot-integration">IoT Integration</a></li>
     <li><a href="#authors">Authors</a></li>
-    <li><a href="#links">Links</a></li>
   </ol>
 </details>
 
@@ -30,7 +34,7 @@ Beyond the physical interface, an integrated Telegram bot handles remote interac
 The system also features a database that logs all access events for monitoring purposes.
 
 The architecture is split between two microcontrollers to safely separate local hardware logic from network tasks:
-- **MSP432**: Acts as the brain for local operations, handling sensor inputs, the user interface, and mechanical outputs.
+- **MSP432P401R**: Acts as the brain for local operations, handling sensor inputs, the user interface, and mechanical outputs.
 - **ESP32-S3**: Connected to the MSP, this board is dedicated to WiFi connectivity, fetching the clock time, and handling the Telegram Bot logic.
 
 
@@ -89,13 +93,15 @@ The architecture is split between two microcontrollers to safely separate local 
 ## Requirements
 
 ### Hardware Setup (+ Project wiring) (Pietro)
-- You will need an MSP432p401r of the Texas Instrument company with its own expansion: the BOOSTXL-EDUMKII. 
-The system integrates the following components and sensors
+You will need a Texas Instrument MSP432P401R along with its expansion board: the BOOSTXL-EDUMKII. 
+
+The system integrates the following components and sensors:
 - **RFID**: Scans tags to allow the administrator to access the local admin menu.
 - **Stepper Motor**: Controls the physical opening and closing mechanism of the door.
 - **Display**: Renders the local user interface.
 - **Buttons and Joystick**: Allow users to navigate through the system interface.
 - **Buzzer**: Provides acoustic feedback, such as warning signals for incorrect code inputs and general alerts.
+- **ToF sensor**: 
 
 Cosa scrivere: protocollo di comunicazione, pin utilizzati, funzioni significative.
 
@@ -105,7 +111,34 @@ Cosa scrivere: protocollo di comunicazione, pin utilizzati, funzioni significati
 
 ### Software Setup (CCSTudio + PlatformIO) (Alessandro)
 
+Follow these steps to configure your environment and upload the firmwares on the boards.
+
+#### CCStudio
+
+
+
+#### Visual Studio Code + PlatformIO
+
+1. Download and install [Visual Studio Code](https://code.visualstudio.com/download).
+2. Install the [PlatformIO IDE Extension](https://docs.platformio.org/en/latest/what-is-platformio.html) from the VSCode extensions marketplace.
+
+<p align="center">
+  <img src="RepoImages/SoftwareSetup/platformio-ide-vscode-pkg-installer.png" width=450>
+ </p> 
+
+3. Click the PlatformIO icon on the left sidebar. You will see the screen shown in the image below. Click the **Pick a folder** button. Navigate to the location where you cloned the `EmbeddedHomeAccessControlSystem` repository and select the `TelegramBot` folder inside it to open the project.
+
+<p align="center">
+  <img src="RepoImages/SoftwareSetup/open-platformio-project.jpeg" width=400>
+ </p> 
+
+4. Connect a microUSB cable to the **UART** port on your ESP32-S3 board. Click the **Build** icon (the checkmark) in the top right corner to compile and upload the firmware. 
+
+> **Note:** The first time you perform this action, it will take some time. PlatformIO works in the background to automatically download all the necessary libraries and the updated Arduino core directly from the official Espressif repository.
+
 ## IoT Integration
+
+
 
 ## User Guide + Youtube Video and PowerPoint
 Commentare quello che si vede nel video
@@ -139,7 +172,7 @@ Contenuti del video:
 
 - Alessandro Biasoli
   1. RFID
-  2. ToF Senosor
+  2. ToF Sensor
   3. Buzzer
   
 

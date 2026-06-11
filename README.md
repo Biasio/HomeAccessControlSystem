@@ -520,31 +520,31 @@ Access control for door opening in short stays
 - Set the duration of temporary pins
 
 
-
-## Prerequisites
-
-### Software
-Ensure you have the following installed before cloning:
-* **[Git LFS](https://git-lfs.com/)**: Required. We use Large File Storage to track the SIMPLELINK SDK libraries.
-* **Code Composer Studio (CCS) v12.8**.
-
-### Hardware:
-* **TexasInstruments' MSP-EXP432P401R Board**
-* **Texas Instruments' BoosterPack BOOSTXL-EDUMKII**
-
 ## Getting Started
 
-Follow these steps to build the project:
-clone the sdk: simplelink_msp432p4_sdk_3_40_01_02](https://www.ti.com/tool/download/SIMPLELINK-MSP432-SDK/3.40.01.02
-### 1. Clone the Repository
-Because we use Git LFS, make sure LFS is initialized on your machine before cloning:
+### Prerequisites
+
+- **CCStudio v12.8** – Download from [TI.com](https://www.ti.com/tool/download/CCSTUDIO/12.8.1)
+- **SimpleLink MSP432 SDK v3.40.01.02** – Download from [TI.com](https://www.ti.com/tool/download/SIMPLELINK-MSP432-SDK/3.40.01.02)
+
+> ⚠️ **Important:** The SimpleLink SDK must be placed in the **parent directory** of the repository (i.e., the folder that will contain the cloned repo). For example, if you plan to clone into `~/my_project`, the SDK should be extracted to `~/` (so the SDK folder sits alongside `my_project`, not inside it).
+
+### Clone the Repository
+
 ```bash
-git lfs install
-git clone <your-repository-url>
-cd <your-repository-name>
-
-
-### 2. Import the project in CCStudio
-1. The git repo is a full workspace for ccstudio, so when opening the IDE select the cloned folder as the active workspace. 
-2. The project should be already configured and working out of the box; if no project is automatically imported do "Import Project > Code Composer Studio > CCS Projects > Browse... > Select the ShortStaysAccessControlSystem folder inside the repo location > tick the ccs project > click Finish "
+git clone <repository-url>
+cd <repository-folder>
+git submodule init && git submodule update --remote
 ```
+
+### Import into CCStudio
+
+1. Launch **CCStudio v12.8**
+2. When prompted for a workspace, select the **repository folder** (the one you just cloned)
+3. Go to **Project → Import Project** (or **File → Import** → **CCS Projects**)
+4. Click **Browse…** and select the repository folder
+5. Under **Discovered Projects**, check the project you want to import
+6. Click **Finish**
+
+The project is ready to be deployed.
+

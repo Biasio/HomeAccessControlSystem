@@ -46,11 +46,13 @@ void _hwInit(void){
 
     // Initialize UART communication with ESP32
     ESP_Comm_Init();
+
     //flash
     database_init();
 
     //motor Pins
     motor_init();
+
     //display
     _graphicsInit();
 }
@@ -165,8 +167,9 @@ uint8_t insert_pin(){
         for(i=0; i<4; i++) {
             if(selected_pin_user[i] != saved_pin_admin[i]) {
                 pin_correct = 0;
+                //to save the access data in db:
                 dbstate = DENIED;
-                add_log(dbstate, "dd/mm hh:mm", selected_pin_user);
+                add_log(dbstate, get_date_hour(), selected_pin_user);
                 save_database();
 
                 break;
@@ -190,12 +193,22 @@ uint8_t insert_pin(){
 void open_door(void){
     // - turn on servo
     printf("open door \n");
-    moveMotor(360);
+    if(!myDb.isDoorOpen){   //open door only if is closed
+        moveMotor(360);
+        myDb.isDoorOpen = true;              //I save on flash the actual position of the door
+        save_database();
+    }
+
 }
 
 void close_door(void){
     printf("closing door \n");
-    moveMotor(-360);
+    if(myDb.isDoorOpen){    //close door only if is open
+        moveMotor(-360);
+        myDb.isDoorOpen = false;            //I save on flash the actual position of the door
+        save_database();
+    }
+
 }
 
 
@@ -362,13 +375,11 @@ bool check_for_inputs(){
     {
         buttonB_pressed=0;
         buttonA_pressed=0;
-        ToF_flag = 0;
         return true; //signal that an input was detected
     }
 
     if (ToF_flag)
     {
-        ToF_flag = 0;
         uint16_t range=0;
         uint8_t error=0;
         bool valid = vl53l0x_read_range_interrupt(&range, &error);
@@ -380,11 +391,12 @@ bool check_for_inputs(){
             PORT(VL53L0X_INT_PORT)->IFG &= ~ONE_HOT_BIT(VL53L0X_INT_PIN);
             PORT(VL53L0X_INT_PORT)->IE  |= ONE_HOT_BIT(VL53L0X_INT_PIN);
         }
-
-        if(valid)
+        else
         {
             printf("check_for_inputs range: %" PRIu16 ", error: %" PRIu8 "\n", range, error);
         }
+
+        ToF_flag=0;
         return valid;
     }
 
@@ -395,9 +407,11 @@ bool check_for_inputs(){
 void ReconfigInterruptsForSleep(bool enable){
     if(enable)
     {
-        Interrupt_disableInterrupt(INT_TA3_N);  //(joystick)
         SysTick_disableInterrupt();
+        Interrupt_disableInterrupt(INT_TA3_N);  //(joystick)
+        PORT(VL53L0X_INT_PORT)->IE  |= ONE_HOT_BIT(VL53L0X_INT_PIN);
         AODClockTimerInit();                    //reconfigure the idle timer as a 30s timer
+
     }
     else
     {
@@ -413,7 +427,7 @@ void ReconfigInterruptsForSleep(bool enable){
 
 void menu_last_access_log(int db_page){
     display_menu_last_access_log();     //it display only the title
-//    serial_print_db();
+
 
     display_db(db_page);                //to display only the correct page of the database
 }
@@ -426,7 +440,7 @@ void menu_factory_reset(void){
 char* get_date_hour(){
     static char buffer[15];
     int hour = 0, minute = 0, day = 1, month = 1;
-    if(timeSynced){             //so only if the esp has sinced and sent the current time
+    if(timeSynced){             //only if the esp has sinced and sent the current time
         hour = RTC_C_getCalendarTime().hours;
         minute = RTC_C_getCalendarTime().minutes;
         day = RTC_C_getCalendarTime().dayOfmonth;

@@ -5,13 +5,12 @@
   <summary>Table of Contents</summary>
   <ol>
     <li><a href="#about-the-project">About The Project</a></li>
-    <li><a href="#project-layout">Project Layout</a></li>
+    <li><a href="#repository-structure">Repository Structure</a></li>
     <li>
       <a href="#requirements">Requirements</a>
       <ul>
         <li><a href="#hardware-setup">Hardware Setup</a></li>
       <ul>
-            <li><a href="#system-components">System Components</a></li>
             <li><a href="#1-rfid-reader">1. RFID Reader</a></li>
             <li><a href="#2-stepper-motor">2. Stepper Motor</a></li>
             <li><a href="#3-display---crystalfontz-128x128-tft-lcd-boostxl-edumkii-onboard">3. Display - Crystalfontz 128x128 TFT LCD (BOOSTXL-EDUMKII Onboard)</a></li>
@@ -25,6 +24,14 @@
             </li>
           </ul>
         <li><a href="#software-setup">Software Setup</a></li>
+        <li><a href="#software-setup">Software Setup</a>
+          <ul>
+            <li><a href="#ccstudio">CCStudio</a></li>
+            <li><a href="#telegram-bot">Telegram Bot</a></li>
+            <li><a href="#visual-studio-code--platformio">Visual Studio Code + PlatformIO</a></li>
+          </ul>
+        </li>
+>>>>>>> ef023c3ee0f83f9825ad3ba35af355a2f7ead56a
       </ul>
     </li>
     <li><a href="#iot-integration">IoT Integration</a></li>
@@ -42,7 +49,7 @@ Beyond the physical interface, an integrated Telegram bot handles remote interac
 The system also features a database that logs all access events for monitoring purposes.
 
 The architecture is split between two microcontrollers to safely separate local hardware logic from network tasks:
-- **MSP432**: Acts as the brain for local operations, handling sensor inputs, the user interface, and mechanical outputs.
+- **MSP432P401R**: Acts as the brain for local operations, handling sensor inputs, the user interface, and mechanical outputs.
 - **ESP32-S3**: Connected to the MSP, this board is dedicated to WiFi connectivity, fetching the clock time, and handling the Telegram Bot logic.
 
 
@@ -100,8 +107,10 @@ The architecture is split between two microcontrollers to safely separate local 
 
 ## Requirements
 
+
 ### Hardware Setup 
 The core of this system is driven by the **Texas Instruments MSP432P401R** microcontroller, interfaced with the **Educational BoosterPack MKII (BOOSTXL-EDUMKII)** to utilize its integrated peripherals. The system integrates several external and onboard sensors and actuators to manage access control and user interaction.
+
 
 **System Components**
 
@@ -315,14 +324,69 @@ Ultrasound sensor for proximity when in front of the board to lit the display.
 // Insert core implementation here
 ```
 
-#### Project wiring
-<img width="990" height="720" alt="Schematic of the project" src="C:\Users\baron\Desktop\uni\TERZO ANNO\EMBEDDED_SYSTEM\final_project\images\schematic.png" />
-
-
+### Project wiring
+<img width="990" height="720" alt="Schematic of the project" src="RepoImages/schematic.png" />
 
 ### Software Setup (CCSTudio + PlatformIO) (Alessandro)
 
-## IoT Integration
+Follow these steps to configure your environment and upload the firmwares on the boards.
+
+#### CCStudio
+
+
+
+#### Telegram Bot
+
+1. Download and install Telegram on your device. We recommend using the [Telegram Desktop application](https://desktop.telegram.org/) on your PC for a more comfortable setup experience.
+Open this link [**@BotFather**](https://t.me/BotFather) to launch the official bot creation tool in Telegram, then start the conversation by sending the command `/start`.
+3. Send the command `/newbot` to create a new bot.
+4. Follow **@BotFather**'s instructions to configure your bot:
+   * First, choose a **name** for your bot (this is the display name users will see).
+   * Then, choose a unique **username** (it must end with `bot`, e.g., `HomeAccess_bot`).
+5. Once the bot is created, BotFather will send you a confirmation message containing your **HTTP API Token**. Copy and save this token securely, as you will need to insert it into the project file for the ESP firmware, as explained in the following section.
+6. To configure the bot's menu, send the command `/setcommands` to **@BotFather**.
+7. Select your newly created bot from the provided list, then copy and paste the following text into the chat to set up your commands:
+
+```
+start - Initialize the bot and authenticate yourself
+menu - Display the main control panel and available features
+cancel - Abort the current operation or transaction
+```
+
+#### Visual Studio Code + PlatformIO
+
+1. Download and install [Visual Studio Code](https://code.visualstudio.com/download).
+2. Install the [PlatformIO IDE Extension](https://docs.platformio.org/en/latest/what-is-platformio.html) from the VSCode extensions marketplace.
+
+<p align="center">
+  <img src="RepoImages/SoftwareSetup/platformio-ide-vscode-pkg-installer.png" width=450>
+</p> 
+
+3. Click the PlatformIO icon on the left sidebar. You will see the screen shown in the image below. Click the **Pick a folder** button. Navigate to the location where you cloned the `EmbeddedHomeAccessControlSystem` repository and select the `TelegramBot` folder inside it to open the project.
+
+<p align="center">
+  <img src="RepoImages/SoftwareSetup/open-platformio-project.jpeg" width=400>
+</p> 
+
+4. Open the configuration file located at `TelegramBot/include/credential-template.h` starting from the root of the repository.
+
+5. Insert your Wi-Fi credentials and the Telegram Bot token you saved earlier by replacing the placeholder text inside the quotes "":
+
+<p align="center">
+  <img src="RepoImages/SoftwareSetup/insert-credential.png">
+</p> 
+
+6. Copy and rename the file from `credential-template.h` to `credential.h`. This ensures your sensitive credentials are not accidentally uploaded to GitHub if you push your changes, as `credential.h` is already included in the `TelegramBot` project's `.gitignore file`.
+
+7. Connect a microUSB cable to the **UART** port on your **ESP32-S3 board**. Go to the top right corner where the **Build** icon (the checkmark) is located, click the down arrow symbol next to it, and select **Upload** to compile the code and upload the firmware.
+
+> **Note:** The first time you perform this action, it will take some time. PlatformIO works in the background to automatically download all the necessary libraries and the updated Arduino core directly from the official Espressif repository.
+
+## IoT Interface
+
+
+
+
 
 ## User Guide + Youtube Video and PowerPoint
 Commentare quello che si vede nel video
@@ -356,7 +420,7 @@ Contenuti del video:
 
 - Alessandro Biasoli
   1. RFID
-  2. ToF Senosor
+  2. ToF Sensor
   3. Buzzer
   
 

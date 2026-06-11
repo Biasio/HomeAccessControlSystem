@@ -67,15 +67,31 @@ void PORT3_IRQHandler(void)
 void TA1_0_IRQHandler(void) {
     Timer_A_stop(TIMER_A1_BASE);
     Timer_A_clearCaptureCompareInterrupt(TIMER_A1_BASE, TIMER_A_CAPTURECOMPARE_REGISTER_0);
+    Timer_A_clearTimer(TIMER_A2_BASE);
 
-    if (GPIO_getInputPinValue(GPIO_PORT_P5, GPIO_PIN1) == GPIO_INPUT_PIN_LOW) {
+    static uint32_t last_press_A=0;
+    static uint32_t last_press_B=0;
+
+    if ((GPIO_getInputPinValue(GPIO_PORT_P5, GPIO_PIN1) == GPIO_INPUT_PIN_LOW) && (system_millis-last_press_A > 200))
+    {
         buttonA_pressed = 1;
-        Timer_A_clearTimer(TIMER_A2_BASE);
+        last_press_A=system_millis;
     }
-    if (GPIO_getInputPinValue(GPIO_PORT_P3, GPIO_PIN5) == GPIO_INPUT_PIN_LOW) {
+    else
+    {
+        buttonA_pressed = 0;
+    }
+
+    if ((GPIO_getInputPinValue(GPIO_PORT_P3, GPIO_PIN5) == GPIO_INPUT_PIN_LOW) && (system_millis-last_press_B > 200))
+            {
         buttonB_pressed = 1;
-        Timer_A_clearTimer(TIMER_A2_BASE);
+        last_press_B=system_millis;
     }
+    else
+    {
+        buttonB_pressed = 0;
+    }
+
     GPIO_clearInterruptFlag(GPIO_PORT_P5, GPIO_PIN1);
     GPIO_clearInterruptFlag(GPIO_PORT_P3, GPIO_PIN5);
     GPIO_enableInterrupt(GPIO_PORT_P5, GPIO_PIN1);

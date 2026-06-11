@@ -26,7 +26,6 @@ StateMachine_t fsm[] = {
      {STATE_RFID_REGISTER, fn_rfid_register},
 
      {STATE_WRONG_PIN, fn_WRONG_PIN},
-     {STATE_BLOCK_ACCESS, fn_BLOCK_ACCESS},
      {STATE_WAIT_RESET_DOOR, fn_WAIT_RESET_DOOR},
      {STATE_AOD, fn_AOD}
 };
@@ -181,31 +180,21 @@ void fn_WRONG_PIN(void){
 
     wrong_pin(); //show an error message on display
 
-    if(error_pin<MAX_PIN_TRIES){
+    if(error_pin<MAX_PIN_TRIES)
+    {
         uint32_t start_t=system_millis;
         buzzerPWMgen(&WrongPin);
         while((system_millis-start_t)<2000);
         cur_state = STATE_INSERT_PIN;
-    }else if(error_pin==MAX_PIN_TRIES){
+    }
+    else if(error_pin==MAX_PIN_TRIES)
+    {
         error_pin = 0; //pin wrong for max tries, reset counter of errors
         uint32_t start_t=system_millis;
         buzzerPWMgen(&LockOut);
         while((system_millis-start_t)<2000);
-        cur_state = STATE_BLOCK_ACCESS;
+        cur_state = STATE_WAIT_RESET_DOOR;
     }
-}
-
-
-
-void fn_BLOCK_ACCESS(void){
-    Timer_A_stopTimer(TIMER_A2_BASE);
-    standby = 0;
-
-    printf("Access blocked \n");
-    myDb.userAccessBlocked = true;      //in flash is stored that user access is blocked
-    save_database();
-    block_access();
-    cur_state = STATE_WAIT_RESET_DOOR;
 }
 
 
@@ -215,8 +204,25 @@ void fn_WAIT_RESET_DOOR(void){
     Timer_A_stopTimer(TIMER_A2_BASE);
     standby = 0;
 
-    printf("Wait door to be reset \n");
-    if(wait_RFID()) {
+    printf("Access blocked \n");
+
+    myDb.userAccessBlocked = true;      //in flash is stored that user access is blocked
+    save_database();
+
+    Graphics_setForegroundColor(&g_sContext, ClrBlack);
+    GrContextFontSet(&g_sContext, &g_sFontCmss16);
+    Graphics_clearDisplay(&g_sContext);
+        GrContextFontSet(&g_sContext, &g_sFontCmss16);
+        Graphics_setForegroundColor(&g_sContext, ClrRed);
+                Graphics_drawStringCentered(&g_sContext, (int8_t *) "ACCESS BLOCKED",
+                                            AUTO_STRING_LENGTH, 64, 40, OPAQUE_TEXT);
+        Graphics_setForegroundColor(&g_sContext, ClrBlack);
+        Graphics_drawStringCentered(&g_sContext, (int8_t *) "USE RFID TAG",
+                                    AUTO_STRING_LENGTH, 64, 60, OPAQUE_TEXT);
+        Graphics_drawStringCentered(&g_sContext, (int8_t *) "TO UNLOCK",
+                                            AUTO_STRING_LENGTH, 64, 80, OPAQUE_TEXT);
+
+    if(block_RFID()) {
         myDb.userAccessBlocked = false;             //to store in flash that user access is no longer blocked
         save_database();
         cur_state=STATE_INSERT_PIN;
@@ -232,89 +238,83 @@ void fn_AOD(void){
     standby = 0;
 
     //variable to let clock redraw in case the minute hasn't passed and coming from a different state like door locked
-    static uint_fast8_t redraw =0;
+    static uint_fast8_t redraw =1;
 
     static uint32_t last_sync_req = 0;
 
     // Check if the user access is locked, if yes go to rfid validation
     if(myDb.userAccessBlocked){
+        ToF_disable(); // Disable ToF interrupt and change state
+        redraw = 1;
+
         cur_state = STATE_WAIT_RESET_DOOR;
+
         return;
     }
 
     // Check for any user interaction (buttons, joystick, or ToF sensor)
     if (check_for_inputs()) {
-
         ToF_disable(); // Disable ToF interrupt and change state
-
-        cur_state = STATE_INSERT_PIN;
         redraw = 1;
 
+        cur_state = STATE_INSERT_PIN;
+
+        return;
     }
-    else // no input was received
+
+    // no input was received
+    // if the ToF isn't scanning, enable it
+    if(!ToF_ready) {
+        ToF_enable();
+    }
+
+    // 1. Update clock display (if time synced)
+    if (timeSynced) {
+        // Fetch the current real time directly from the hardware RTC module since it's has been synced once
+        RTC_C_Calendar now = RTC_C_getCalendarTime();
+
+        static uint_fast8_t minutes=0xFF; //set to 255 so it's not reachable by RTC_C_getCalendarTime()
+
+        if(now.minutes != minutes || redraw){ //sync only if a different minute is available
+            // Refresh the clock
+            Graphics_setForegroundColor(&g_sContext, ClrBlack);
+            minutes = now.minutes;
+            display_clock(now.hours, now.minutes);
+
+            redraw = 0;
+        }
+    }
+    else
     {
-        // if the ToF isn't scanning, enable it
-        if(!ToF_ready) {
-            ToF_enable();
+        if(redraw) {display_string("-- : --"); redraw = 0;}
+
+        // Sync request
+        if((system_millis - last_sync_req) > 15000){
+            last_sync_req = system_millis;
+            requestRealTime();   // send "REQ_TIME:0" to ESP32
         }
-
-        // 1. Update clock display (if time synced)
-        if (timeSynced) {
-            // Fetch the current real time directly from the hardware RTC module since it's has been synced once
-            RTC_C_Calendar now = RTC_C_getCalendarTime();
-
-            static uint_fast8_t minutes=0xFF; //set to 255 so it's not reachable by RTC_C_getCalendarTime()
-
-            if(now.minutes != minutes || redraw){ //sync only if a different minute is available
-                // Refresh the clock
-                Graphics_setForegroundColor(&g_sContext, ClrBlack);
-                minutes = now.minutes;
-                display_clock(now.hours, now.minutes);
-
-                redraw = 0;
-            }
-        }
-        else
-        {
-            display_string("-- : --");
-
-            // Sync request
-            if((system_millis - last_sync_req) > 15000){
-
-                last_sync_req = system_millis;
-                requestRealTime();   // send "REQ_TIME:0" to ESP32
-            }
-        }
-
-        printf("entering LPM0\n");
-        ReconfigInterruptsForSleep(true);
-        Timer_A_getCounterValue(TIMER_A2_BASE);
-
-        PCM_gotoLPM0(); // is a blocking call: the CPU halts execution at this instruction and only resumes when an interrupt fires.
-
-        printf("exiting LPM0\n");
-        uint32_t ispr0 = NVIC->ISPR[0];   // IRQ 0-31
-
-        // Check individual bits:
-        printf("NVIC: %" PRIu32 "\n", ispr0);
-
-        // If the wake was due to the 30s timer (standby=1), we know it's exactly 30000 ms.
-        // For other wakes, use elapsed_ms to adjust system_millis.
-        if (standby) // Woke by TA2 interrupt: exactly 30 seconds
-        {
-            system_millis += 30000;
-        }
-        else // Woke by button or ToF: add to the sys millis the actual elapsed time
-        {
-            // Convert to milliseconds: each tick = (1000 / (ACLK/divider)) ms
-            // ACLK is approximately 9400 Hz, divider = 64 -> 146.875 Hz -> 6.8085 ms/tick
-            uint32_t elapsed_ms = (uint32_t) Timer_A_getCounterValue(TIMER_A2_BASE) * 6809 / 1000;
-            system_millis += elapsed_ms;
-        }
-
-        ReconfigInterruptsForSleep(false);
-        standby=0; //triggered by 30s timer because it shares IRQ with the idle timer
     }
+
+    ReconfigInterruptsForSleep(true);
+
+    PCM_gotoLPM0(); // is a blocking call: the CPU halts execution at this instruction and only resumes when an interrupt fires.
+
+    // If the wake was due to the 30s timer (standby=1), we know it's exactly 30000 ms.
+    // For other wakes, use elapsed_ms to adjust system_millis.
+    if (standby) // Woke by TA2 interrupt: exactly 30 seconds
+    {
+        system_millis += 30000;
+    }
+    else // Woke by button or ToF: add to the sys millis the actual elapsed time
+    {
+        // Convert to milliseconds: each tick = (1000 / (ACLK/divider)) ms
+        // ACLK is approximately 9400 Hz, divider = 64 -> 146.875 Hz -> 6.8085 ms/tick
+        uint32_t elapsed_ms = (uint32_t) Timer_A_getCounterValue(TIMER_A2_BASE) * 68 / 10;
+        system_millis += elapsed_ms;
+    }
+
+    ReconfigInterruptsForSleep(false);
+    standby=0; //triggered by 30s timer because it shares IRQ with the idle timer
 
     return;
 
@@ -413,7 +413,7 @@ void FSM_Run(void){
         }
 
         if (cur_state != prev_state) { //if state has changed
-            reset_flags(); //clear input actions
+            if(prev_state != STATE_AOD) reset_flags(); //clear input actions if not coming from AOD
             Timer_A_clearTimer(TIMER_A2_BASE); //clear timer
 
             //update the prev_state

@@ -81,8 +81,8 @@ void _debounceTimerInit()
     const Timer_A_UpModeConfig debounceTimerConfig =
     {
         TIMER_A_CLOCKSOURCE_ACLK,       // VLO ~9.4kHz
-        TIMER_A_CLOCKSOURCE_DIVIDER_64, // ~146 Hz = ~6ms
-        4,                                   // CCR0 Value (4 counts = ~24ms) CCR Value = f_{CLK} x desired_time
+        TIMER_A_CLOCKSOURCE_DIVIDER_2,
+        10,
         TIMER_A_TAIE_INTERRUPT_DISABLE,         // Disable Overflow ISR
         TIMER_A_CCIE_CCR0_INTERRUPT_ENABLE      // Enable interrupt for CCR0
     };
@@ -93,8 +93,6 @@ void _debounceTimerInit()
     Interrupt_enableInterrupt(INT_TA1_0);
 
 }
-
-
 
 
 

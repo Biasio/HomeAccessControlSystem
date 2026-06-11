@@ -275,7 +275,7 @@ bool wait_RFID(void){
             }
             else
             {
-                // Invalid tag, show feedback but continue scanning
+                // Invalid tag
                 RFID_Disable();
 
                 uint32_t t_start = system_millis;
@@ -308,6 +308,77 @@ bool wait_RFID(void){
         return false;
 }
 
+
+
+
+bool block_RFID(void){
+    if(!RFID_Enable()){
+        goto ERROR;
+    }
+
+    uint8_t read_uid[10] = {0};
+    uint8_t uid_len=0;
+    bool read_status = 0;
+    bool tag_valid =0;
+
+    //polling loop
+    while (1) {
+        // Try to read a tag
+        if (RFID_ReadTag(read_uid, &uid_len))
+        {
+            // If tag found, check if it matches the saved UID length first
+            tag_valid = (uid_len == RFID_UID_LENGTH);
+            if (tag_valid)
+            {
+                for (int i = 0; i < RFID_UID_LENGTH; i++)
+                {
+                    if (read_uid[i] != RFID_saved[i])
+                    {
+                        tag_valid = 0;
+                        break;
+                    }
+                }
+            }
+
+            if (tag_valid)
+            {
+                // Valid tag, success
+                RFID_Disable();
+
+                uint32_t t_start = system_millis;
+                Graphics_setForegroundColor(&g_sContext, ClrGreen);
+                display_string("VALID RFID");
+                buzzerPWMgen(&CorrectRFID);
+                while(system_millis - t_start < 1500);
+
+                return true;
+            }
+            else
+            {
+                // Invalid tag, show feedback but continue scanning
+                RFID_Disable();
+
+                uint32_t t_start = system_millis;
+                Graphics_setForegroundColor(&g_sContext, ClrRed);
+                display_string("WRONG RFID");
+                buzzerPWMgen(&WrongPin);
+                while(system_millis - t_start < 1500);
+                return false;
+            }
+        }
+        else {
+            // No tag – short delay to avoid busy‑looping and reduce power
+            delay_ms(50);
+        }
+    }
+
+    /* Reset logic on error before exiting */
+    ERROR:
+        RFID_Disable();
+        display_string("ERROR");
+        delay_ms(2000);
+        return false;
+}
 
 
 
@@ -375,11 +446,13 @@ bool check_for_inputs(){
     {
         buttonB_pressed=0;
         buttonA_pressed=0;
+        ToF_flag=0;
         return true; //signal that an input was detected
     }
 
     if (ToF_flag)
     {
+        ToF_flag=0;
         uint16_t range=0;
         uint8_t error=0;
         bool valid = vl53l0x_read_range_interrupt(&range, &error);
@@ -388,19 +461,18 @@ bool check_for_inputs(){
         valid &= ((range <= VL53L0X_LOW_THRESH) && (range > 0));
 
         if(!valid){ // if it wasn't valid or in threshold, re-enable interrupt (disabled in the ISR)
-            PORT(VL53L0X_INT_PORT)->IFG &= ~ONE_HOT_BIT(VL53L0X_INT_PIN);
-            PORT(VL53L0X_INT_PORT)->IE  |= ONE_HOT_BIT(VL53L0X_INT_PIN);
+            PORT(VL53L0X_INT_PORT)->IE |= ONE_HOT_BIT(VL53L0X_INT_PIN);
         }
         else
         {
             printf("check_for_inputs range: %" PRIu16 ", error: %" PRIu8 "\n", range, error);
         }
 
-        ToF_flag=0;
+
         return valid;
     }
 
-    return false; // no interrupts were detected or ToF wasn't valid
+    return false; // no inputs were detected or ToF wasn't valid
 }
 
 
@@ -409,8 +481,8 @@ void ReconfigInterruptsForSleep(bool enable){
     {
         SysTick_disableInterrupt();
         Interrupt_disableInterrupt(INT_TA3_N);  //(joystick)
-        PORT(VL53L0X_INT_PORT)->IE  |= ONE_HOT_BIT(VL53L0X_INT_PIN);
         AODClockTimerInit();                    //reconfigure the idle timer as a 30s timer
+        PORT(VL53L0X_INT_PORT)->IE  |= ONE_HOT_BIT(VL53L0X_INT_PIN);
 
     }
     else

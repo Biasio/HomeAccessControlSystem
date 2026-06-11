@@ -30,6 +30,8 @@ uint8_t insert_pin(void);
 void open_door(void);
 void close_door(void);
 bool wait_RFID(void);
+bool block_RFID(void);
+
 int admin_menu(void);
 
 void menu_unlock_door(void);

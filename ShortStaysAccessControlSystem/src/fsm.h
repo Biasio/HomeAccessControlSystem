@@ -29,7 +29,6 @@ typedef enum{
     STATE_RFID_REGISTER,
 
     STATE_WRONG_PIN,
-    STATE_BLOCK_ACCESS,
     STATE_WAIT_RESET_DOOR, //after this return to STATE_DOOR_LOCKED o STATE_INSERT_PIN
     STATE_AOD,
     NUM_STATES
@@ -52,7 +51,6 @@ void fn_OPEN_DOOR(void);
 void fn_WAIT_RFID(void);
 void fn_ADMIN_MENU(void);
 void fn_WRONG_PIN(void);
-void fn_BLOCK_ACCESS(void);
 void fn_WAIT_RESET_DOOR(void);
 void fn_AOD(void);
 

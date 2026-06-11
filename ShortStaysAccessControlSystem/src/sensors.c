@@ -36,10 +36,12 @@ void ToF_IRQHandler(void){
 
 
 void ToF_disable(){
-    xshut_toggle(false); //sensor to standby
-
     PORT(VL53L0X_INT_PORT)->IE  &= ~ONE_HOT_BIT(VL53L0X_INT_PIN);
     PORT(VL53L0X_INT_PORT)->IFG  &= ~ONE_HOT_BIT(VL53L0X_INT_PIN);
+
+    vl53l0x_stop_continuous();
+
+    xshut_toggle(false);
 
     ToF_flag=0;
     ToF_ready=0;

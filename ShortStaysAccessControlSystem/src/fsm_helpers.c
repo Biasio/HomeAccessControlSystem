@@ -362,13 +362,11 @@ bool check_for_inputs(){
     {
         buttonB_pressed=0;
         buttonA_pressed=0;
-        ToF_flag = 0;
         return true; //signal that an input was detected
     }
 
     if (ToF_flag)
     {
-        ToF_flag = 0;
         uint16_t range=0;
         uint8_t error=0;
         bool valid = vl53l0x_read_range_interrupt(&range, &error);
@@ -380,11 +378,12 @@ bool check_for_inputs(){
             PORT(VL53L0X_INT_PORT)->IFG &= ~ONE_HOT_BIT(VL53L0X_INT_PIN);
             PORT(VL53L0X_INT_PORT)->IE  |= ONE_HOT_BIT(VL53L0X_INT_PIN);
         }
-
-        if(valid)
+        else
         {
             printf("check_for_inputs range: %" PRIu16 ", error: %" PRIu8 "\n", range, error);
         }
+
+        ToF_flag=0;
         return valid;
     }
 
@@ -395,9 +394,11 @@ bool check_for_inputs(){
 void ReconfigInterruptsForSleep(bool enable){
     if(enable)
     {
-        Interrupt_disableInterrupt(INT_TA3_N);  //(joystick)
         SysTick_disableInterrupt();
+        Interrupt_disableInterrupt(INT_TA3_N);  //(joystick)
+        PORT(VL53L0X_INT_PORT)->IE  |= ONE_HOT_BIT(VL53L0X_INT_PIN);
         AODClockTimerInit();                    //reconfigure the idle timer as a 30s timer
+
     }
     else
     {

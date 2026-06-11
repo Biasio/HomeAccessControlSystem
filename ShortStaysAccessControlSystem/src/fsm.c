@@ -230,7 +230,6 @@ void fn_AOD(void){
 
     static uint32_t last_sync_req = 0;
 
-
     // Check for any user interaction (buttons, joystick, or ToF sensor)
     if (check_for_inputs()) {
 
@@ -282,6 +281,10 @@ void fn_AOD(void){
         PCM_gotoLPM0(); // is a blocking call: the CPU halts execution at this instruction and only resumes when an interrupt fires.
 
         printf("exiting LPM0\n");
+        uint32_t ispr0 = NVIC->ISPR[0];   // IRQ 0-31
+
+        // Check individual bits:
+        printf("NVIC: %" PRIu32 "\n", ispr0);
 
         // If the wake was due to the 30s timer (standby=1), we know it's exactly 30000 ms.
         // For other wakes, use elapsed_ms to adjust system_millis.

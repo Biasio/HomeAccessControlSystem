@@ -36,13 +36,14 @@ void ToF_IRQHandler(void){
 
 
 void ToF_disable(){
+    xshut_toggle(false); //sensor to standby
 
-        PORT(VL53L0X_INT_PORT)->IE  &= ~ONE_HOT_BIT(VL53L0X_INT_PIN);
-        PORT(VL53L0X_INT_PORT)->IFG  &= ~ONE_HOT_BIT(VL53L0X_INT_PIN);
+    PORT(VL53L0X_INT_PORT)->IE  &= ~ONE_HOT_BIT(VL53L0X_INT_PIN);
+    PORT(VL53L0X_INT_PORT)->IFG  &= ~ONE_HOT_BIT(VL53L0X_INT_PIN);
 
-        if (ToF_ready) {ToF_ready=0; vl53l0x_stop_continuous();}
+    ToF_flag=0;
+    ToF_ready=0;
 
-        PORT(XSHUT_PORT)->OUT &= ~ONE_HOT_BIT(XSHUT_PIN); //sensor to standby
     return;
 }
 
@@ -52,6 +53,7 @@ void ToF_disable(){
 void ToF_enable(){
     PORT(VL53L0X_INT_PORT)->IE  &= ~ONE_HOT_BIT(VL53L0X_INT_PIN);
     PORT(VL53L0X_INT_PORT)->IFG  &= ~ONE_HOT_BIT(VL53L0X_INT_PIN);
+    ToF_flag=0;
 
     ToF_ready = vl53l0x_init();
     ToF_ready &= vl53l0x_start_continuous();
@@ -62,11 +64,11 @@ void ToF_enable(){
         static bool retries=RECOVER_TRIES;
 
         if((retries--)>0) ToF_enable();
-        else {retries=RECOVER_TRIES; return;}
+        else {retries=RECOVER_TRIES; ToF_ready=0; return;}
     }
     else
     {
-        if(!clear_interrupt()) printf("clear_interrutp error\n"); //clear sensor interrupts
+        if(!clear_interrupt()) printf("clear_interrupt error\n"); //clear sensor interrupts
 
         PORT(VL53L0X_INT_PORT)->IFG  &= ~ONE_HOT_BIT(VL53L0X_INT_PIN);
         PORT(VL53L0X_INT_PORT)->IE  |= ONE_HOT_BIT(VL53L0X_INT_PIN);

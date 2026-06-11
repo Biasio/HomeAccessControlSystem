@@ -41,8 +41,6 @@ void block_access(void);
 bool check_for_inputs();
 void door_lock();
 
-void menu_factory_reset(void);
-
 /* Toggles interrupts state that are not used when in low power mode*/
 void ReconfigInterruptsForSleep(bool enable);
 

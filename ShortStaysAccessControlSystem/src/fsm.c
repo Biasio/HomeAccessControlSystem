@@ -289,7 +289,7 @@ void fn_AOD(void){
         if(redraw) {display_string("-- : --"); redraw = 0;}
 
         // Sync request
-        if((system_millis - last_sync_req) > 15000){
+        if((system_millis - last_sync_req) > 4000){
             last_sync_req = system_millis;
             requestRealTime();   // send "REQ_TIME:0" to ESP32
         }

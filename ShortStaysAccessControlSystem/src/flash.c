@@ -21,7 +21,7 @@ void save_database(){
 
     /* Trying to program the memory. Within this function, the API will
         automatically try to program the maximum number of tries. */
-    if(!MAP_FlashCtl_programMemory((LogDB*)&myDb, (void*) DATABASE_START, sizeof(LogDB))){      //qua al posto di ptr1 ho usato &myDb, e dopo boh ha iniziato a funzionare
+    if(!MAP_FlashCtl_programMemory((LogDB*)&myDb, (void*) DATABASE_START, sizeof(LogDB))){
         printf("Error in writing flash! \n");
     }
 

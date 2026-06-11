@@ -15,7 +15,6 @@ float anglePerSteps;
 void moveMotor(int angle){
 
     int numSteps = (int) angle / anglePerSteps;
-    //int numSteps = (int) angle * 2038 / 360;
     bool reverse = false;
     int tmp = 0;
     int j = 0;

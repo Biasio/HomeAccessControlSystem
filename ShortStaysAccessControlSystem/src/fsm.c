@@ -34,7 +34,12 @@ StateMachine_t fsm[] = {
 
 void fn_BOOT(void){
     _hwInit();
+<<<<<<< HEAD
     cur_state = STATE_DOOR_LOCKED;
+=======
+    cur_state = STATE_SYNC_TIME;
+
+>>>>>>> d1a80b94 (added door position on flash and userAccessBlocked control)
 }
 
 
@@ -190,6 +195,8 @@ void fn_BLOCK_ACCESS(void){
     standby = 0;
 
     printf("Access blocked \n");
+    myDb.userAccessBlocked = true;      //in flash is stored that user access is blocked
+    save_database();
     block_access();
     cur_state = STATE_WAIT_RESET_DOOR;
 }
@@ -202,7 +209,11 @@ void fn_WAIT_RESET_DOOR(void){
     standby = 0;
 
     printf("Wait door to be reset \n");
-    if(wait_RFID()) cur_state=STATE_INSERT_PIN;
+    if(wait_RFID()) {
+        myDb.userAccessBlocked = false;             //to store in flash that user access is no longer blocked
+        save_database();
+        cur_state=STATE_INSERT_PIN;
+    }
 }
 
 
@@ -218,6 +229,33 @@ void fn_AOD(void){
 
     static uint32_t last_sync_req = 0;
 
+<<<<<<< HEAD
+=======
+            // Update the display with the current hours and minutes
+            display_clock(now.hours, now.minutes);
+
+            // Update the tracker
+            lastMinute = now.minutes;
+        }
+    }
+    else {
+        // Check if the placeholder hasn't been drawn yet in the current AOD cycle
+        if (!unsynced_drawn) {
+            // Reset the minute tracker to force the display to update immediately, without waiting for the next minute
+            lastMinute = -1;
+
+            // Draw the unsynced placeholder on the screen
+            display_string("-- : --");
+
+            // Set the flag to true so the FSM skips this drawing block in future loop iterations
+            unsynced_drawn = true;
+        }
+    }
+    // Check if the user access is locked, if yes go to rfid validation
+    if(myDb.userAccessBlocked){
+        cur_state = STATE_WAIT_RESET_DOOR;
+    }
+>>>>>>> d1a80b94 (added door position on flash and userAccessBlocked control)
 
     // Check for any user interaction (buttons, joystick, or ToF sensor)
     if (check_for_inputs()) {
@@ -302,7 +340,6 @@ void fn_AOD(void){
 // --------------------------------------------- //
 
 void fn_menu_lal(void){
-    //int dp_page;                  //this is defined in the top of the file!
     const uint16_t* current_results;
     bool menu_lal_active = 1;
     int tmp;

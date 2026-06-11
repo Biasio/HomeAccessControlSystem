@@ -1,28 +1,16 @@
 #include "database.h"
 
 
-//formato: dd/mm - hh:mm
-//          USER ACCESS
-
-    /// ALLORA adesso sembrerebbe funzionare. anche se stacco e poi riattacco, il sistema in automatico
-     //  sembra ritrovare i valori di head e di count. inoltre sul memory browser tutto sembra funzionare
-     //  come previsto. adesso bisogna vedere se dalla flash viene prelevato sempre anche l'array, per stamparlo sul display.
-
 void database_init(){
-
-   // ptr1 = &myDb;                    //i set ptr to point to myDb
     ptr2 = (volatile LogDB *)DATABASE_START;
 
     myDb = *ptr2;    //when i initialize, myDb (in Ram) copies data from flash
 
-
-    printf(" dalla flash: head =%d   count = %d\n", myDb.head,myDb.count);
-    if(myDb.count<0){myDb.count=0;}
+    if(myDb.count<0){myDb.count=0; myDb.userAccessBlocked = false; myDb.isDoorOpen = false;}            //This happens the first time after programming
     if(myDb.head<0){myDb.head=0;}
 }
 
 void add_log(dbStates s, const char* dH, const int* pin){
-    printf("entrato su addlog\n");
     printf("head =%d   count = %d\n", myDb.head,myDb.count);
 
      myDb.dbArray[myDb.head].logState = s;           //to add state info
@@ -43,7 +31,6 @@ void add_log(dbStates s, const char* dH, const int* pin){
 }
 
 void serial_print_db(){
-    printf("STAMPAAA \n");
     printf("count serial_print = %d \n", myDb.count);
     int i;
     int j;
@@ -70,8 +57,8 @@ void display_db(int page){
     int index;
     int i;
     //-- INDEX --       calculation of the index of the element to show depending on the page
-    if(myDb.count==MAX_NUMBER_LOG_SAVED){        //in this case, head points to the oldest element (the first to show)
-        index = ((page*2) + myDb.head - 2)%MAX_NUMBER_LOG_SAVED;   //DOVREBBE ESSERE GIUSTO  //this way, in page 1, i show the oldest element (and at page 5 the youngest)
+    if(myDb.count==MAX_NUMBER_LOG_SAVED){                             //in this case, head points to the oldest element (the first to show)
+        index = ((page*2) + myDb.head - 2)%MAX_NUMBER_LOG_SAVED;      //this way, in page 1, i show the oldest element (and at page 5 the youngest)
     } else {        //if i don't have erased some elements
         index = (page*2)-2;         //for example in page 3 the first element i will see is the 5th, so dbArray[4]. if i have not erased old elements yet
     }
@@ -86,8 +73,6 @@ void display_db(int page){
                                             23, 5,
                                             OPAQUE_TEXT);
     //--------------------------------------------------
-
-
 
 
     for(i=0; i<2; i++){
@@ -133,7 +118,7 @@ int return_number_count(){
 }
 int calc_num_pages_db(int numElements){
     int numPages = (int) (numElements + 2 - 1)/2;   //two elements each page. this formula allows you to ceil the result (ex if 7 elements -> 4 pages)
-    //printf("numElem = %d,  numPages = %d \n", numElements, numPages);
+
     return numPages;
 }
 

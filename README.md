@@ -41,7 +41,7 @@ The architecture is split between two microcontrollers to safely separate local 
 
 ## Repository Structure
 
-```text
+```
 .
 ├── ShortStaysAccessControlSystem/     # Firmware project (MSP432 Microcontroller)
 │   ├── msp432p401r.cmd                # Memory linker script
@@ -164,13 +164,11 @@ cancel - Abort the current operation or transaction
 
 > **Note:** The first time you perform this action, it will take some time. PlatformIO works in the background to automatically download all the necessary libraries and the updated Arduino core directly from the official Espressif repository.
 
-## IoT Interface
-
-
-
-
-
 ## User Guide + Youtube Video and PowerPoint
+
+link al video e alla presentazione?
+
+SCRIPT:
 Commentare quello che si vede nel video
 Contenuti del video:
 - Intro: spiegazione del problema
@@ -185,6 +183,64 @@ Contenuti del video:
   - User verifica durata rimasta del pin e poi se lo revoca autonomamente
   - User inserisce il pin sbagliato, buzzer
   - Admin rimuove tutti i pin
+
+### System Interface
+
+spiegare funzioni lato MSP qui
+
+### Telegram Bot Interface
+
+- First of all, search for your bot in Telegram using the **@username** you assigned to it during the BotFather setup (refer to the previous **Software setup section**).
+- Now, you can initiate the conversation by pressing the **Start** button at the bottom of the chat or by typing the `/start` command. You will receive a prompt asking you to authenticate as either an **Admin** or a **User**.
+- If you choose to log in as an **Admin**, the bot will ask for an unlock code. Currently, this code is hardcoded as `9999`.
+
+- Once authenticated, the main command dashboard will appear. You can always bring up this dashboard again at any time by sending the `/menu` command (this applies to both Admin and Users).
+
+<p align="center">
+  <img src="RepoImages/TelegramBot/1-admin-auth.gif" width=250>
+</p> 
+
+**Admin Features**
+When logged in as an Admin, your dashboard will include the following functions:
+1. `Pin Duration`: Set the validity time limit for the temporary pins granted to Users.
+
+<p align="center">
+  <img src="RepoImages/TelegramBot/2-admin-set-pin-duration.gif" width=250>
+</p> 
+
+2. `Remove User`: Remove a specific User entirely from the system.
+
+<p align="center">
+  <img src="RepoImages/TelegramBot/3-admin-remove-user.gif" width=250>
+</p>
+
+3. `Revoke all PINS`: Revoke all currently active unlock pins for all users in the system.
+
+Beyond the dashboard, the main Admin's feature is receiving direct notifications to either approve or deny user pin requests.
+
+<p align="center">
+  <img src="RepoImages/TelegramBot/admin-pin-request.png" width=400>
+</p>
+
+**User Features**
+When logged in as a User, your dashboard adapts based on your current access status:
+1. `Request Temporary Pin`: After the authentication, this is the only available action. Use it to send an access pin request to the Admin.
+
+<p align="center">
+  <img src="RepoImages/TelegramBot/4-user-request-pin.gif" width=250>
+</p>
+
+2. `Temporary Pin Duration`: Once the Admin grants you a pin, use this button to check how much validity time is left before it expires.
+
+<p align="center">
+  <img src="RepoImages/TelegramBot/5-user-show-time-left.gif" width=250>
+</p>
+
+3. `Revoke Temporary Pin`: If you no longer need access, use this to manually revoke your own active pin early.
+
+<p align="center">
+  <img src="RepoImages/TelegramBot/6-user-revoke-his-pin.gif" width=250>
+</p>
 
 ## Authors
 
@@ -205,8 +261,7 @@ Contenuti del video:
   2. ToF Sensor
   3. Buzzer
   
-
--------------------------
+---
 
 # EmbeddedProject
 Access control for door opening in short stays

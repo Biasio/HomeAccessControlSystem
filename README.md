@@ -142,16 +142,53 @@ bool readRFIDTag() {
 ### 2. Stepper Motor
 Actuates the physical locking and unlocking mechanism of the door via precise rotational control.
 
-* **Communication Protocol:** `dedicated driver interface`
+* **Communication Protocol:** `ULN2003 driver`
 * **Hardware Connections:**
-  * `IN1`: Pin `[X.X]`
-  * `IN2`: Pin `[X.X]`
-  * `IN3`: Pin `[X.X]`
-  * `IN4`: Pin `[X.X]`
+  * `IN1`: Pin `[2.5]`
+  * `IN2`: Pin `[6.6]`
+  * `IN3`: Pin `[6.7]`
+  * `IN4`: Pin `[2.3]`
+
+#### Core Features
+* **Angle-based Control:** Converts a given angle into the number of steps required by the 28BYJ-48 Stepper Motor. 
+* **Safe locking/unlocking Mechanism:** Saving in Flash memory a dedicated flag, ensures protection against two straight opening (or closing) cycles which can damage door mechanism. Pretty useful in case of power failure. 
+* **Full-Step Srive:** Supplying power to two coils simultaneously, the Motor gives the maximum available torque and holding force. This ensures reliability when opening/closing the door. 
+* **External Power Supply:** To avoid over-heating and self-reset procedure on the MSP-board due to over-current demanding, the Motor Driver is feed with an external 5V Power Source.
 
 #### Core Implementation
 ```c
-// Insert core implementation here
+void moveMotor(int angle){      //This function converts the given angle into the muber of steps and manages motor movement
+    int numSteps = (int) angle / anglePerSteps;    
+    bool reverse = false;
+    int tmp = 0;
+    int j = 0;
+
+    if(numSteps<0){       //to check if the motor will run clockwise or counterClockwise
+        reverse = true;
+      } else { reverse = false; }
+
+
+//   --- If the motor runs counterclockwise, the for-cicle starts "from the end" ---
+    int i = 0 + reverse*numSteps;
+
+    for(i; i < (numSteps - reverse*numSteps); i++){
+        tmp = i%4;
+        if(tmp<0) tmp = -tmp;    
+
+        for(j=0; j<4; j++){
+
+          if(pattern[tmp][j]){          //if the pin needs to go HIGH
+            GPIO_setOutputHighOnPin(portArray[j], pinArray[j]);
+          } else {                      //if the pin needs to go LOW
+            GPIO_setOutputLowOnPin(portArray[j], pinArray[j]);
+          }
+
+        }
+
+        delay_ms(MOTOR_DELAY);
+      }
+
+}
 ```
 
 ### 3. Display - Crystalfontz 128x128 TFT LCD (BOOSTXL-EDUMKII Onboard)

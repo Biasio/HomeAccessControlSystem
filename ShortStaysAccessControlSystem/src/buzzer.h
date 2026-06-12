@@ -19,13 +19,11 @@ typedef struct {
 } audio_data;
 
 
-extern const audio_data StarWars;
 extern const audio_data CorrectPin;
 extern const audio_data WrongPin;
 extern const audio_data CorrectRFID;
 extern const audio_data LockOut;
 
-//In percentage (0 - 100)
 #define VOLUME 1000
 
 void buzzerPWMgen(const audio_data* song);

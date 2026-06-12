@@ -120,26 +120,90 @@ Handles secure tag scanning and authentication, granting administrator-level acc
 
 * **Communication Protocol:** `SPI`
 * **Hardware Connections:**
-  * `SDA / CS`: Pin `[X.X]`
-  * `SCK`: Pin `[X.X]`
-  * `MOSI`: Pin `[X.X]`
-  * `MISO`: Pin `[X.X]`
-  * `RST`: Pin `[X.X]`
+  * `SDA / CS`: Pin `[5.2]`
+  * `SCK`: Pin `[3.5]`
+  * `MOSI`: Pin `[3.6]`
+  * `MISO`: Pin `[3.7]`
+  * `RST`: Pin `[3.0]`
 
 #### Core Implementation
-```c
-// Initialize RFID module and configure SPI
-void initRFID() {
-    // Insert core RFID setup logic here
-}
 
-// Read tag UID
-bool readRFIDTag() {
-    // Insert logic to read and validate the tag
-}
+##### Initialisation (`RFID_Init`)
+```
+Configure SPI pins (SCK, MOSI, MISO, CS, RST) as peripherals
+Set CS high (idle)
+Pull RST low for 1 ms, then high (hard reset)
+Set SPI master: 4 MHz, mode 0, MSB first
+Keep SPI module disabled (RFID_ready = false)
 ```
 
-### 2. Stepper Motor
+##### Enable (`RFID_Enable`)
+```
+if not RFID_ready:
+    RFID_Init()
+Enable SPI module
+Set RST high, delay 50 ms for boot up
+
+Soft reset MFRC522
+
+Verify version (0x37) == 0x91 or 0x92, if invalid: return false
+
+Configure the onboard timer
+Set RxGain
+Enable the antenna: set bit0 and bit1 of TxControlReg (0x14)
+
+RFID_ready = true 
+return true
+```
+
+##### Disable (`RFID_Disable`)
+```
+Set CS high
+Disable SPI module
+Set RST high (inactive)
+Restore pins as inputs with pull‑ups (shared with the A_button)
+Re‑initialise display and buttons
+RFID_ready = false
+```
+
+##### Read Tag (`RFID_ReadTag`)
+```
+REQA request, if response length < 2 bytes: return false
+
+Anticollision command - multiple cards could be present at the same time. If response length < 5 bytes: return false
+
+Checksum check, if it fails return false
+
+return the UID
+```
+
+##### Tag Validation & Error Handling
+
+**Used for standard admin access (in `wait_RFID` or `block_RFID`)**
+```
+if not RFID_Enable() show "ERROR" and return false
+
+while true:
+    if buttonA_pressed: 
+        RFID_Disable(); return false   // cancel (for wait_RFID only)
+
+    if RFID_ReadTag(uid, &len) succeeded:
+            if the tag is valid and correct:
+	    	show "VALID RFID" and play the correct sound
+            	return true
+	    else:
+		RFID_Disable()
+	        show "WRONG RFID", play wrong sound
+	        return false
+    else:
+        delay_ms(50)    // no tag, keep polling after a short delay
+```
+
+**Error checks and resilience**:
+The RFID driver includes exhaustive checks for every SPI transaction (timeouts, protocol errors, collisions, CRC mismatches, and FIFO emptiness) and validates the UID checksum before accepting a read.
+If a critical error occurs (e.g., version mismatch after soft reset), it automatically re‑initialises the module; otherwise, it safely disables the SPI interface and restores pin functions, preventing hangs or bus conflicts.
+
+### 3. Stepper Motor
 Actuates the physical locking and unlocking mechanism of the door via precise rotational control.
 
 * **Communication Protocol:** `dedicated driver interface`
@@ -291,32 +355,135 @@ void TA1_0_IRQHandler(void) {
 }
 ```
 
-### 5. Piezo Buzzer (BOOSTXL-EDUMKII Onboard)
-Generates acoustic feedback, providing auditory warning signals for incorrect authentication attempts and general system alerts.
+### 5. Piezo Buzzer
 
-* **Communication Protocol:** PWM (Pulse Width Modulation)`
+Generates acoustic feedback for successful actions (correct PIN, valid RFID), wrong attempts, and system lockout.
+Comes with a configurable VOLUME 
+* **Communication Protocol:** `PWM` (Pulse Width Modulation)
 * **Hardware Connections:**
-  * Buzzer Signal: Pin [X.X]
+  * `Signal`: Pin `P2.7` (Timer_A0 capture/compare output 4)
 
 #### Core Implementation
-```c
-// Insert core implementation here
+
+##### Initialisation (`_buzzerInit`)
 ```
+Stop Timer_A0
+Disable the timer interrupts and clear any pending interrupt flag
+Configure P2.7 as peripheral output (primary module function)
+```
+
+##### PWM Configuration Structure
+```
+Timer_A_PWMConfig {
+    clockSource: SMCLK
+    clockDivider: 16
+    timerPeriod: calculated as a function of the notes
+    compareRegister: 4
+    outputMode: RESET_SET
+    dutyCycle: calculated as a function of the notes
+}
+```
+
+##### Play a Song (`buzzerPWMgen`)
+```
+For each note in the song:
+    if volume != 0 and freq != 0:
+        timerPeriod = ((SMCLK frequency) / (freq × 16)) & (0xFFFF) // clamped to 16‑bit]
+        dutyCycle = (timerPeriod × volume) >> 10
+        Configure and start PWM with this period/duty
+        delay for the note.duration
+        dutyCycle = 0 → stop PWM
+        delay_ms(1)   // short silence between notes
+    else:
+        Stop timer (no sound)
+```
+All sequences are blocking (delay-based) and play to completion before returning control to the caller.
+
+##### Pre‑defined Sounds
+
+| Sound         |
+|---------------|
+| `CorrectPin`  |
+| `WrongPin`    |
+| `LockOut`     |
+| `CorrectRFID` |
 
 ### 6. VL53L0X - Distance Sensor
-Ultrasound sensor for proximity when in front of the board to lit the display.
+Detects user proximity to wake the system from low‑power mode, configured to trigger an interrupt when a target is closer than 300 mm (src/external_src/vl53l0x_msp432/drivers/config.h).
 
-* **Communication Protocol:** I2C`
+* **Communication Protocol:** `I²C`
 * **Hardware Connections:**
-  * SCL: Pin [X.X]
-  * SDA: Pin [X.X]
-  * INTERRUPT: Pin [X.X]
-  * XSHUT: Pin [X.X]
+  * `SCL`: Pin `P6.5`
+  * `SDA`: Pin `P6.4`
+  * `XSHUT`: Pin `P4.1` (hardware reset / power enable)
+  * `INTERRUPT`: Pin `P4.6` (active‑low)
 
-**Core Implementation:**
-```c
-// Insert core implementation here
+#### Core Implementation
+
+##### Initialisation (`ToF_Init`)
 ```
+Configure XSHUT as output, pull low (sensor in reset)
+Initialise I²C master (EUSCI_B1, speed: 400 kHz, clk source: SMCLK)
+Configure interrupt pin as input with pull‑up, edge‑triggered (falling edge)
+```
+
+##### Enable (`ToF_enable`)
+```
+Release XSHUT (high) and wait for sensor boot
+vl53l0x_init():
+    - I²C slave address set to default address (0x29)
+    - load SPAD configuration from NVM
+    - Load default tuning settings
+    - Set signal rate limit (0.25 MCPS) and timing budget (33 ms) for average light conditions
+    - Run VHV and phase calibrations
+
+Call vl53l0x_start_continuous(): arms continuous back‑to‑back ranging
+
+Clear any pending interrupt on sensor
+
+Enable GPIO interrupt on P4.6
+
+ToF_ready = true
+```
+
+##### Disable (`ToF_disable`)
+```
+Disable GPIO interrupt on P4.6
+
+Call vl53l0x_stop_continuous() halts the ranging engine and clears interrupt register
+
+Pull XSHUT low (sensor in hardware standby)
+
+ToF_ready = false
+ToF_flag = 0
+```
+
+##### Interrupt Handling (`ToF_IRQHandler`)
+```
+Disable further interrupts on P4.6
+Clear interrupt flag on GPIO
+
+If ToF_ready: set ToF_flag = 1
+```
+
+##### Proximity Detection Flow
+System in `STATE_AOD` with sensor enabled
+
+User approaches, sensor crosses 300 mm threshold and INT pin asserts
+
+`ToF_flag` set so `check_for_inputs()` evaluates the ToF reading via `vl53l0x_read_range_interrupt()`
+
+If range ≤ low_threshold && the error code is valid:
+	 disable the sensor and wake system to `STATE_INSERT_PIN`
+   else:
+	reactivate the interrupt for ToF and go to sleep
+
+***
+
+**Error checks and resilience**:
+The VL53L0X driver implements automatic init retries (up to 2 attempts) if initialisation or continuous ranging start fails. 
+Every I2C transaction includes NACK detection and timeout checks to prevent hanging or corrupted configuration in registers I/O operations.
+
 
 ### 7. ESP32-S3 UART Communication
 
@@ -342,16 +509,38 @@ An `UART` serial communication interface was configured to enable data exchange 
 
 * **Time Synchronization:** Requests network time (`requestRealTime`) and parses the ESP32 payload to accurately configure the hardware Real-Time Clock (`handleTimeSync`).
 
+## Getting started
+
 ### Project wiring
 <img width="990" height="720" alt="Schematic of the project" src="RepoImages/HardwareSetup/schematic.png" />
 
-## Software Setup (CCSTudio + PlatformIO) (Alessandro)
+### Clone the Repository
 
-Follow these steps to configure your environment and upload the firmwares on the boards.
+```bash
+git clone <repository-url>
+cd <repository-folder>
+git submodule init && git submodule update --remote
+```
 
-### CCStudio
+### CCStudio and Simplelink
+
+- **CCStudio v12.8** – Download from [TI.com](https://www.ti.com/tool/download/CCSTUDIO/12.8.1)
+- **SimpleLink MSP432 SDK v3.40.01.02** – Download from [TI.com](https://www.ti.com/tool/download/SIMPLELINK-MSP432-SDK/3.40.01.02)
+
+> ⚠️ **Important:** The SimpleLink SDK must be placed in the **parent directory** of the repository (i.e., the folder that will contain the cloned repo). For example, if you pln
+ to clone into `~/my_project`, the SDK should be extracted to `~/` (so the SDK folder sits alongside `my_project`, not inside it).
 
 
+### Import the project in CCStudio
+
+1. Launch **CCStudio v12.8**
+2. When prompted for a workspace, select the **repository folder** (the one you just cloned)
+3. Go to **Project → Import Project** (or **File → Import** → **CCS Projects**)
+4. Click **Browse…** and select the repository folder
+5. Under **Discovered Projects**, check the project you want to import
+6. Click **Finish**
+
+The MSP432 program can be now uploaded to the board.
 
 ### Telegram Bot
 
@@ -481,22 +670,27 @@ When logged in as a User, your dashboard adapts based on your current access sta
 ## Authors
 
 - Pietro Baroni:
-  1. Display
-  2. Joystick and push buttons
+  1. MSP432 FSM structure
+  2. Display API and menus
+  3. Joystick ADC
+  4. Push buttons
 
 - Michele Martini:
   1. Telegram bot
-  2. UART Communication
+  2. ESP32 FSM
+  3. UART Communication
 
 - Michele Casagrande:
-  1. Database
-  2. Motor
+  1. Flash I/O operations
+  2. Database API
+  3. Stepper motor integration
 
-- Alessandro Biasoli
-  1. RFID
-  2. ToF Sensor
-  3. Buzzer
-  
+- Alessandro Biasioli
+  1. RFID setup, logic and communication
+  2. ToF Sensor bare-metal driver and logic
+  3. Buzzer 
+  4. MCU sleep and AoD logic
+
 ---
 
 # EmbeddedProject
@@ -524,7 +718,7 @@ Access control for door opening in short stays
 - (Mich C) Database of access and access attempts.
 - 2 pin codes, one for admin log in and one for user log in.
 - Too  many wrong attempts blocks the pin access for some time, too many wrong-blocking timed attempts trigger an admin block.
-  
+
 ### TELEGRAM BOT
 #### USER side
 - Request temporary code access for the time of the stay
@@ -536,33 +730,4 @@ Access control for door opening in short stays
 - Remove an user from the system
 - Revoke all active pins and remove the corresponding user from the system
 - Set the duration of temporary pins
-
-
-## Getting Started
-
-### Prerequisites
-
-- **CCStudio v12.8** – Download from [TI.com](https://www.ti.com/tool/download/CCSTUDIO/12.8.1)
-- **SimpleLink MSP432 SDK v3.40.01.02** – Download from [TI.com](https://www.ti.com/tool/download/SIMPLELINK-MSP432-SDK/3.40.01.02)
-
-> ⚠️ **Important:** The SimpleLink SDK must be placed in the **parent directory** of the repository (i.e., the folder that will contain the cloned repo). For example, if you plan to clone into `~/my_project`, the SDK should be extracted to `~/` (so the SDK folder sits alongside `my_project`, not inside it).
-
-### Clone the Repository
-
-```bash
-git clone <repository-url>
-cd <repository-folder>
-git submodule init && git submodule update --remote
-```
-
-### Import into CCStudio
-
-1. Launch **CCStudio v12.8**
-2. When prompted for a workspace, select the **repository folder** (the one you just cloned)
-3. Go to **Project → Import Project** (or **File → Import** → **CCS Projects**)
-4. Click **Browse…** and select the repository folder
-5. Under **Discovered Projects**, check the project you want to import
-6. Click **Finish**
-
-The project is ready to be deployed.
 

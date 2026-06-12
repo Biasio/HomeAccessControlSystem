@@ -1,5 +1,7 @@
 #include "database.h"
 
+volatile LogDB myDb;
+volatile LogDB *ptr2;
 
 void database_init(){
     ptr2 = (volatile LogDB *)DATABASE_START;

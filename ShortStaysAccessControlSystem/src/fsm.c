@@ -119,7 +119,6 @@ void fn_OPEN_DOOR(void){
 
     display_door_closed();
 
-
     close_door();
 
     cur_state = STATE_DOOR_LOCKED;
@@ -298,6 +297,9 @@ void fn_AOD(void){
             requestRealTime();   // send "REQ_TIME:0" to ESP32
         }
     }
+
+    // if meanwhile an input is received, skip sleep and rerun fn_AOD
+    if (ToF_flag || buttonA_pressed || buttonB_pressed) return;
 
     ReconfigInterruptsForSleep(true);
 

@@ -22,8 +22,9 @@ StateMachine_t fsm[] = {
      {STATE_ADMIN_MENU, fn_ADMIN_MENU},
 
      {STATE_LAST_ACCESS_LOG, fn_menu_lal},
-     {STATE_UNLOCK_DOOR, fn_menu_unlock_door},
-     {STATE_RFID_REGISTER, fn_rfid_register},
+     {STATE_MENU_OPEN, fn_menu_open},
+     {STATE_MENU_CLOSE, fn_menu_close},
+     {STATE_MENU_DATABASE_WIPE, fn_wipe_database},
 
      {STATE_WRONG_PIN, fn_WRONG_PIN},
      {STATE_WAIT_RESET_DOOR, fn_WAIT_RESET_DOOR},
@@ -154,23 +155,26 @@ void fn_ADMIN_MENU(void){
 
     //decide to which state of admin menu go
     switch(selected_function){
-    case -1:
-        cur_state = STATE_AOD;
-        break;
-    case LAST_ACCESS_LOG:
-            db_page=1;                              //when you enter the db, the first page is shown
-            cur_state = STATE_LAST_ACCESS_LOG;
+        case -2:
+            cur_state = STATE_INSERT_PIN;
             break;
-    case UNLOCK_DOOR:
-        cur_state = STATE_UNLOCK_DOOR;
-        break;
-    case RFID_REGISTER:
-        cur_state = STATE_RFID_REGISTER;
-        break;
-    default:
-        cur_state = STATE_INSERT_PIN;
-        break;
-    }
+        case LAST_ACCESS_LOG:
+                db_page=1;                              //when you enter the db, the first page is shown
+                cur_state = STATE_LAST_ACCESS_LOG;
+                break;
+        case OPEN_DOOR:
+            cur_state = STATE_MENU_OPEN;
+            break;
+        case CLOSE_DOOR:
+            cur_state = STATE_MENU_CLOSE;
+            break;
+        case DATABASE_WIPE:
+                cur_state = STATE_MENU_DATABASE_WIPE;
+                break;
+        default: //remain in the same sttae
+            cur_state = STATE_ADMIN_MENU;
+            break;
+        }
 }
 
 
@@ -326,6 +330,9 @@ void fn_AOD(void){
 // --------------------------------------------- //
 
 void fn_menu_lal(void){
+    Timer_A_stopTimer(TIMER_A2_BASE);
+    standby = 0;
+
     const uint16_t* current_results;
     bool menu_lal_active = 1;
     int tmp;
@@ -355,31 +362,36 @@ void fn_menu_lal(void){
 
 
 
-void fn_menu_unlock_door(void){
-    menu_unlock_door();
-
+void fn_menu_open(void){
     Timer_A_stopTimer(TIMER_A2_BASE);
     standby = 0;
 
-    uint32_t t_start = system_millis;
-    display_door_open();
+    display_menu_unlock_door();
 
-    open_door();
-
-    delay_ms(5000);
-
-    display_door_closed();
-
-
-    close_door();
+    //add check databse and open door:
+    //display_door_open();
+    //open_door();
 
     cur_state = STATE_ADMIN_MENU;
 }
 
 
-void fn_rfid_register(void){
+void fn_menu_close(void){
+    Timer_A_stopTimer(TIMER_A2_BASE);
+    standby = 0;
 
+    //add check databse and close door:
+    //display_door_closed();
+    //close_door();
 
+    cur_state = STATE_ADMIN_MENU;
+}
+
+void fn_wipe_database(void){
+    Timer_A_stopTimer(TIMER_A2_BASE);
+    standby = 0;
+
+    //add wipe database
 
     cur_state = STATE_ADMIN_MENU;
 }

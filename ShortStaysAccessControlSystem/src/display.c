@@ -36,12 +36,11 @@ const Point MENU_POINTS[] = {
 // Array that stores the functions used
 char* function_strings[] = {
     "LAST ACCESS LOG",
-    //"SETUP PIN", no longer used
-    //"SETUP WIFI",
-    //"FACTORY RESET",
-    "UNLOCK DOOR",
-    "RFID_REGISTER"
-    //"BLOCK PIN INSERT"
+    "OPEN DOOR",
+    "CLOSE DOOR",
+    "DATABASE WIPE",
+    "",
+    ""
 };
 
 // Initialize display
@@ -154,6 +153,16 @@ void draw_admin_menu(bool screen_number){
                                         23, 5,
                                         OPAQUE_TEXT);
      }
+     else{   //second page
+              first_screen=0;
+              start = 3;
+              end = 6;
+
+              Graphics_drawStringCentered(&g_sContext, (int8_t *) "Page 2/2",
+                                          AUTO_STRING_LENGTH,
+                                          23, 5,
+                                          OPAQUE_TEXT);
+    }
 
     GrContextFontSet(&g_sContext, &g_sFontCmss16);
     Graphics_setForegroundColor(&g_sContext, ClrRed);
@@ -388,7 +397,7 @@ void move_rectangle_on_display( uint16_t x, uint16_t y, bool grid_on) {
               move_rectangle_down(&sel_rectangle_on_admin_menu, RECTANGLE_SHIFT_ON_MENU);
           }
        }
-/*
+
        // --- Horizontal Paging Logic --- //
       if(x>RIGHT) {
           Timer_A_clearTimer(TIMER_A2_BASE);
@@ -403,7 +412,7 @@ void move_rectangle_on_display( uint16_t x, uint16_t y, bool grid_on) {
               first_screen = 1; //change page
               draw_admin_menu(first_screen);
           }
-      }*/
+      }
 
       // --- FINAL STEP: Draw the NEWLY selected item in RED --- //
       // This must run after any movement (scroll or page change)
@@ -411,6 +420,8 @@ void move_rectangle_on_display( uint16_t x, uint16_t y, bool grid_on) {
       highlight_selected_menu_item();
     }
 }
+
+
 int db_page_selected(uint16_t x, uint16_t y, int numPages, int currentPage){ //this function returns the page selected with joystick
     const int RIGHT = 12000;
     const int LEFT = 4000;
@@ -584,7 +595,7 @@ int display_function_selected(void){
                                      sel_rectangle_on_admin_menu.pos_x2,
                                      sel_rectangle_on_admin_menu.pos_y2};
 
-    int selected_function = 0; // Initialize to 0 (or an appropriate 'NO_SELECTION' default)
+    int selected_function = -1; // Initialize to 0 (or an appropriate 'NO_SELECTION' default)
 
     if(first_screen){ // --- FIRST SCREEN (Functions 0-2) ---
         int i;
@@ -598,27 +609,47 @@ int display_function_selected(void){
                 {
 
                     switch(i){
-                    case 0:
-                        printf("Last access log \n");
-                        selected_function = LAST_ACCESS_LOG;
-                        break;
-
-                    case 1:
-                        printf("Unlock_door \n");
-                        selected_function = UNLOCK_DOOR;
-                        break;
-                    case 2:
-                        printf("RFID_REGISTER\n");
-                        selected_function = RFID_REGISTER;
-                        break;
-                    default:
-                        printf("Nothing \n");
+                        case 0:
+                            selected_function = LAST_ACCESS_LOG;
+                            break;
+                        case 1:
+                            selected_function = OPEN_DOOR;
+                            break;
+                        case 2:
+                            selected_function = CLOSE_DOOR;
+                            break;
+                        default:
+                            selected_function = -1;
                     }
                     // Break the loop once the selected function is found
                     return selected_function;
                 }
             }
 
+    }
+    else
+    {
+        int i;
+                    for (i = 0; i <= 2; i++) //only 3 points for screen
+                    {
+                        // Check if current point (MENU_POINTS[i]) is inside the rectangle rect
+                        if (Graphics_isPointWithinRectangle(
+                                &rect,
+                                MENU_POINTS[i].x,
+                                MENU_POINTS[i].y))
+                        {
+
+                            switch(i){
+                            case 0:
+                                selected_function = DATABASE_WIPE;
+                                break;
+                            default:
+                                selected_function = -1;
+                            }
+                            // Break the loop once the selected function is found
+                            return selected_function;
+                        }
+                    }
     }
 
     // Return the initial value (0) if no menu point was selected on either screen

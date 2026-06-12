@@ -386,9 +386,7 @@ bool block_RFID(void){
 int admin_menu(void){
     draw_admin_menu(1); // 1 = FIRST_SCREEN
 
-    bool admin_menu_active = 1;
-
-    while(admin_menu_active){
+    while(true){
         if (standby) return -1;
 
         //get results from joystick
@@ -405,16 +403,13 @@ int admin_menu(void){
         }
         if(buttonB_pressed){    //turn back to grid (ADD A CONFIRMATION MENU ? )
             buttonB_pressed=0;
-            admin_menu_active=0;
+            return -2; //return to INSERT PIN
         }
     }
-    return 6; //return to INSERT PIN
+
 }
 
 
-void menu_unlock_door(void){
-    display_menu_unlock_door();
-}
 
 
 

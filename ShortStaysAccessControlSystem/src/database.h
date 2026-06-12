@@ -38,8 +38,8 @@ typedef struct {                               //this is the structure that will
 }LogDB;
 
 
-static LogDB myDb;                 //the instance of logDB which contains the array
-LogDB *ptr2;                        //pointer to myDb
+extern volatile LogDB myDb;                 //the instance of logDB which contains the array
+extern volatile LogDB *ptr2;                        //pointer to myDb
 
 
 

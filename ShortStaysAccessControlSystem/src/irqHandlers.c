@@ -72,7 +72,7 @@ void TA1_0_IRQHandler(void) {
     static uint32_t last_press_A=0;
     static uint32_t last_press_B=0;
 
-    if ((GPIO_getInputPinValue(GPIO_PORT_P5, GPIO_PIN1) == GPIO_INPUT_PIN_LOW) && (system_millis-last_press_A > 200))
+    if ((GPIO_getInputPinValue(GPIO_PORT_P5, GPIO_PIN1) == GPIO_INPUT_PIN_LOW) && (system_millis-last_press_A > 140))
     {
         buttonA_pressed = 1;
         last_press_A=system_millis;
@@ -82,7 +82,7 @@ void TA1_0_IRQHandler(void) {
         buttonA_pressed = 0;
     }
 
-    if ((GPIO_getInputPinValue(GPIO_PORT_P3, GPIO_PIN5) == GPIO_INPUT_PIN_LOW) && (system_millis-last_press_B > 200))
+    if ((GPIO_getInputPinValue(GPIO_PORT_P3, GPIO_PIN5) == GPIO_INPUT_PIN_LOW) && (system_millis-last_press_B > 140))
             {
         buttonB_pressed = 1;
         last_press_B=system_millis;

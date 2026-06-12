@@ -16,6 +16,7 @@ extern uint16_t *resultsBuffer_ptr;
 
 void SysTick_Handler(void);
 void PORT5_IRQHandler(void);
+void PORT4_IRQHandler(void);
 void PORT3_IRQHandler(void);
 
 void TA1_0_IRQHandler(void);

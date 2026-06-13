@@ -221,8 +221,7 @@ Actuates the physical locking and unlocking mechanism of the door via precise ro
 ### 3. Display - Crystalfontz 128x128 TFT LCD (BOOSTXL-EDUMKII Onboard)
 
 
-<img width="300" height="300" alt="User display" src="RepoImages/HardwareSetup/display1.jpg" />
-<img width="300" height="300" alt="User display" src="RepoImages/HardwareSetup/display2.jpg" />
+<img width="300" height="300" alt="User display" src="RepoImages/HardwareSetup/display1.jpg" /> <img width="300" height="300" alt="User display" src="RepoImages/HardwareSetup/display2.jpg" />
 
 
 The **Crystalfontz CFAF128128B-0145T color 128x128-pixel TFT LCD** renders the local Graphical User Interface (GUI), to display the keypad interface and the admin menu (shown in the pictures above).

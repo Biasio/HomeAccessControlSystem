@@ -206,17 +206,47 @@ If a critical error occurs (e.g., version mismatch after soft reset), it automat
 ### 3. Stepper Motor
 Actuates the physical locking and unlocking mechanism of the door via precise rotational control.
 
-* **Communication Protocol:** `dedicated driver interface`
+* **Communication Protocol:** `ULN2003 driver`
 * **Hardware Connections:**
-  * `IN1`: Pin `[X.X]`
-  * `IN2`: Pin `[X.X]`
-  * `IN3`: Pin `[X.X]`
-  * `IN4`: Pin `[X.X]`
+  * `IN1`: Pin `[2.5]`
+  * `IN2`: Pin `[6.6]`
+  * `IN3`: Pin `[6.7]`
+  * `IN4`: Pin `[2.3]`
+
+#### Core Features
+* **Angle-based Control:** Converts a given angle into the number of steps required by the 28BYJ-48 Stepper Motor. 
+* **Safe locking/unlocking Mechanism:** Saving in Flash memory a dedicated flag, ensures protection against two straight opening (or closing) cycles which can damage door mechanism. Pretty useful in case of power failure. 
+* **Full-Step Srive:** Supplying power to two coils simultaneously, the Motor gives the maximum available torque and holding force. This ensures reliability when opening/closing the door. 
+* **External Power Supply:** To avoid over-heating and self-reset procedure on the MSP-board due to over-current demanding, the Motor Driver is feed with an external 5V Power Source.
 
 #### Core Implementation
 ```c
-// Insert core implementation here
+moveMotor(int angle):      //This function converts the given angle into the muber of steps and manages motor movement
+    calculate number of steps required to turn motor on the given angle    
+    
+    if the number of steps is negative:
+        Motor needs to run counterClockwise
+    else:
+        Motor runs clockwise
+
+    calculate index for the For-cycle, depending in which direction Motor should run
+
+    for each step Motor will make:
+
+        for each pin:
+          
+          if the associated coil should go high:
+            Set pin high
+          else:
+            Set pin low
+        
+
+        Wait before the next step
+      
+
+   before returning from the function, set all pins low  
 ```
+
 
 ### 3. Display - Crystalfontz 128x128 TFT LCD (BOOSTXL-EDUMKII Onboard)
 

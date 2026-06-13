@@ -241,7 +241,7 @@ moveMotor(int angle):      //This function converts the given angle into the mub
             Set pin low
         
 
-        Wait before the next step
+        wait before the next step
       
 
    before returning from the function, set all pins low  

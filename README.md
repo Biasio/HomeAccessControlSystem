@@ -129,7 +129,7 @@ Handles secure tag scanning and authentication, granting administrator-level acc
 #### Core Implementation
 
 ##### Initialisation (`RFID_Init`)
-```
+```c
 Configure SPI pins (SCK, MOSI, MISO, CS, RST) as peripherals
 Set CS high (idle)
 Pull RST low for 1 ms, then high (hard reset)
@@ -138,7 +138,7 @@ Keep SPI module disabled (RFID_ready = false)
 ```
 
 ##### Enable (`RFID_Enable`)
-```
+```c
 if not RFID_ready:
     RFID_Init()
 Enable SPI module
@@ -157,7 +157,7 @@ return true
 ```
 
 ##### Disable (`RFID_Disable`)
-```
+```c
 Set CS high
 Disable SPI module
 Set RST high (inactive)
@@ -167,7 +167,7 @@ RFID_ready = false
 ```
 
 ##### Read Tag (`RFID_ReadTag`)
-```
+```c
 REQA request, if response length < 2 bytes: return false
 
 Anticollision command - multiple cards could be present at the same time. If response length < 5 bytes: return false
@@ -180,7 +180,7 @@ return the UID
 ##### Tag Validation & Error Handling
 
 **Used for standard admin access (in `wait_RFID` or `block_RFID`)**
-```
+```c
 if not RFID_Enable() show "ERROR" and return false
 
 while true:
@@ -221,11 +221,11 @@ Actuates the physical locking and unlocking mechanism of the door via precise ro
 ### 3. Display - Crystalfontz 128x128 TFT LCD (BOOSTXL-EDUMKII Onboard)
 
 
-------------- **ADD AN IMAGE OF THE GRID AND ADMIN MENU** -------------------
+<img width="300" height="300" alt="User display" src="RepoImages/HardwareSetup/display1.jpg" />
+<img width="300" height="300" alt="User display" src="RepoImages/HardwareSetup/display2.jpg" />
 
 
-
-The **Crystalfontz CFAF128128B-0145T color 128x128-pixel TFT LCD** renders the local Graphical User Interface (GUI), to display the keypad interface and the admin menu.
+The **Crystalfontz CFAF128128B-0145T color 128x128-pixel TFT LCD** renders the local Graphical User Interface (GUI), to display the keypad interface and the admin menu (shown in the pictures above).
 
 * **Communication Protocol:** `SPI`
 * **Hardware Connections:**
@@ -237,7 +237,7 @@ The **Crystalfontz CFAF128128B-0145T color 128x128-pixel TFT LCD** renders the l
 
 #### Core UI Features
 * **Numeric PIN Grid:** Renders a 3x4 interactive keypad interface for standard user authentication.
-* **Administrator Menu:** A scrollable, paginated menu allowing authorized admins to view the last access log and manually unlock the door.
+* **Administrator Menu:** A scrollable, paginated menu allowing authorized admins to view the last access log and manually lock and unlock the door and clear the database.
 * **Dynamic Joystick Navigation:** Translates raw X/Y analog inputs from the joystick to move a red selection rectangle (`Rectangle` struct) across the screen, supporting both grid-based navigation and vertical menu scrolling.
 * **Interactive Selection & Feedback:** Evaluates the position of the selection rectangle against a predefined array of coordinates (e.g., `GRID_POINTS`). When a user confirms a selection, the system executes a temporary visual flash (red-to-white fill) over the selected item to provide immediate confirmation feedback.
 * **System Status Prompts:** Delivers instant, color-coded visual alerts for real-time events (e.g., `display_door_open()`, `display_wrong_pin()`, `display_block_access()`).
@@ -246,38 +246,25 @@ The **Crystalfontz CFAF128128B-0145T color 128x128-pixel TFT LCD** renders the l
 
 ```c
 // Initialize the graphics context, display orientation, and default fonts
-void _graphicsInit() {
-    Crystalfontz128x128_Init();
-    Crystalfontz128x128_SetOrientation(LCD_ORIENTATION_UP);
-    Graphics_initContext(&g_sContext, &g_sCrystalfontz128x128, &g_sCrystalfontz128x128_funcs);
-    Graphics_setForegroundColor(&g_sContext, ClrBlack);
-    Graphics_setBackgroundColor(&g_sContext, ClrWhite);
-    GrContextFontSet(&g_sContext, &g_sFontCmss36);
-    // ...
-}
+graphicsInit():
+    initialize LCD hardware
+    set colors, font and orientation UP
 
 // Routes joystick input to update the UI based on the active screen state
-void move_rectangle_on_display(uint16_t x, uint16_t y, bool grid_on) {
-    if(grid_on) {
-        // Calculate bounds and shift the selection box across the numeric keypad
-    } else {
-        // Handle vertical scrolling, pagination, and highlighting in the Admin Menu
-    }
-}
+move_rectangle_on_display(x, y, grid_on):
+    if grid_on:
+        calculate bounds and shift selection box across numeric keypad
+    else:
+        handle vertical scrolling, pagination, and highlighting in Admin Menu
 
 // Detects selected grid point and triggers visual feedback
-int number_selected(void) {
-    for (int i = NUM1; i < NUM_POINTS; i++) {
-        // Check if the current grid point's coordinates (x, y) fall within 
-        // the selection rectangle's boundaries.
-        if (Graphics_isPointWithinRectangle(&rect, GRID_POINTS[i].x, GRID_POINTS[i].y)) {
-            // Trigger visual flash feedback and return selected number
-            // ...
-            return i;
-        }
-    }
-    return -1; // No number selected
-}
+number_selected():
+    for each point in GRID_POINTS:
+        if the point is inside the selection rectangle:
+            trigger visual flash feedback
+            return point_index        
+    return -1    // no number selected
+
 ```
 
 ### 4. Input Peripherals: Buttons & Joystick (BOOSTXL-EDUMKII Onboard)
@@ -297,62 +284,34 @@ Captures analog and digital user inputs for menu navigation, selection, and syst
 
 #### Core Implementation
 ```c
-// ADC Interrupt: Reads joystick X/Y values when the conversion timer finishes
-void ADC14_IRQHandler(void) {
-    uint64_t status = ADC14_getEnabledInterruptStatus();
-    ADC14_clearInterruptFlag(status);
+ADC_interrupt():
+    if conversion_finished:
+        joystick_X = read_ADC(X_channel)
+        joystick_Y = read_ADC(Y_channel)
+        set move_rectangle_flag       // trigger UI update
+        restart joystick_timer
 
-    if (status & ADC_INT1) {
-        resultsBuffer[0] = ADC14_getResult(ADC_MEM0); // X-Axis
-        resultsBuffer[1] = ADC14_getResult(ADC_MEM1); // Y-Axis
-        move_rectangle = 1;                           // Flag to update UI
-        TIMER_RESTART(TIMER_A3_BASE, TIMER_A_CONTINUOUS_MODE); 
-    }
-}
+GPIO_button_interrupt():
+    if button1_triggered:
+        initiate_debounce_sequence()
+        return
 
-// GPIO Interrupt: Detects initial button press
-void PORT5_IRQHandler(void) {
-    uint_fast16_t status = GPIO_getEnabledInterruptStatus(GPIO_PORT_P5);
+initiate_debounce_sequence():
+    disable button interrupts         // ignore mechanical switch bounce
+    start debounce_timer              // wait for signal to stabilize
 
-    if (status & GPIO_PIN1) {
-        ButtonA_IRQHandler();
-        return;
-    }
-    GPIO_clearInterruptFlag(GPIO_PORT_P5, status);
-}
+debounce_timer_interrupt():
+    stop debounce_timer
 
-// Initiates debounce sequence
-void ButtonA_IRQHandler(void) {
-    // Disable interrupt for PORT5 to ignore mechanical bounce
-    GPIO_disableInterrupt(GPIO_PORT_P5, GPIO_PIN1);
-    GPIO_clearInterruptFlag(GPIO_PORT_P5, GPIO_PIN1);
+    if button1 is still pressed:
+        set button1_pressed_flag
+        reset UI_timeout_timer
 
-    // Start timer to wait for signal to stabilize
-    TIMER_RESTART(TIMER_A1_BASE, TIMER_A_UP_MODE);
-}
+    if button2 is still pressed:
+        set button2_pressed_flag
+        reset UI_timeout_timer
 
-// Timer Interrupt: Validates button state after debounce delay
-void TA1_0_IRQHandler(void) {
-    Timer_A_stop(TIMER_A1_BASE);
-    Timer_A_clearCaptureCompareInterrupt(TIMER_A1_BASE, TIMER_A_CAPTURECOMPARE_REGISTER_0);
-
-    // Verify if Button 1 is still pressed
-    if (GPIO_getInputPinValue(GPIO_PORT_P5, GPIO_PIN1) == GPIO_INPUT_PIN_LOW) {
-        buttonA_pressed = 1;
-        Timer_A_clearTimer(TIMER_A2_BASE);
-    }
-    // Verify if Button 2 is still pressed
-    if (GPIO_getInputPinValue(GPIO_PORT_P3, GPIO_PIN5) == GPIO_INPUT_PIN_LOW) {
-        buttonB_pressed = 1;
-        Timer_A_clearTimer(TIMER_A2_BASE);
-    }
-
-    // Clear flags and re-enable button interrupts
-    GPIO_clearInterruptFlag(GPIO_PORT_P5, GPIO_PIN1);
-    GPIO_clearInterruptFlag(GPIO_PORT_P3, GPIO_PIN5);
-    GPIO_enableInterrupt(GPIO_PORT_P5, GPIO_PIN1);
-    GPIO_enableInterrupt(GPIO_PORT_P3, GPIO_PIN5);
-}
+    re-enable button interrupts       // ready for next press
 ```
 
 ### 5. Piezo Buzzer
@@ -366,14 +325,14 @@ Comes with a configurable VOLUME
 #### Core Implementation
 
 ##### Initialisation (`_buzzerInit`)
-```
+```c
 Stop Timer_A0
 Disable the timer interrupts and clear any pending interrupt flag
 Configure P2.7 as peripheral output (primary module function)
 ```
 
 ##### PWM Configuration Structure
-```
+```c
 Timer_A_PWMConfig {
     clockSource: SMCLK
     clockDivider: 16
@@ -385,7 +344,7 @@ Timer_A_PWMConfig {
 ```
 
 ##### Play a Song (`buzzerPWMgen`)
-```
+```c
 For each note in the song:
     if volume != 0 and freq != 0:
         timerPeriod = ((SMCLK frequency) / (freq × 16)) & (0xFFFF) // clamped to 16‑bit]
@@ -421,14 +380,14 @@ Detects user proximity to wake the system from low‑power mode, configured to t
 #### Core Implementation
 
 ##### Initialisation (`ToF_Init`)
-```
+```c
 Configure XSHUT as output, pull low (sensor in reset)
 Initialise I²C master (EUSCI_B1, speed: 400 kHz, clk source: SMCLK)
 Configure interrupt pin as input with pull‑up, edge‑triggered (falling edge)
 ```
 
 ##### Enable (`ToF_enable`)
-```
+```c
 Release XSHUT (high) and wait for sensor boot
 vl53l0x_init():
     - I²C slave address set to default address (0x29)
@@ -447,7 +406,7 @@ ToF_ready = true
 ```
 
 ##### Disable (`ToF_disable`)
-```
+```c
 Disable GPIO interrupt on P4.6
 
 Call vl53l0x_stop_continuous() halts the ranging engine and clears interrupt register
@@ -459,7 +418,7 @@ ToF_flag = 0
 ```
 
 ##### Interrupt Handling (`ToF_IRQHandler`)
-```
+```c
 Disable further interrupts on P4.6
 Clear interrupt flag on GPIO
 

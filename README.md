@@ -19,7 +19,7 @@
         </ul>
         <li><a href="#software-setup">Software Setup</a>
           <ul>
-            <li><a href="#ccstudio">CCStudio</a></li>
+            <li><a href="#ccstudio-and-simplelink">CCStudio and Simplelink</a></li>
             <li><a href="#telegram-bot">Telegram Bot</a></li>
             <li><a href="#visual-studio-code--platformio">Visual Studio Code + PlatformIO</a></li>
           </ul>
@@ -51,7 +51,10 @@ The system also features a database that logs all access events for monitoring p
 │   └── sensors_and_peripherals_supports.stl   # Exported supports model
 ├── RepoImages/                        # Documentation media and images
 │   ├── HardwareSetup/                 # Schematic diagram
-│   ├── SoftwareSetup/                 # IDE setup screenshots
+│   ├── SoftwareSetup/                 # Software Setup screenshots
+│   │   ├── CCStudio/                  # CCStudio IDE
+│   │   ├── FSM/                       # FSM diagram
+│   │   └── VSCode+PlatformIO/         # VSCode and PlatformIO IDE
 │   └── TelegramBot/                   # Bot usage demonstrations (GIFs & Images)
 ├── ShortStaysAccessControlSystem/     # Firmware project (MSP432 Microcontroller)
 │   ├── msp432p401r.cmd                # Memory linker script
@@ -102,7 +105,7 @@ The system also features a database that logs all access events for monitoring p
 │   │   └── main.cpp                   # Main bot loop & Wi-Fi init
 │   └── test/                          # Unit testing folder
 │       └── README.md                  # Test folder info
-└── README.md                        # Project documentation
+└── README.md                          # Project documentation
 ```
 
 ## Hardware Setup 
@@ -125,7 +128,7 @@ Handles secure tag scanning and authentication, granting administrator-level acc
   * `MOSI`: Pin `[3.6]`
   * `MISO`: Pin `[3.7]`
   * `RST`: Pin `[3.0]`
-
+GPIO_setAsPeripheralModuleFunctionInputPin(GPIO_PORT_P3, GPIO_PIN2 | GPIO_PIN3, GPIO_PRIMARY_MODULE_FUNCTION);
 #### Core Implementation
 
 ##### Initialisation (`RFID_Init`)
@@ -251,7 +254,8 @@ moveMotor(int angle):      //This function converts the given angle into the num
 ### 3. Display - Crystalfontz 128x128 TFT LCD (BOOSTXL-EDUMKII Onboard)
 
 
-<img width="300" height="300" alt="User display" src="RepoImages/HardwareSetup/display1.jpg" /> <img width="300" height="300" alt="User display" src="RepoImages/HardwareSetup/display2.jpg" />
+<img width="300" height="300" alt="User display" src="RepoImages/HardwareSetup/display1.jpg" /> 
+<img width="300" height="300" alt="User display" src="RepoImages/HardwareSetup/display2.jpg" />
 
 
 The **Crystalfontz CFAF128128B-0145T color 128x128-pixel TFT LCD** renders the local Graphical User Interface (GUI), to display the keypad interface and the admin menu (shown in the pictures above).
@@ -497,12 +501,16 @@ An `UART` serial communication interface was configured to enable data exchange 
 
 * **Time Synchronization:** Requests network time (`requestRealTime`) and parses the ESP32 payload to accurately configure the hardware Real-Time Clock (`handleTimeSync`).
 
-## Getting started
-
 ### Project wiring
 <img width="990" height="720" alt="Schematic of the project" src="RepoImages/HardwareSetup/schematic.png" />
 
-### Clone the Repository
+## Software Setup
+
+
+
+### CCStudio and Simplelink
+
+1. First, clone the repository with git
 
 ```bash
 git clone <repository-url>
@@ -510,25 +518,21 @@ cd <repository-folder>
 git submodule init && git submodule update --remote
 ```
 
-### CCStudio and Simplelink
-
-- **CCStudio v12.8** – Download from [TI.com](https://www.ti.com/tool/download/CCSTUDIO/12.8.1)
-- **SimpleLink MSP432 SDK v3.40.01.02** – Download from [TI.com](https://www.ti.com/tool/download/SIMPLELINK-MSP432-SDK/3.40.01.02)
+2. Then download [**CCStudio v12.8**](https://www.ti.com/tool/download/CCSTUDIO/12.8.1) and [**SimpleLink MSP432 SDK v3.40.01.02**](https://www.ti.com/tool/download/SIMPLELINK-MSP432-SDK/3.40.01.02)
 
 > ⚠️ **Important:** The SimpleLink SDK must be placed in the **parent directory** of the repository (i.e., the folder that will contain the cloned repo). For example, if you pln
  to clone into `~/my_project`, the SDK should be extracted to `~/` (so the SDK folder sits alongside `my_project`, not inside it).
 
 
-### Import the project in CCStudio
+3. Now youy can import the project in CCStudio:
+    - Launch **CCStudio v12.8**
+    - When prompted for a workspace, select the **repository folder** (the one you just cloned)
+    - Go to **Project → Import Project** (or **File → Import** → **CCS Projects**)
+    - Click **Browse…** and select the repository folder
+    - Under **Discovered Projects**, check the project you want to import
+    - Click **Finish**
 
-1. Launch **CCStudio v12.8**
-2. When prompted for a workspace, select the **repository folder** (the one you just cloned)
-3. Go to **Project → Import Project** (or **File → Import** → **CCS Projects**)
-4. Click **Browse…** and select the repository folder
-5. Under **Discovered Projects**, check the project you want to import
-6. Click **Finish**
-
-The MSP432 program can be now uploaded to the board.
+4. The MSP432 program can be now uploaded to the board.
 
 ### Telegram Bot
 
@@ -571,15 +575,15 @@ cancel - Abort the current operation or transaction
   <img src="RepoImages/SoftwareSetup/VSCode+PlatformIO/insert-credential.png">
 </p> 
 
-6. Copy and rename the file from `credential-template.h` to `credential.h`. This ensures your sensitive credentials are not accidentally uploaded to GitHub if you push your changes, as `credential.h` is already included in the `TelegramBot` project's `.gitignore file`.
+6. Copy and rename the file from `credential-template.h` to `credential.h`. This ensures your sensitive credentials are not accidentally uploaded to GitHub if you push your changes, as `credential.h` is already included in the `TelegramBot` project's `.gitignore` file.
 
 7. Connect a microUSB cable to the **UART** port on your **ESP32-S3 board**. Go to the top right corner where the **Build** icon (the checkmark) is located, click the down arrow symbol next to it, and select **Upload** to compile the code and upload the firmware.
 
 > **Note:** The first time you perform this action, it will take some time. PlatformIO works in the background to automatically download all the necessary libraries and the updated Arduino core directly from the official Espressif repository.
 
-## User Guide + Youtube Video and PowerPoint
+## User Guide
 
-link al video e alla presentazione?
+QUI link al video e alla presentazione
 
 SCRIPT:
 Commentare quello che si vede nel video
@@ -678,44 +682,3 @@ When logged in as a User, your dashboard adapts based on your current access sta
   2. ToF Sensor bare-metal driver and logic
   3. Buzzer 
   4. MCU sleep and AoD logic
-
----
-
-# EmbeddedProject
-Access control for door opening in short stays
-
-## Sensors
-
-- (Biasio) ultrasound sensor for proximity when in front of the board to lit the display or (PIR sensor)
-- RFID sensor for admin magnetic access
-- Servo motor for opening/closing the door
-- (Pietro) Joystick for menu navigation
-- (Pietro) Buttons and joystick for menu navigation
-- Leds for signal
-- (Mich M) Wifi module for IoT connectivity via telegram Bot and clock time
-- Hand clap sequence for opening
-- (Biasio) Buzzer for wrong code input and in general for signaling
-
-## Features
-
-### 
-- (Biasio) Sleep mode with AOD, while proximity sensor doesn't trigger
-- First time initialization of the code.
-- RFID access displays the menu for pincode setup, wifi setup, enable/disable rfid, factory reset.
-- (Mich M) Wifi connection via WPS or via file. [ UART PINS -> MSP(RX = J1.3 , TX = J1.4 ) ; ESP32(RX = 16 , TX = 17 ) ]
-- (Mich C) Database of access and access attempts.
-- 2 pin codes, one for admin log in and one for user log in.
-- Too  many wrong attempts blocks the pin access for some time, too many wrong-blocking timed attempts trigger an admin block.
-
-### TELEGRAM BOT
-#### USER side
-- Request temporary code access for the time of the stay
-- Shows how much time is left before the PIN expires
-
-#### ADMIN side
-- Approve code request from clients
-- Admin receives attempts access notifications and can view access logs (NOT IMPLEMENTED)
-- Remove an user from the system
-- Revoke all active pins and remove the corresponding user from the system
-- Set the duration of temporary pins
-

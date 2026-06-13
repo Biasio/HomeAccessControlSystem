@@ -221,7 +221,7 @@ Actuates the physical locking and unlocking mechanism of the door via precise ro
 
 #### Core Implementation
 ```c
-moveMotor(int angle):      //This function converts the given angle into the muber of steps and manages motor movement
+moveMotor(int angle):      //This function converts the given angle into the number of steps required and manages motor movement
     calculate number of steps required to turn motor on the given angle    
     
     if the number of steps is negative:

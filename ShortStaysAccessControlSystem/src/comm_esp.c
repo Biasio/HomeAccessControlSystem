@@ -15,9 +15,7 @@ volatile uint8_t uartBufferIndex = 0;
 
 // --- INITIALIZATION ---
 void ESP_Comm_Init(void) {
-                                                                //non mi torna. quando programmo la prima volta, gli users sono active o no? come faccio a imporre
-    // initialize users from flash                              // che la prima volta siano tutti non active? non posso farlo nell'init, ne tantomeno mettere un
-                                                                // valore di default nella struct.
+    // Initialize users from flash
     ptrUserArray = (volatile TempUser *) USER_ARRAY_START;
     memcpy(activeTempUsers, ptrUserArray, sizeof(activeTempUsers)); // memcpy() is used to copy data from flash into the RAM instance "activeTempUser"
 

@@ -1,8 +1,6 @@
 #include "fsm.h"
 
-
 int db_page = 1;
-
 
 int32_t displayX = 64;
 int32_t displayY = 64;
@@ -159,7 +157,7 @@ void fn_ADMIN_MENU(void){
             cur_state = STATE_INSERT_PIN;
             break;
         case LAST_ACCESS_LOG:
-                db_page=1;                              //when you enter the db, the first page is shown
+                db_page=1;                              // When you enter the db, the first page is shown
                 cur_state = STATE_LAST_ACCESS_LOG;
                 break;
         case OPEN_DOOR:

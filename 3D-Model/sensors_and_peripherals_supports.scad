@@ -15,8 +15,8 @@ hole_perimeter_to_board_edge=1.2;
 
 notch_width=5;
 notch_length=3;
-notch_thickness=1;
-notch_height=board_thickness*1.0;
+notch_thickness=3;
+notch_height=board_thickness*1.1;
 
 
 
@@ -27,7 +27,7 @@ RFID_length=60-12.8;
 
 
 
-vl53l0x_height=37; //from board top
+vl53l0x_height=60; //from board top
 
 
 
@@ -69,14 +69,14 @@ module hole_cone(offset_x=0,offset_y=0,offset_z=0){
 }
 
 
-module notch(offset_x=0,offset_y=0,offset_z=0, rotation_z=0){
+module notch(offset_x=0,offset_y=0,offset_z=0, rotation_z=0, height=notch_height, angle=0.7){
 
     p0=[0,0];
     p1=[notch_thickness,0];
-    p2=[notch_thickness,-notch_height];
-    p3=[notch_thickness+notch_length,-(notch_height+notch_thickness)*0.75];
-    p4=[notch_thickness+notch_length,-(notch_height+notch_thickness)];
-    p5=[0,-(notch_height+notch_thickness)];
+    p2=[notch_thickness,-height];
+    p3=[notch_thickness+notch_length,-(height+notch_thickness)*angle];
+    p4=[notch_thickness+notch_length,-(height+notch_thickness)];
+    p5=[0,-(height+notch_thickness)];
     
     translate([offset_x,offset_y,offset_z])
     rotate([-90,0,-90+rotation_z])
@@ -140,32 +140,69 @@ module RFID(){
 
 
 
+
+
+module motor_driver(){
+	//calculate size with notches
+	motor_board_to_board_distance=23.5;
+	motor_width=35.2;
+	motor_length=31.5;
+	motor_height=3.4;
+	width=motor_width+2*(notch_thickness+tolerance);
+	length=motor_length+notch_thickness+tolerance;
+
+	arm_width=7; 
+	translate([-(arm_width/2-board_width/2),motor_board_to_board_distance/2-0.001+base_length/2,0])
+	base_cube(arm_width,motor_board_to_board_distance);
+	
+	translate([
+	(-width/2+board_width/2+width/2-arm_width/2),
+	length/2+base_length/2+motor_board_to_board_distance-0.001,
+	0]){
+		base_cube(width,length);
+		
+		translate([0,length/2,fixed_height_to_board/2-0.001])
+		notch(height=motor_height);
+		
+		translate([width/2,0,fixed_height_to_board/2-0.001])
+		notch(rotation_z=-90,height=motor_height);
+		
+		translate([-width/2,0,fixed_height_to_board/2-0.001])
+		notch(rotation_z=90,height=motor_height);
+	}
+}
+
+
+
 module vl53l0x(){
-	
+
 	height=vl53l0x_height+height_to_board+board_thickness;
-	width=2;
-	vl53l0x_r=6.87;
-	
+	width=5;
+	vl53l0x_holes_r=(1.42/2);
+	vl53l0x_outer_r=6.8/2;
+	vl53l0x_width=20-vl53l0x_outer_r*2;
+	vl53l0x_pin_distance=12.4+vl53l0x_holes_r*2-0.1;
+
 	translate([0,width/2+base_length/2-0.001,(height-height_to_board)/2]){
 		cube([5,width,height], center=true);
-		
-		translate([-10,0,height/2+vl53l0x_r])
+
+		translate([-vl53l0x_width/2,0,height/2+vl53l0x_outer_r])
 		rotate([90,0,0]){
-			
+
 			linear_extrude(height=width, center=true)
 			hull(){
-				translate([20,0])
-				circle(r=vl53l0x_r);
-				
-				circle(r=vl53l0x_r);	
+				translate([vl53l0x_width,0])
+				circle(r=vl53l0x_outer_r);
+
+				circle(r=vl53l0x_outer_r);	
 			}
-			
-			translate([0,0,7/2])
-			linear_extrude(height=5, center=true){
-				circle(r=1.9);
-				
-				translate([20,0])
-				circle(r=1.92);
+
+			translate([0,0,5.7/2+width/2])
+			linear_extrude(height=5.7, center =true){
+				translate([vl53l0x_pin_distance,0,0])
+				circle(r=vl53l0x_holes_r);
+
+				circle(r=vl53l0x_holes_r);
 			}
 		}
 	}
@@ -175,15 +212,61 @@ module vl53l0x(){
 
 
 
-module complete(){
+module complete_top(){
 	board_base();
 	RFID();
-	
+	motor_driver();
 	vl53l0x();
 }
 
 
 
 
-complete();
+module breadboard(){
+	//calculate size with notches
+	breadboard_board_to_board_distance=3.2;
+	breadboard_width=85.82;
+	breadboard_length=56.5;
+	breadboard_height=9.9;
+	
+	width=breadboard_width+2*(notch_thickness+tolerance);
+	length=breadboard_length+notch_thickness+tolerance;
+
+	arm_width=15; 
+	translate([0,breadboard_board_to_board_distance/2-0.001+base_length/2,0])
+	base_cube(arm_width,breadboard_board_to_board_distance);
+	
+	translate([
+	0,
+	length/2+base_length/2+breadboard_board_to_board_distance-0.001,
+	0]){
+		base_cube(width,length);
+		
+		translate([0,length/2,fixed_height_to_board/2-0.001])
+		notch(height=breadboard_height,angle=0.9);
+		
+		translate([width/2,0,fixed_height_to_board/2-0.001])
+		notch(rotation_z=-90,height=breadboard_height,angle=0.9);
+		
+		translate([-width/2,0,fixed_height_to_board/2-0.001])
+		notch(rotation_z=90,height=breadboard_height,angle=0.9);
+	}
+}
+
+
+
+module complete_bottom(){
+	
+	translate([-100,-50,0]){
+		rotate([0,0,0])
+		board_base();
+		
+		rotate([0,0,0])
+		breadboard();
+	}
+}
+
+
+//complete_bottom();
+complete_top();
 

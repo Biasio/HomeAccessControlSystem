@@ -524,7 +524,7 @@ git submodule init && git submodule update --remote
  to clone into `~/my_project`, the SDK should be extracted to `~/` (so the SDK folder sits alongside `my_project`, not inside it).
 
 
-3. Now youy can import the project in CCStudio:
+3. Now you can import the project in CCStudio:
     - Launch **CCStudio v12.8**
     - When prompted for a workspace, select the **repository folder** (the one you just cloned)
     - Go to **Project → Import Project** (or **File → Import** → **CCS Projects**)
@@ -561,7 +561,7 @@ cancel - Abort the current operation or transaction
   <img src="RepoImages/SoftwareSetup/VSCode+PlatformIO/platformio-ide-vscode-pkg-installer.png" width=450>
 </p> 
 
-3. Click the PlatformIO icon on the left sidebar. You will see the screen shown in the image below. Click the **Pick a folder** button. Navigate to the location where you cloned the `EmbeddedHomeAccessControlSystem` repository and select the `TelegramBot` folder inside it to open the project.
+3. Click the PlatformIO icon on the left sidebar. You will see the screen shown in the image below. Click the **Pick a folder** button. Navigate to the location where you cloned the `HomeAccessControlSystem` repository and select the `TelegramBot` folder inside it to open the project.
 
 <p align="center">
   <img src="RepoImages/SoftwareSetup/VSCode+PlatformIO/open-platformio-project.jpeg" width=400>

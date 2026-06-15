@@ -219,7 +219,7 @@ Actuates the physical locking and unlocking mechanism of the door via precise ro
 #### Core Features
 * **Angle-based Control:** Converts a given angle into the number of steps required by the 28BYJ-48 Stepper Motor. 
 * **Safe locking/unlocking Mechanism:** Saving in Flash memory a dedicated flag, ensures protection against two straight opening (or closing) cycles which can damage door mechanism. Pretty useful in case of power failure. 
-* **Full-Step Srive:** Supplying power to two coils simultaneously, the Motor gives the maximum available torque and holding force. This ensures reliability when opening/closing the door. 
+* **Full-Step Drive:** Supplying power to two coils simultaneously, the Motor gives the maximum available torque and holding force. This ensures reliability when opening/closing the door. 
 * **External Power Supply:** To avoid over-heating and self-reset procedure on the MSP-board due to over-current demanding, the Motor Driver is feed with an external 5V Power Source.
 
 #### Core Implementation

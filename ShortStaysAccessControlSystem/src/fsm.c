@@ -71,12 +71,12 @@ void fn_INSERT_PIN(void){
             Graphics_setForegroundColor(&g_sContext, ClrGreen);
             Graphics_drawStringCentered(&g_sContext, (int8_t *) "PIN Correct",
                                                 AUTO_STRING_LENGTH,
-                                                64, 64,
+                                                64, 60,
                                                 OPAQUE_TEXT);
             Graphics_setForegroundColor(&g_sContext, ClrBlack);
                         Graphics_drawStringCentered(&g_sContext, (int8_t *) "Welcome user!",
                                                             AUTO_STRING_LENGTH,
-                                                            64, 74,
+                                                            64, 80,
                                                             OPAQUE_TEXT);
             buzzerPWMgen(&CorrectPin);
             while(system_millis - t_start < 1500);
@@ -369,11 +369,9 @@ void fn_menu_open(void){
     Timer_A_stopTimer(TIMER_A2_BASE);
     standby = 0;
 
-    display_menu_unlock_door();
-
     //add check databse and open door:
-    //display_door_open();
-    //open_door();
+    display_door_open();
+    open_door();
 
     cur_state = STATE_ADMIN_MENU;
 }
@@ -384,8 +382,8 @@ void fn_menu_close(void){
     standby = 0;
 
     //add check databse and close door:
-    //display_door_closed();
-    //close_door();
+    display_door_closed();
+    close_door();
 
     cur_state = STATE_ADMIN_MENU;
 }

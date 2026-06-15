@@ -192,8 +192,20 @@ void DoorBotManager::backgroundTasks() {
             } 
         }
         // 2. Check if any user's pin has expired and revoke it if necessary
-        if (activeUsers[i].hasActivePin && activeUsers[i].state != STATE_WAITING_REVOKE) {
-            if (getPinRemainingTime(&activeUsers[i]) == 0) {
+        if (activeUsers[i].hasActivePin) {
+            // FIX: If waiting for confirmation, resend the command ONLY if the 60-second backoff timer has elapsed
+            if (activeUsers[i].state == STATE_WAITING_REVOKE) {
+                if (currentTime >= activeUsers[i].blockedUntil) {
+                    String cmdToMSP = "REVOKE_PIN:" + String(activeUsers[i].chatId);  
+                    if (sendCommandToMSP(cmdToMSP.c_str())) {
+                        activeUsers[i].blockedUntil = currentTime + 60; // Reschedule the next retry in 60 seconds
+                        usersChanged = true;
+                        Serial.printf("Retrying revocation for user %lld...\n", activeUsers[i].chatId);
+                    }
+                }
+            }
+            // Normal expiration check for active pins
+            else if (getPinRemainingTime(&activeUsers[i]) == 0) {
                 revokeUserPin(&activeUsers[i]);
                 usersChanged = true;
                 TBMessage msg;
@@ -217,7 +229,10 @@ void DoorBotManager::handleFirstAccess(TBMessage& msg, UserProfile* profile) {
         if(msg.messageType == MessageType::MessageText) {
             bot.sendMessage(msg, "Welcome to the Door Lock System!");
             bot.sendMessage(msg, "It seems that you are the first user to access this bot.");
-            bot.sendMessage(msg, "Please Insert Admin Pin to configure the bot:");
+            // FIX: Added cancel keyboard to prevent the FSM from getting stuck if the first user doesn't input a PIN
+            InlineKeyboard cancelKeyboard;
+            cancelKeyboard.addButton("Cancel", "cmd_cancel", KeyboardButtonQuery);
+            bot.sendMessage(msg, "Please Insert Admin Pin to configure the bot:", cancelKeyboard);
             profile->state = STATE_WAITING_PW;
             saveUsersToFlash();
         }
@@ -233,16 +248,8 @@ void DoorBotManager::handleFirstAccess(TBMessage& msg, UserProfile* profile) {
         // Ask the user if he is an Admin or a normal User
         case MessageType::MessageText: {
             if (msg.text == "/start") {
-                if (msg.chatId == currentAdminId) {
-                    InlineKeyboard cancelKeyboard;
-                    cancelKeyboard.addButton("Cancel", "cmd_cancel", KeyboardButtonQuery);
-                    bot.sendMessage(msg, "Welcome back Admin!\nPlease insert Admin PIN:", cancelKeyboard);
-                    profile->state = STATE_WAITING_PW;
-                    saveUsersToFlash();
-                } else {
-                    bot.sendMessage(msg, "Welcome to the Door Lock System!");
-                    bot.sendMessage(msg, "Please identify yourself:", firstKeyboard);
-                }
+                bot.sendMessage(msg, "Welcome to the Door Lock System!");
+                bot.sendMessage(msg, "Please identify yourself:", firstKeyboard);
             } else {
                 bot.sendMessage(msg, "Please press the Log In button or use /start to log in.");
             }
@@ -252,22 +259,22 @@ void DoorBotManager::handleFirstAccess(TBMessage& msg, UserProfile* profile) {
         case MessageType::MessageQuery: {
             bot.endQuery(msg, "");
             String cmd = msg.callbackQueryData;
-            // If the user is already an admin, we  ask him the password to access the admin panel
+            // If the user selects the Admin role, we ask for the PIN to verify their identity
             if(cmd == "cmd_admin") {
                 bot.editMessage(msg.chatId, msg.messageID, "You selected: Admin", "");
                 InlineKeyboard cancelKeyboard;
                 cancelKeyboard.addButton("Cancel", "cmd_cancel", KeyboardButtonQuery);
                 bot.sendMessage(msg, "Please insert Admin PIN:", cancelKeyboard);
                 profile->state = STATE_WAITING_PW;
-            } 
-            // If the user is a normal user, we ask him to wait for the admin approval and recive a temporary pin to open the door anc access the user panel
+            }
+            // If the user selects the normal User role, we log them in as User 
             else if(cmd == "cmd_user") {
                 bot.editMessage(msg.chatId, msg.messageID, "You selected: User", "");
                 bot.sendMessage(msg, "Ok, you've logged in as a User.");
                 profile->state = STATE_USER_PANEL;
                 showUserMenu(msg, profile);
             }
-            // If the user wants to cancel the login, we reset his state to the initial state
+            // If the Admin/User wants to cancel the login, we reset his state to the initial state
             else if (cmd == "cmd_cancel") {
                 String text = "You have been logged out. Use the button below or /start to log in again.";
                 InlineKeyboard loginKeyboard;
@@ -276,27 +283,33 @@ void DoorBotManager::handleFirstAccess(TBMessage& msg, UserProfile* profile) {
             }
             // If the user wants to log in again and we ask him to identify himself as Admin or User again
             else if (cmd == "cmd_login") {
-                if (msg.chatId == currentAdminId) {
-                    InlineKeyboard cancelKeyboard;
-                    cancelKeyboard.addButton("Cancel", "cmd_cancel", KeyboardButtonQuery);
-                    bot.editMessage(msg, "Welcome back Admin!\nPlease insert Admin PIN:", cancelKeyboard);
-                    profile->state = STATE_WAITING_PW;
-                } else {
-                    bot.editMessage(msg, "Welcome back to the Door Lock System!\nPlease identify yourself:", firstKeyboard);
-                }
+                // FIX: Removed the check on currentAdminId to allow anyone to choose their role upon re-login
+                bot.editMessage(msg, "Welcome back to the Door Lock System!\nPlease identify yourself:", firstKeyboard);
             }
-            // If the admin recive a request for a new temporary pin while he is not logged in, we save the pending command and ask him to identify himself before sending the request to the MSP
+            // If the admin recive a request for a new temporary pin while he is not logged in...
             else if (cmd.startsWith("cmd_app:") || cmd.startsWith("cmd_rej:")) {
+                // FIX: Allow multiple requests by concatenating them with a '|' delimiter.
                 if (msg.chatId == currentAdminId) {
-                    pendingAdminCmd = cmd; 
-                    bot.editMessage(msg, "Please insert Admin PIN to confirm this action:", "");
+                    // Prevent duplicate commands if the admin double-clicks the same button.
+                    if (pendingAdminCmd.indexOf(cmd) == -1) {
+                        // If there is already a pending command, we concatenate the new command with a '|' delimiter
+                        if (pendingAdminCmd != "") {
+                            pendingAdminCmd += "|";
+                        }
+                        pendingAdminCmd += cmd;
+                    }
+                    bot.editMessage(msg, "Please insert Admin PIN to confirm this action(s):", "");
                     profile->state = STATE_WAITING_PW;
                     saveUsersToFlash();
                 } else {
                     bot.sendMessage(msg, "Sorry, you don't have permission to do this.");
                 }
             }
-            else return; //exit if the command is unkwnown
+            else {
+                // If the command is unknown, we inform the user
+                bot.sendMessage(msg, "Unknown command received.");
+                return; 
+            }
             saveUsersToFlash();
             break;
         }
@@ -316,12 +329,15 @@ void DoorBotManager::handleAdminLogin(TBMessage& msg, UserProfile* profile) {
         isCancel = true;
     } else if (msg.messageType == MessageType::MessageText && msg.text == "/cancel") {
         bot.deleteMessage(msg.chatId, msg.messageID);   // Delete the /cancel command message 
-        bot.deleteMessage(msg.chatId, msg.messageID - 1); // Delete the previous message that asks the admin to insert the PIN 
         bot.sendMessage(msg, "Admin login cancelled. Use /start to access the menu again.");
         isCancel = true;
     }
     if (isCancel) {
         profile->state = STATE_FIRST_ACCESS;
+        // FIX: Clear the pending command on explicit cancel to prevent ghost execution during future logins
+        if (pendingAdminCmd != "") {
+            pendingAdminCmd = "";
+        }
         saveUsersToFlash();
         return;
     }
@@ -343,11 +359,12 @@ void DoorBotManager::handleAdminLogin(TBMessage& msg, UserProfile* profile) {
         }
     }
     bot.deleteMessage(msg.chatId, msg.messageID); // Delete the message containing the PIN for security reasons
-    bot.deleteMessage(msg.chatId, msg.messageID - 1); // Delete the previous message that asks the admin to insert the PIN 
     String command = "VERIFY_PIN:" + msg.text + ":" + String(profile->chatId);  // Compose the command to send to the MSP
     if(sendCommandToMSP(command.c_str())) {
         bot.sendMessage(msg, "Verifying the PIN sent...");
     } else {
+        // FIX: Provide feedback to the Admin if the hardware Serial port transmission fails
+        bot.sendMessage(msg, "Hardware serial error: unable to reach the lock controller. Please try again.");
         Serial.println("I cannot send the PIN to the MSP board");
     }
 }
@@ -378,6 +395,8 @@ void DoorBotManager::revokeUserPin(UserProfile* profile) {
     String cmdToMSP = "REVOKE_PIN:" + String(profile->chatId);  // Compose the command to send to the MSP
     if (sendCommandToMSP(cmdToMSP.c_str())) {
         profile->state = STATE_WAITING_REVOKE;
+        // FIX: use the 'blockedUntil' variable to schedule the next retry attempt in 60 seconds
+        profile->blockedUntil = time(nullptr) + 60;
         saveUsersToFlash();
         Serial.println("Revoke pin command sent to MSP successfully.");
     } else {
@@ -556,24 +575,15 @@ void DoorBotManager::handleRemoveUser(TBMessage& msg, UserProfile* profile) {
                 UserProfile* userToRem = getUser(targetId); // Get the UserProfile of the user to remove, if it exists
                 // If the user exists, we check if he has an active pin. 
                 if (userToRem != nullptr) {
-                    // If he has, we request the revocation of the pin to the MSP and we wait for the confirmation before removing the user from the system. 
-                    if (userToRem->hasActivePin) {
+                    // FIX: To prevent "Ghost PINs", NEVER delete a user silently from the ESP32.
+                    // Even if ESP32 thinks there is no active pin (due to UART drops), we FORCE a revocation 
+                    // to ensure the MSP432 safely cleans its flash memory before the profile is destroyed.
+                    userToRem->hasActivePin = true; 
+                    if (userToRem->state != STATE_WAITING_REVOKE) {
                         revokeUserPin(userToRem);
-                        bot.editMessage(msg, "Revocation request sent to the system. The user will be removed upon confirmation.", "");
                     }
-                    // If he doesn't have an active pin, we can remove him immediately from the system and inform him about that with a message.
-                    else {
-                        if (removeUser(targetId)) {
-                            bot.editMessage(msg, "User removed successfully.", "");
-                            TBMessage userMsg;
-                            userMsg.chatId = targetId;
-                            userMsg.messageType = MessageType::MessageText;
-                            bot.sendMessage(userMsg, "Your profile has been removed by the administrator. Please use /start to log in again if you want to access the door.");
-                        } else {
-                            bot.editMessage(msg, "Error: User could not be removed.", "");
-                        }
-                    }
-                } 
+                    bot.editMessage(msg, "Revocation request sent to the system. The user will be removed upon confirmation.", "");
+                }
                 // Otherwise, if the user is not found in the system, we inform the admin that there was an error and we show the admin menu again
                 else {
                     bot.editMessage(msg, "Error: User not found in the system", "");
@@ -673,13 +683,20 @@ void DoorBotManager::onPinRequest(TBMessage& msg, UserProfile* profile) {
 
 void DoorBotManager::onPinApprove(TBMessage& msg, UserProfile* profile, const String& cmd) {
     String targetId = cmd.substring(8); // Extract the user ID from the callback data
+    int64_t targetUserId = atoll(targetId.c_str()); // Convert the extracted string to an integer representing the user ID
+    // Find the user profile with targetUserId in the activeUsers array
+    UserProfile* targetUser = getUser(targetUserId);
+    String userName = targetId; // Fallback to using the user ID if the user profile is not found
+    if (targetUser != nullptr) {
+        userName = String(targetUser->firstName) + " " + String(targetUser->lastName);
+    }
     String mspCmd = "GEN_PIN:" + targetId;  // Create the command to send to MSP for generating a temporary pin for the user
     if (sendCommandToMSP(mspCmd.c_str())) {
-        bot.editMessage(msg, "Requesting temporary pin...", "");
-        Serial.println("Command sent to MSP to generate temporary pin for user " + targetId);
+        bot.sendMessage(msg, "Requesting temporary pin for user " + userName + "...");
+        Serial.println("Command sent to MSP to generate temporary pin for user " + userName);
     } else {
-        bot.editMessage(msg, "Failed to send command to MSP. Retry later.", "");
-        Serial.println("Failed to send command to MSP for generating temporary pin for user " + targetId);
+        bot.sendMessage(msg, "Failed to send command to MSP. Retry later.");
+        Serial.println("Failed to send command to MSP for generating temporary pin for user " + userName);
     }
 }
 
@@ -688,17 +705,17 @@ void DoorBotManager::onPinReject(TBMessage& msg, UserProfile* profile, const Str
     String targetId = cmd.substring(8);
     int64_t targetUserId = atoll(targetId.c_str());
     if (targetUserId == 0) {
-        bot.editMessage(msg, "Error, this User ID is not valid", "");
+        bot.sendMessage(msg, "Error, this User ID is not valid");
     }
     UserProfile* userToReject = getUser(targetUserId);
     if (userToReject == nullptr) {
-        bot.editMessage(msg, "Sorry, this User is not in the system anymore.", "");
+        bot.sendMessage(msg, "Sorry, this User is not in the system anymore.");
         Serial.println("Error: the user to reject is not in the system anymore.");
         return;
     }
     String text = "Rejected the request for temporary access from user " + String(userToReject->firstName) + " " + String(userToReject->lastName);
     Serial.println(text.c_str());    
-    bot.editMessage(msg, text, "");  // Inform the admin that he has rejected the request
+    bot.sendMessage(msg, text);  // Inform the admin that he has rejected the request
     // Inform the user that the admin has rejected his request and that he has been logged out
     TBMessage msgUser;
     msgUser.chatId = targetUserId;
@@ -714,15 +731,23 @@ void DoorBotManager::rejectPendingUser(const String& userMessage) {
     if (pendingAdminCmd == "") {
         return; // No pending command to reject
     }
-    // Extract the User chatId from the pendingAdminCmd
-    String targetId = pendingAdminCmd.substring(8);
-    int64_t targetUserId = atoll(targetId.c_str());
-    // Inform the user that the admin has rejected his request and that he has been logged out
-    TBMessage userMsg;
-    userMsg.chatId = targetUserId;
-    userMsg.messageType = MessageType::MessageText;
-    bot.sendMessage(userMsg, userMessage);
-    removeUser(targetUserId); 
+    int startIdx = 0;
+    // FIX: Iterate through all commands concatenated with the '|' delimiter to reject everyone in queue
+    while (startIdx < pendingAdminCmd.length()) {
+        int pipeIdx = pendingAdminCmd.indexOf('|', startIdx);
+        if (pipeIdx == -1) pipeIdx = pendingAdminCmd.length();
+        String singleCmd = pendingAdminCmd.substring(startIdx, pipeIdx);
+        // Extract the User chatId from the single pending command
+        String targetId = singleCmd.substring(8);
+        int64_t targetUserId = atoll(targetId.c_str());
+        // Inform the user that the admin has rejected his request and that he has been logged out
+        TBMessage userMsg;
+        userMsg.chatId = targetUserId;
+        userMsg.messageType = MessageType::MessageText;
+        bot.sendMessage(userMsg, userMessage);
+        removeUser(targetUserId); 
+        startIdx = pipeIdx + 1;
+    }
     pendingAdminCmd = "";   // Clear the pending command after rejecting the user
     Serial.println("Pending user request rejected and cleared.");
 }
@@ -827,16 +852,18 @@ MSPResponse DoorBotManager::parseMSPEvent(const String& event) {
 void DoorBotManager::listenToMSP() {
     TBMessage msg;
     msg.messageType = MessageType::MessageText;
+    // FIX: Implemented an asynchronous non-blocking internal buffer to accumulate bytes token-by-token
+    static char command[64];
+    static uint8_t bufferIndex = 0;
     // If there is data available from MSP, read it and parse the event
-    if (mspSerial.available() > 0) { 
-        char command[64];   // Buffer to store the incoming command from  MSP (31 characters + null terminator)
-        size_t bytesRead = mspSerial.readBytesUntil('\n', command, 63); // Read the incoming command until a newline character is found, with a maximum of 31 characters to prevent buffer overflow
-        if (bytesRead > 0) {
-            // Ensure the command is null-terminated
-            if (command[bytesRead - 1] == '\r') {
-                command[bytesRead - 1] = '\0';
-            } else {
-                command[bytesRead] = '\0';
+    while (mspSerial.available() > 0) { // FIX: Use a while loop to read all available bytes from the serial buffer in one go, instead of relying on multiple calls to listenToMSP which might cause delays in processing the incoming data
+        char c = mspSerial.read();
+        // Cond. A: If the token is a newline character, we consider the command complete and we parse it. We also handle the case of carriage return before newline for better compatibility with different serial implementations.
+        if (c == '\n') {
+            // Null-terminate the string safely
+            command[bufferIndex] = '\0';
+            if (bufferIndex > 0 && command[bufferIndex - 1] == '\r') {
+                command[bufferIndex - 1] = '\0';
             }
             Serial.println("Received command from MSP: " + String(command));
             MSPResponse mspResponse = parseMSPEvent(command);    // Parse the incoming command and get the corresponding MSPEventType
@@ -862,11 +889,22 @@ void DoorBotManager::listenToMSP() {
                     Serial.println("MSP command unknown or corrupted.");
                     break;
             }
+            bufferIndex = 0; // Reset the buffer index for the next command
+        }
+        // Cond. B: If the token is not a newline character, we add it to the buffer if there is still space
+        else if (bufferIndex < 63) {
+            command[bufferIndex++] = c;
+        } 
+        // Cond. C: Otherwise we reset the buffer to prevent overflow and potential corruption
+        else {
+            bufferIndex = 0; // Overflow handling: packet too long or corrupted, discarding buffer
         }
     }
 }
 
 void DoorBotManager::processAdminPinOk(TBMessage& msg, UserProfile* profile) {
+    // FIX: Check if it's the absolute first system configuration
+    bool wasFirstConfig = (currentAdminId == 0);
     // If the old admin is still in the system, we revoke his admin privileges 
     if (currentAdminId != 0 && currentAdminId != profile->chatId) {
         UserProfile* oldAdmin = getUser(currentAdminId);
@@ -887,15 +925,36 @@ void DoorBotManager::processAdminPinOk(TBMessage& msg, UserProfile* profile) {
     profile->isAdmin = true;
     currentAdminId = profile->chatId; // Set the current admin ID to the chat ID
     profile->retryCount = 0; // Reset retry count on successful login
-    // If there is a pending admin command that requires approval, we process it now that the admin has successfully logged in
-    if (pendingAdminCmd != "") {
-        if (pendingAdminCmd.startsWith("cmd_app:")) {
-            onPinApprove(msg, profile, pendingAdminCmd);
-        } 
-        else if (pendingAdminCmd.startsWith("cmd_rej:")) {
-            onPinReject(msg, profile, pendingAdminCmd);
+    // FIX: If the Admin role is being assigned for the first time, dynamically reset any other slot stuck in setup phase
+    if (wasFirstConfig) {
+        for (uint32_t i = 0; i < MAX_USERS; i++) {
+            if (activeUsers[i].chatId != 0 && activeUsers[i].chatId != profile->chatId && activeUsers[i].state == STATE_WAITING_PW) {
+                activeUsers[i].state = STATE_FIRST_ACCESS;
+                // Inform the user of the reset due to the new admin configuration
+                TBMessage resetMsg;
+                resetMsg.chatId = activeUsers[i].chatId;
+                resetMsg.messageType = MessageType::MessageText;
+                bot.sendMessage(resetMsg, "The system has just been configured by another Admin device. Please send /start to register as a regular User or change the Admin device.");
+            }
         }
-        pendingAdminCmd = "";   // Clear the pending command after processing it
+    }
+    // If there are pending admin commands that require approval, we process them now that the admin has successfully logged in
+    if (pendingAdminCmd != "") {
+        int startIdx = 0;
+        // FIX: Iterate through all commands concatenated with the '|' delimiter
+        while (startIdx < pendingAdminCmd.length()) {
+            int pipeIdx = pendingAdminCmd.indexOf('|', startIdx);
+            if (pipeIdx == -1) pipeIdx = pendingAdminCmd.length();
+            String singleCmd = pendingAdminCmd.substring(startIdx, pipeIdx);
+            if (singleCmd.startsWith("cmd_app:")) {
+                onPinApprove(msg, profile, singleCmd);
+            } 
+            else if (singleCmd.startsWith("cmd_rej:")) {
+                onPinReject(msg, profile, singleCmd);
+            }
+            startIdx = pipeIdx + 1; // Move to the next command in the pendingAdminCmd string
+        }
+        pendingAdminCmd = "";   // Clear the pending commands after processing them
         profile->state = STATE_FIRST_ACCESS;
     }
     // Otherwise we show him the admin menu

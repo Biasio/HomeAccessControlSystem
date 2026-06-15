@@ -98,12 +98,25 @@ static void handleGenTempPin(const char* payload) {
     // Find the first free slot
     int slot = -1;
     int i;
+    // FIX: Before searching for an empty slot, check if the user already has one!
+    // This prevents the same user from exhausting the 10 available slots on the MSP.
     for(i = 0; i < MAX_TEMP_USERS; i++) {
-        if(!activeTempUsers[i].active) {
-            slot = i;
+        if(activeTempUsers[i].active && strcmp(activeTempUsers[i].chatId, payload) == 0) {
+            slot = i; // Reuse the existing slot for this user
             break;
         }
     }
+
+    // If no existing slot was found, find the first free slot
+    if (slot == -1) {
+        for(i = 0; i < MAX_TEMP_USERS; i++) {
+            if(!activeTempUsers[i].active) {
+                slot = i;
+                break;
+            }
+        }
+    }
+
     // If a slot is found, generate PIN and save user
     if(slot != -1) {
         // Mark the slot as active
@@ -217,6 +230,8 @@ static void handleRevokePin(const char* payload) {
     // Check if the payload is not empty
     if(payload == NULL || *payload == '\0') return;
 
+    bool arrayChanged = false; // Flag to track if we need to save changes to flash after processing the command
+
     // Find the user with the matching chat ID and mark their temporary pin as inactive
     int i;
     for(i = 0; i < MAX_TEMP_USERS; i++) {
@@ -226,7 +241,13 @@ static void handleRevokePin(const char* payload) {
 
           // User found, mark it as inactive
           activeTempUsers[i].active = false;
+          arrayChanged = true; // Set flag to save changes in flash after processing the command
       }
+    }
+
+    // FIX: Save the updated array to flash to ensure the revocation survives a reboot
+    if (arrayChanged) {
+        save_userArray(); // Save the updated activeTempUsers array in flash memory if any change was made
     }
 
     // Send an ACK back to the ESP32 to confirm that the revoke command has been processed

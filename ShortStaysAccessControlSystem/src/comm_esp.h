@@ -10,7 +10,7 @@
 #include <stdlib.h>
 
 #include "flash.h"
-#include "fsm_helpers.h" // External reference to the admin PIN stored in fsm.c for Telegram login verification
+#include "fsm_helpers.h" // External reference to the Admin PIN stored in fsm.c for Telegram login verification
 
 
 // Include some libraries for random pin generation
@@ -32,17 +32,19 @@ typedef struct {
 } TempUser;
 
 // --- SHARED GLOBAL VARIABLES ---
-extern volatile bool newUartMessage;    // This flag is set to 'true' by the UART Interrupt when a full message is received
-extern TempUser activeTempUsers[MAX_TEMP_USERS];    // Array containing all generated temporary users
-extern volatile bool timeSynced;        // Flag to indicate whether the time has been synchronized
-extern volatile uint32_t lastTimeSync;  // Timestamp of the last time synchronization
-TempUser *ptrUserArray;                  // Pointer used to save and restore data from flash
+extern volatile bool pending_uart_command;       // Flag to notify a command received
+extern char command_buffer[UART_BUFFER_SIZE];    // Command buffer
+extern TempUser activeTempUsers[MAX_TEMP_USERS]; // Array containing all generated temporary users
+extern volatile bool timeSynced;        // Flag to indicate whether the time has been synchronised
+extern volatile uint32_t lastTimeSync;  // Timestamp of the last time synchronisation
+TempUser *ptrUserArray;                 // Pointer used to save and restore data from flash
 
 // --- FUNCTIONS  ---
-void ESP_Comm_Init(void);               // Call in _hwInit() to configure P3.2/P3.3 pins and initialize UART at 115200 baud
-void processUartMessage(void);          // Call in FSM_Run() or check_for_inputs() when newUartMessage becomes true
+void ESP_Comm_Init(void);               // Call in _hwInit() to configure P3.2/P3.3 pins and initialise UART at 115200 baud
+void processUartMessage(char* command); //
 void sendUartMessage(const char* msg);  // Helper function to send text responses back to the ESP32
 void EUSCIA2_IRQHandler(void);          // UART Interrupt Service Routine (must also be declared in irqHandlers.h)
+void PendSV_Handler(void);              // CMSIS standard Deferred Interrupt Handler
 
 void requestRealTime(void);
 

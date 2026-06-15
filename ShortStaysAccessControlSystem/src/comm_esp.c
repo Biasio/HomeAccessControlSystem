@@ -2,21 +2,19 @@
 
 
 // --- GLOBAL VARIABLES (Declared extern in the header) ---
-volatile bool newUartMessage = false;
 TempUser activeTempUsers[MAX_TEMP_USERS];
 volatile bool timeSynced = false;
 volatile uint32_t lastTimeSync = 0;
 
-
 // --- LOCAL MODULE VARIABLES ---
 char uartBuffer[UART_BUFFER_SIZE];
 volatile uint8_t uartBufferIndex = 0;
-
+char command_buffer[UART_BUFFER_SIZE];
 
 // --- INITIALIZATION ---
 void ESP_Comm_Init(void) {
     // Initialize users from flash
-    ptrUserArray = (volatile TempUser *) USER_ARRAY_START;
+    ptrUserArray = (TempUser *) USER_ARRAY_START;
     memcpy(activeTempUsers, ptrUserArray, sizeof(activeTempUsers)); // memcpy() is used to copy data from flash into the RAM instance "activeTempUser"
 
     // Check if data restored from flash contains right value or no
@@ -30,8 +28,13 @@ void ESP_Comm_Init(void) {
        save_userArray();       //save on flash initialized array
     }
 
+    // FIX: Configure PendSV priority to the lowest possible (0xFF).
+    // This ensures the heavy Flash operations don't block critical hardware interrupts like UART or SysTick.
+    NVIC_SetPriority(PendSV_IRQn, 0xFF);
+
     // Configure pins P3.2 (RX) and P3.3 (TX) for UART function
     GPIO_setAsPeripheralModuleFunctionInputPin(GPIO_PORT_P3, GPIO_PIN2 | GPIO_PIN3, GPIO_PRIMARY_MODULE_FUNCTION);
+
     // Configure eUSCI_A2 hardware (115200 baud with SMCLK at 12 MHz)
     const eUSCI_UART_ConfigV1 uartConfig = {
         EUSCI_A_UART_CLOCKSOURCE_SMCLK,                 // SMCLK Clock Source
@@ -53,9 +56,10 @@ void ESP_Comm_Init(void) {
     delay_ms(200);
 }
 
-// --- INTERRUPT HANDLING ---
+// --- HIGH PRIORITY INTERRUPT HANDLING ---
 void EUSCIA2_IRQHandler(void) {
     uint32_t status = UART_getEnabledInterruptStatus(EUSCI_A2_BASE);    // Get current interrupt status
+
     // Check if the receive interrupt triggered
     if(status & EUSCI_A_UART_RECEIVE_INTERRUPT) {
         // Read the incoming character from the hardware buffer
@@ -68,17 +72,28 @@ void EUSCIA2_IRQHandler(void) {
             }
         }
         // Otherwise, a newline arrived meaning the message is complete
-        else {
+        else if (rxChar =='\n') {
             // Ignore multiple or empty newlines
             if(uartBufferIndex > 0) {
                 uartBuffer[uartBufferIndex] = '\0'; // Add string terminator
-                newUartMessage = true;  // Notify the FSM
+                strncpy(command_buffer, uartBuffer, UART_BUFFER_SIZE); // Copy payload to transit buffer
                 uartBufferIndex = 0;    // Reset index for the next message
+
+                // 2. FIX: Trigger PendSV (Deferred Interrupt Processing).
+                // This sets the PendSV flag. The ARM core will automatically jump to PendSV_Handler asynchronously, preempting delay_ms() or while(1) loops.
+                SCB->ICSR |= SCB_ICSR_PENDSVSET_Msk;
             }
         }
     }
     UART_clearInterruptFlag(EUSCI_A2_BASE, status);// Clear the interrupt flag
 }
+
+// --- DEFERRED INTERRUPT HANDLER (LOWEST PRIORITY) ---
+void PendSV_Handler(void) {
+    // This handler automatically interrupts the main execution flow safely, without requiring any polling mechanism in the code.
+    processUartMessage(command_buffer);
+}
+
 
 // --- SEND RESPONSES TO ESP32 ---
 void sendUartMessage(const char* msg) {
@@ -286,9 +301,7 @@ static void handleTimeSync(const char* payload) {
 }
 
 // --- COMMAND DISPATCHER FOR RECEIVED MESSAGE ---
-void processUartMessage(void) {
-    newUartMessage = false;
-
+void processUartMessage(char* command) {
     //Define command prefixes as constant strings
     const char* cmdGen = "GEN_PIN:";
     const char* cmdVerify = "VERIFY_PIN:";
@@ -296,17 +309,17 @@ void processUartMessage(void) {
     const char* cmdTimeSync = "TIME_SYNC:";
 
     //Check prefixes to identify which command was sent
-    if(strncmp(uartBuffer, cmdGen, strlen(cmdGen)) == 0) {
-        handleGenTempPin(uartBuffer + strlen(cmdGen));  //Pass the payload using pointer arithmetic based on the exact prefix length
+    if(strncmp(command, cmdGen, strlen(cmdGen)) == 0) {
+        handleGenTempPin(command + strlen(cmdGen));  //Pass the payload using pointer arithmetic based on the exact prefix length
     }
-    else if(strncmp(uartBuffer, cmdVerify, strlen(cmdVerify)) == 0) {
-        handleVerifyPin(uartBuffer + strlen(cmdVerify));
+    else if(strncmp(command, cmdVerify, strlen(cmdVerify)) == 0) {
+        handleVerifyPin(command + strlen(cmdVerify));
     }
-    else if(strncmp(uartBuffer, cmdRevoke, strlen(cmdRevoke)) == 0) {
-        handleRevokePin(uartBuffer + strlen(cmdRevoke));
+    else if(strncmp(command, cmdRevoke, strlen(cmdRevoke)) == 0) {
+        handleRevokePin(command + strlen(cmdRevoke));
     }
-    else if(strncmp(uartBuffer, cmdTimeSync, strlen(cmdTimeSync)) == 0) {
-        handleTimeSync(uartBuffer + strlen(cmdTimeSync));
+    else if(strncmp(command, cmdTimeSync, strlen(cmdTimeSync)) == 0) {
+        handleTimeSync(command + strlen(cmdTimeSync));
     }
 }
 

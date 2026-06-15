@@ -53,6 +53,7 @@ void fn_DOOR_LOCKED(void){
 
 
 void fn_INSERT_PIN(void){
+    uint32_t t_start = 0;
     Timer_A_startCounter(TIMER_A2_BASE, TIMER_A_UP_MODE);
     Graphics_setForegroundColor(&g_sContext, ClrBlack);
     display_string("INSERT PIN");
@@ -64,7 +65,7 @@ void fn_INSERT_PIN(void){
         case 1: // USER pin detected
             error_pin = 0;
 
-            uint32_t t_start = system_millis;
+            t_start = system_millis;
             Graphics_clearDisplay(&g_sContext);
             GrContextFontSet(&g_sContext, &g_sFontCmss16);
             Graphics_setForegroundColor(&g_sContext, ClrGreen);
@@ -401,11 +402,6 @@ void fn_wipe_database(void){
 // ---------------------------------------------//
 // Function to run in the main
 void FSM_Run(void){
-
-    // --- BACKGROUD ---
-    if (newUartMessage) {
-        processUartMessage();
-    }
 
     // Anti-drift: If TIME_SYNC_INTERVAL_MS ms (now 2h) have elapsed since the last sync, request the time to ESP32
     if (timeSynced) {

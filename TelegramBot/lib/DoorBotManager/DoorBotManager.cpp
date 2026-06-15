@@ -940,21 +940,7 @@ void DoorBotManager::processAdminPinOk(TBMessage& msg, UserProfile* profile) {
     }
     // If there are pending admin commands that require approval, we process them now that the admin has successfully logged in
     if (pendingAdminCmd != "") {
-        int startIdx = 0;
-        // FIX: Iterate through all commands concatenated with the '|' delimiter
-        while (startIdx < pendingAdminCmd.length()) {
-            int pipeIdx = pendingAdminCmd.indexOf('|', startIdx);
-            if (pipeIdx == -1) pipeIdx = pendingAdminCmd.length();
-            String singleCmd = pendingAdminCmd.substring(startIdx, pipeIdx);
-            if (singleCmd.startsWith("cmd_app:")) {
-                onPinApprove(msg, profile, singleCmd);
-            } 
-            else if (singleCmd.startsWith("cmd_rej:")) {
-                onPinReject(msg, profile, singleCmd);
-            }
-            startIdx = pipeIdx + 1; // Move to the next command in the pendingAdminCmd string
-        }
-        pendingAdminCmd = "";   // Clear the pending commands after processing them
+        processNextPendingCommand(msg, profile);
         profile->state = STATE_FIRST_ACCESS;
     }
     // Otherwise we show him the admin menu
@@ -966,6 +952,29 @@ void DoorBotManager::processAdminPinOk(TBMessage& msg, UserProfile* profile) {
         Serial.println("Admin profile updated successfully in flash memory.");
     } else {
         Serial.println("Error saving admin profile to flash memory.");
+    }
+}
+
+void DoorBotManager::processNextPendingCommand(TBMessage& msg, UserProfile* profile) {
+    while (pendingAdminCmd != "") {
+        // Extract the next command from the pendingAdminCmd string, which may contain multiple commands separated by '|'
+        int pipeIdx = pendingAdminCmd.indexOf('|');
+        String singleCmd;
+        if (pipeIdx == -1) {
+            singleCmd = pendingAdminCmd;
+            pendingAdminCmd = "";
+        } else {
+            singleCmd = pendingAdminCmd.substring(0, pipeIdx);  // Extract the command before the pipe
+            pendingAdminCmd = pendingAdminCmd.substring(pipeIdx + 1);   // Remove the processed command from the pendingAdminCmd string
+        }
+        // Process the extracted command
+        if (singleCmd.startsWith("cmd_app:")) {
+            onPinApprove(msg, profile, singleCmd);
+            break;  // After processing an approval, we break the loop to wait for the MSP response before processing the next command
+        } 
+        else if (singleCmd.startsWith("cmd_rej:")) {
+            onPinReject(msg, profile, singleCmd);
+        }
     }
 }
 
@@ -1012,6 +1021,13 @@ void DoorBotManager::processTempUserPin(TBMessage& msg, UserProfile* profile, co
         adminMsg.messageType = MessageType::MessageText;
         String adminText = "Success, a temporary pin has been generated for user " + String(profile->firstName) + " " + String(profile->lastName) + ".";
         bot.sendMessage(adminMsg, adminText);
+    }
+    // If there are still pending admin commands, we process the next one
+    if (pendingAdminCmd != "") {
+        TBMessage adminMsg;
+        adminMsg.chatId = currentAdminId;
+        adminMsg.messageType = MessageType::MessageText;
+        processNextPendingCommand(adminMsg, getUser(currentAdminId));
     }
 }
 

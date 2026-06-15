@@ -19,7 +19,7 @@
         </ul>
         <li><a href="#software-setup">Software Setup</a>
           <ul>
-            <li><a href="#ccstudio">CCStudio</a></li>
+            <li><a href="#ccstudio-and-simplelink">CCStudio and Simplelink</a></li>
             <li><a href="#telegram-bot">Telegram Bot</a></li>
             <li><a href="#visual-studio-code--platformio">Visual Studio Code + PlatformIO</a></li>
           </ul>
@@ -51,7 +51,10 @@ The system also features a database that logs all access events for monitoring p
 │   └── sensors_and_peripherals_supports.stl   # Exported supports model
 ├── RepoImages/                        # Documentation media and images
 │   ├── HardwareSetup/                 # Schematic diagram
-│   ├── SoftwareSetup/                 # IDE setup screenshots
+│   ├── SoftwareSetup/                 # Software Setup screenshots
+│   │   ├── CCStudio/                  # CCStudio IDE
+│   │   ├── FSM/                       # FSM diagram
+│   │   └── VSCode+PlatformIO/         # VSCode and PlatformIO IDE
 │   └── TelegramBot/                   # Bot usage demonstrations (GIFs & Images)
 ├── ShortStaysAccessControlSystem/     # Firmware project (MSP432 Microcontroller)
 │   ├── msp432p401r.cmd                # Memory linker script
@@ -102,7 +105,7 @@ The system also features a database that logs all access events for monitoring p
 │   │   └── main.cpp                   # Main bot loop & Wi-Fi init
 │   └── test/                          # Unit testing folder
 │       └── README.md                  # Test folder info
-└── README.md                        # Project documentation
+└── README.md                          # Project documentation
 ```
 
 ## Hardware Setup 
@@ -125,11 +128,11 @@ Handles secure tag scanning and authentication, granting administrator-level acc
   * `MOSI`: Pin `[3.6]`
   * `MISO`: Pin `[3.7]`
   * `RST`: Pin `[3.0]`
-
+GPIO_setAsPeripheralModuleFunctionInputPin(GPIO_PORT_P3, GPIO_PIN2 | GPIO_PIN3, GPIO_PRIMARY_MODULE_FUNCTION);
 #### Core Implementation
 
 ##### Initialisation (`RFID_Init`)
-```
+```c
 Configure SPI pins (SCK, MOSI, MISO, CS, RST) as peripherals
 Set CS high (idle)
 Pull RST low for 1 ms, then high (hard reset)
@@ -138,7 +141,7 @@ Keep SPI module disabled (RFID_ready = false)
 ```
 
 ##### Enable (`RFID_Enable`)
-```
+```c
 if not RFID_ready:
     RFID_Init()
 Enable SPI module
@@ -157,7 +160,7 @@ return true
 ```
 
 ##### Disable (`RFID_Disable`)
-```
+```c
 Set CS high
 Disable SPI module
 Set RST high (inactive)
@@ -167,7 +170,7 @@ RFID_ready = false
 ```
 
 ##### Read Tag (`RFID_ReadTag`)
-```
+```c
 REQA request, if response length < 2 bytes: return false
 
 Anticollision command - multiple cards could be present at the same time. If response length < 5 bytes: return false
@@ -180,7 +183,7 @@ return the UID
 ##### Tag Validation & Error Handling
 
 **Used for standard admin access (in `wait_RFID` or `block_RFID`)**
-```
+```c
 if not RFID_Enable() show "ERROR" and return false
 
 while true:
@@ -206,26 +209,56 @@ If a critical error occurs (e.g., version mismatch after soft reset), it automat
 ### 3. Stepper Motor
 Actuates the physical locking and unlocking mechanism of the door via precise rotational control.
 
-* **Communication Protocol:** `dedicated driver interface`
+* **Communication Protocol:** `ULN2003 driver`
 * **Hardware Connections:**
-  * `IN1`: Pin `[X.X]`
-  * `IN2`: Pin `[X.X]`
-  * `IN3`: Pin `[X.X]`
-  * `IN4`: Pin `[X.X]`
+  * `IN1`: Pin `[2.5]`
+  * `IN2`: Pin `[6.6]`
+  * `IN3`: Pin `[6.7]`
+  * `IN4`: Pin `[2.3]`
+
+#### Core Features
+* **Angle-based Control:** Converts a given angle into the number of steps required by the 28BYJ-48 Stepper Motor. 
+* **Safe locking/unlocking Mechanism:** Saving in Flash memory a dedicated flag, ensures protection against two straight opening (or closing) cycles which can damage door mechanism. Pretty useful in case of power failure. 
+* **Full-Step Srive:** Supplying power to two coils simultaneously, the Motor gives the maximum available torque and holding force. This ensures reliability when opening/closing the door. 
+* **External Power Supply:** To avoid over-heating and self-reset procedure on the MSP-board due to over-current demanding, the Motor Driver is feed with an external 5V Power Source.
 
 #### Core Implementation
 ```c
-// Insert core implementation here
+moveMotor(int angle):      //This function converts the given angle into the number of steps required and manages motor movement
+    calculate number of steps required to turn motor on the given angle    
+    
+    if the number of steps is negative:
+        Motor needs to run counterClockwise
+    else:
+        Motor runs clockwise
+
+    calculate index for the For-cycle, depending in which direction Motor should run
+
+    for each step Motor will make:
+
+        for each pin:
+          
+          if the associated coil should go high:
+            Set pin high
+          else:
+            Set pin low
+        
+
+        wait before the next step
+      
+
+   before returning from the function, set all pins low  
 ```
+
 
 ### 3. Display - Crystalfontz 128x128 TFT LCD (BOOSTXL-EDUMKII Onboard)
 
 
-------------- **ADD AN IMAGE OF THE GRID AND ADMIN MENU** -------------------
+<img width="300" height="300" alt="User display" src="RepoImages/HardwareSetup/display1.jpg" /> 
+<img width="300" height="300" alt="User display" src="RepoImages/HardwareSetup/display2.jpg" />
 
 
-
-The **Crystalfontz CFAF128128B-0145T color 128x128-pixel TFT LCD** renders the local Graphical User Interface (GUI), to display the keypad interface and the admin menu.
+The **Crystalfontz CFAF128128B-0145T color 128x128-pixel TFT LCD** renders the local Graphical User Interface (GUI), to display the keypad interface and the admin menu (shown in the pictures above).
 
 * **Communication Protocol:** `SPI`
 * **Hardware Connections:**
@@ -237,7 +270,7 @@ The **Crystalfontz CFAF128128B-0145T color 128x128-pixel TFT LCD** renders the l
 
 #### Core UI Features
 * **Numeric PIN Grid:** Renders a 3x4 interactive keypad interface for standard user authentication.
-* **Administrator Menu:** A scrollable, paginated menu allowing authorized admins to view the last access log and manually unlock the door.
+* **Administrator Menu:** A scrollable, paginated menu allowing authorized admins to view the last access log and manually lock and unlock the door and clear the database.
 * **Dynamic Joystick Navigation:** Translates raw X/Y analog inputs from the joystick to move a red selection rectangle (`Rectangle` struct) across the screen, supporting both grid-based navigation and vertical menu scrolling.
 * **Interactive Selection & Feedback:** Evaluates the position of the selection rectangle against a predefined array of coordinates (e.g., `GRID_POINTS`). When a user confirms a selection, the system executes a temporary visual flash (red-to-white fill) over the selected item to provide immediate confirmation feedback.
 * **System Status Prompts:** Delivers instant, color-coded visual alerts for real-time events (e.g., `display_door_open()`, `display_wrong_pin()`, `display_block_access()`).
@@ -246,38 +279,25 @@ The **Crystalfontz CFAF128128B-0145T color 128x128-pixel TFT LCD** renders the l
 
 ```c
 // Initialize the graphics context, display orientation, and default fonts
-void _graphicsInit() {
-    Crystalfontz128x128_Init();
-    Crystalfontz128x128_SetOrientation(LCD_ORIENTATION_UP);
-    Graphics_initContext(&g_sContext, &g_sCrystalfontz128x128, &g_sCrystalfontz128x128_funcs);
-    Graphics_setForegroundColor(&g_sContext, ClrBlack);
-    Graphics_setBackgroundColor(&g_sContext, ClrWhite);
-    GrContextFontSet(&g_sContext, &g_sFontCmss36);
-    // ...
-}
+graphicsInit():
+    initialize LCD hardware
+    set colors, font and orientation UP
 
 // Routes joystick input to update the UI based on the active screen state
-void move_rectangle_on_display(uint16_t x, uint16_t y, bool grid_on) {
-    if(grid_on) {
-        // Calculate bounds and shift the selection box across the numeric keypad
-    } else {
-        // Handle vertical scrolling, pagination, and highlighting in the Admin Menu
-    }
-}
+move_rectangle_on_display(x, y, grid_on):
+    if grid_on:
+        calculate bounds and shift selection box across numeric keypad
+    else:
+        handle vertical scrolling, pagination, and highlighting in Admin Menu
 
 // Detects selected grid point and triggers visual feedback
-int number_selected(void) {
-    for (int i = NUM1; i < NUM_POINTS; i++) {
-        // Check if the current grid point's coordinates (x, y) fall within 
-        // the selection rectangle's boundaries.
-        if (Graphics_isPointWithinRectangle(&rect, GRID_POINTS[i].x, GRID_POINTS[i].y)) {
-            // Trigger visual flash feedback and return selected number
-            // ...
-            return i;
-        }
-    }
-    return -1; // No number selected
-}
+number_selected():
+    for each point in GRID_POINTS:
+        if the point is inside the selection rectangle:
+            trigger visual flash feedback
+            return point_index        
+    return -1    // no number selected
+
 ```
 
 ### 4. Input Peripherals: Buttons & Joystick (BOOSTXL-EDUMKII Onboard)
@@ -297,62 +317,34 @@ Captures analog and digital user inputs for menu navigation, selection, and syst
 
 #### Core Implementation
 ```c
-// ADC Interrupt: Reads joystick X/Y values when the conversion timer finishes
-void ADC14_IRQHandler(void) {
-    uint64_t status = ADC14_getEnabledInterruptStatus();
-    ADC14_clearInterruptFlag(status);
+ADC_interrupt():
+    if conversion_finished:
+        joystick_X = read_ADC(X_channel)
+        joystick_Y = read_ADC(Y_channel)
+        set move_rectangle_flag       // trigger UI update
+        restart joystick_timer
 
-    if (status & ADC_INT1) {
-        resultsBuffer[0] = ADC14_getResult(ADC_MEM0); // X-Axis
-        resultsBuffer[1] = ADC14_getResult(ADC_MEM1); // Y-Axis
-        move_rectangle = 1;                           // Flag to update UI
-        TIMER_RESTART(TIMER_A3_BASE, TIMER_A_CONTINUOUS_MODE); 
-    }
-}
+GPIO_button_interrupt():
+    if button1_triggered:
+        initiate_debounce_sequence()
+        return
 
-// GPIO Interrupt: Detects initial button press
-void PORT5_IRQHandler(void) {
-    uint_fast16_t status = GPIO_getEnabledInterruptStatus(GPIO_PORT_P5);
+initiate_debounce_sequence():
+    disable button interrupts         // ignore mechanical switch bounce
+    start debounce_timer              // wait for signal to stabilize
 
-    if (status & GPIO_PIN1) {
-        ButtonA_IRQHandler();
-        return;
-    }
-    GPIO_clearInterruptFlag(GPIO_PORT_P5, status);
-}
+debounce_timer_interrupt():
+    stop debounce_timer
 
-// Initiates debounce sequence
-void ButtonA_IRQHandler(void) {
-    // Disable interrupt for PORT5 to ignore mechanical bounce
-    GPIO_disableInterrupt(GPIO_PORT_P5, GPIO_PIN1);
-    GPIO_clearInterruptFlag(GPIO_PORT_P5, GPIO_PIN1);
+    if button1 is still pressed:
+        set button1_pressed_flag
+        reset UI_timeout_timer
 
-    // Start timer to wait for signal to stabilize
-    TIMER_RESTART(TIMER_A1_BASE, TIMER_A_UP_MODE);
-}
+    if button2 is still pressed:
+        set button2_pressed_flag
+        reset UI_timeout_timer
 
-// Timer Interrupt: Validates button state after debounce delay
-void TA1_0_IRQHandler(void) {
-    Timer_A_stop(TIMER_A1_BASE);
-    Timer_A_clearCaptureCompareInterrupt(TIMER_A1_BASE, TIMER_A_CAPTURECOMPARE_REGISTER_0);
-
-    // Verify if Button 1 is still pressed
-    if (GPIO_getInputPinValue(GPIO_PORT_P5, GPIO_PIN1) == GPIO_INPUT_PIN_LOW) {
-        buttonA_pressed = 1;
-        Timer_A_clearTimer(TIMER_A2_BASE);
-    }
-    // Verify if Button 2 is still pressed
-    if (GPIO_getInputPinValue(GPIO_PORT_P3, GPIO_PIN5) == GPIO_INPUT_PIN_LOW) {
-        buttonB_pressed = 1;
-        Timer_A_clearTimer(TIMER_A2_BASE);
-    }
-
-    // Clear flags and re-enable button interrupts
-    GPIO_clearInterruptFlag(GPIO_PORT_P5, GPIO_PIN1);
-    GPIO_clearInterruptFlag(GPIO_PORT_P3, GPIO_PIN5);
-    GPIO_enableInterrupt(GPIO_PORT_P5, GPIO_PIN1);
-    GPIO_enableInterrupt(GPIO_PORT_P3, GPIO_PIN5);
-}
+    re-enable button interrupts       // ready for next press
 ```
 
 ### 5. Piezo Buzzer
@@ -366,14 +358,14 @@ Comes with a configurable VOLUME
 #### Core Implementation
 
 ##### Initialisation (`_buzzerInit`)
-```
+```c
 Stop Timer_A0
 Disable the timer interrupts and clear any pending interrupt flag
 Configure P2.7 as peripheral output (primary module function)
 ```
 
 ##### PWM Configuration Structure
-```
+```c
 Timer_A_PWMConfig {
     clockSource: SMCLK
     clockDivider: 16
@@ -385,7 +377,7 @@ Timer_A_PWMConfig {
 ```
 
 ##### Play a Song (`buzzerPWMgen`)
-```
+```c
 For each note in the song:
     if volume != 0 and freq != 0:
         timerPeriod = ((SMCLK frequency) / (freq × 16)) & (0xFFFF) // clamped to 16‑bit]
@@ -421,14 +413,14 @@ Detects user proximity to wake the system from low‑power mode, configured to t
 #### Core Implementation
 
 ##### Initialisation (`ToF_Init`)
-```
+```c
 Configure XSHUT as output, pull low (sensor in reset)
 Initialise I²C master (EUSCI_B1, speed: 400 kHz, clk source: SMCLK)
 Configure interrupt pin as input with pull‑up, edge‑triggered (falling edge)
 ```
 
 ##### Enable (`ToF_enable`)
-```
+```c
 Release XSHUT (high) and wait for sensor boot
 vl53l0x_init():
     - I²C slave address set to default address (0x29)
@@ -447,7 +439,7 @@ ToF_ready = true
 ```
 
 ##### Disable (`ToF_disable`)
-```
+```c
 Disable GPIO interrupt on P4.6
 
 Call vl53l0x_stop_continuous() halts the ranging engine and clears interrupt register
@@ -459,7 +451,7 @@ ToF_flag = 0
 ```
 
 ##### Interrupt Handling (`ToF_IRQHandler`)
-```
+```c
 Disable further interrupts on P4.6
 Clear interrupt flag on GPIO
 
@@ -509,12 +501,16 @@ An `UART` serial communication interface was configured to enable data exchange 
 
 * **Time Synchronization:** Requests network time (`requestRealTime`) and parses the ESP32 payload to accurately configure the hardware Real-Time Clock (`handleTimeSync`).
 
-## Getting started
-
 ### Project wiring
 <img width="990" height="720" alt="Schematic of the project" src="RepoImages/HardwareSetup/schematic.png" />
 
-### Clone the Repository
+## Software Setup
+
+
+
+### CCStudio and Simplelink
+
+1. First, clone the repository with git
 
 ```bash
 git clone <repository-url>
@@ -522,25 +518,21 @@ cd <repository-folder>
 git submodule init && git submodule update --remote
 ```
 
-### CCStudio and Simplelink
-
-- **CCStudio v12.8** – Download from [TI.com](https://www.ti.com/tool/download/CCSTUDIO/12.8.1)
-- **SimpleLink MSP432 SDK v3.40.01.02** – Download from [TI.com](https://www.ti.com/tool/download/SIMPLELINK-MSP432-SDK/3.40.01.02)
+2. Then download [**CCStudio v12.8**](https://www.ti.com/tool/download/CCSTUDIO/12.8.1) and [**SimpleLink MSP432 SDK v3.40.01.02**](https://www.ti.com/tool/download/SIMPLELINK-MSP432-SDK/3.40.01.02)
 
 > ⚠️ **Important:** The SimpleLink SDK must be placed in the **parent directory** of the repository (i.e., the folder that will contain the cloned repo). For example, if you pln
  to clone into `~/my_project`, the SDK should be extracted to `~/` (so the SDK folder sits alongside `my_project`, not inside it).
 
 
-### Import the project in CCStudio
+3. Now youy can import the project in CCStudio:
+    - Launch **CCStudio v12.8**
+    - When prompted for a workspace, select the **repository folder** (the one you just cloned)
+    - Go to **Project → Import Project** (or **File → Import** → **CCS Projects**)
+    - Click **Browse…** and select the repository folder
+    - Under **Discovered Projects**, check the project you want to import
+    - Click **Finish**
 
-1. Launch **CCStudio v12.8**
-2. When prompted for a workspace, select the **repository folder** (the one you just cloned)
-3. Go to **Project → Import Project** (or **File → Import** → **CCS Projects**)
-4. Click **Browse…** and select the repository folder
-5. Under **Discovered Projects**, check the project you want to import
-6. Click **Finish**
-
-The MSP432 program can be now uploaded to the board.
+4. The MSP432 program can be now uploaded to the board.
 
 ### Telegram Bot
 
@@ -583,15 +575,15 @@ cancel - Abort the current operation or transaction
   <img src="RepoImages/SoftwareSetup/VSCode+PlatformIO/insert-credential.png">
 </p> 
 
-6. Copy and rename the file from `credential-template.h` to `credential.h`. This ensures your sensitive credentials are not accidentally uploaded to GitHub if you push your changes, as `credential.h` is already included in the `TelegramBot` project's `.gitignore file`.
+6. Copy and rename the file from `credential-template.h` to `credential.h`. This ensures your sensitive credentials are not accidentally uploaded to GitHub if you push your changes, as `credential.h` is already included in the `TelegramBot` project's `.gitignore` file.
 
 7. Connect a microUSB cable to the **UART** port on your **ESP32-S3 board**. Go to the top right corner where the **Build** icon (the checkmark) is located, click the down arrow symbol next to it, and select **Upload** to compile the code and upload the firmware.
 
 > **Note:** The first time you perform this action, it will take some time. PlatformIO works in the background to automatically download all the necessary libraries and the updated Arduino core directly from the official Espressif repository.
 
-## User Guide + Youtube Video and PowerPoint
+## User Guide
 
-link al video e alla presentazione?
+QUI link al video e alla presentazione
 
 SCRIPT:
 Commentare quello che si vede nel video
@@ -690,44 +682,3 @@ When logged in as a User, your dashboard adapts based on your current access sta
   2. ToF Sensor bare-metal driver and logic
   3. Buzzer 
   4. MCU sleep and AoD logic
-
----
-
-# EmbeddedProject
-Access control for door opening in short stays
-
-## Sensors
-
-- (Biasio) ultrasound sensor for proximity when in front of the board to lit the display or (PIR sensor)
-- RFID sensor for admin magnetic access
-- Servo motor for opening/closing the door
-- (Pietro) Joystick for menu navigation
-- (Pietro) Buttons and joystick for menu navigation
-- Leds for signal
-- (Mich M) Wifi module for IoT connectivity via telegram Bot and clock time
-- Hand clap sequence for opening
-- (Biasio) Buzzer for wrong code input and in general for signaling
-
-## Features
-
-### 
-- (Biasio) Sleep mode with AOD, while proximity sensor doesn't trigger
-- First time initialization of the code.
-- RFID access displays the menu for pincode setup, wifi setup, enable/disable rfid, factory reset.
-- (Mich M) Wifi connection via WPS or via file. [ UART PINS -> MSP(RX = J1.3 , TX = J1.4 ) ; ESP32(RX = 16 , TX = 17 ) ]
-- (Mich C) Database of access and access attempts.
-- 2 pin codes, one for admin log in and one for user log in.
-- Too  many wrong attempts blocks the pin access for some time, too many wrong-blocking timed attempts trigger an admin block.
-
-### TELEGRAM BOT
-#### USER side
-- Request temporary code access for the time of the stay
-- Shows how much time is left before the PIN expires
-
-#### ADMIN side
-- Approve code request from clients
-- Admin receives attempts access notifications and can view access logs (NOT IMPLEMENTED)
-- Remove an user from the system
-- Revoke all active pins and remove the corresponding user from the system
-- Set the duration of temporary pins
-

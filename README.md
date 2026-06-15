@@ -128,7 +128,7 @@ Handles secure tag scanning and authentication, granting administrator-level acc
   * `MOSI`: Pin `[3.6]`
   * `MISO`: Pin `[3.7]`
   * `RST`: Pin `[3.0]`
-GPIO_setAsPeripheralModuleFunctionInputPin(GPIO_PORT_P3, GPIO_PIN2 | GPIO_PIN3, GPIO_PRIMARY_MODULE_FUNCTION);
+
 #### Core Implementation
 
 ##### Initialisation (`RFID_Init`)
@@ -470,9 +470,7 @@ If range ≤ low_threshold && the error code is valid:
    else:
 	reactivate the interrupt for ToF and go to sleep
 
-***
-
-**Error checks and resilience**:
+#### Error checks and resilience
 The VL53L0X driver implements automatic init retries (up to 2 attempts) if initialisation or continuous ranging start fails. 
 Every I2C transaction includes NACK detection and timeout checks to prevent hanging or corrupted configuration in registers I/O operations.
 
@@ -603,8 +601,6 @@ Contenuti del video:
 
 ### System Interface
 
-spiegare funzioni lato MSP qui
-
 #### 1. Database
 
 When logged as Admin, the system allows you to see and to navigate through an interactive “Log Database”, which stores in permanent memory (Flash) the last 10 autentication data remembering the the moment of the access, the used PIN and if it has been recognised as the Admin one, as one of the Users or none.  
@@ -616,7 +612,6 @@ When logged as Admin, the system allows you to see and to navigate through an in
 * **Quick Save:** During initialization instructions, info stored in Flash memory are copied in a RAM instance to be modified and to be shown. When a new log event is added, the systems quickly upload these modifications in the permanent memory ensuring any data lost due to power faults.
 
 * **Blocked User Access:** The Home Access Control System checks when User access is denied multiple times, blocking it when a maximum number of tries is exceeded, until the Admin uses his RFID tag. To prevent an intruder from bypassing this check, a Boolean flag is stored in Flash memory with Database data so the system can remember, in case it’s turned off, that the Admin action is required to proceed with normal activities.
-
 
 ### Telegram Bot Interface
 

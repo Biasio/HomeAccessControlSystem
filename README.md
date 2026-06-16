@@ -40,7 +40,7 @@ The system also features a database that logs all access events for monitoring p
 
 ## Repository Structure
 
-```
+```text
 .
 ├── 3D-Model/                          # Hardware 3D printable components
 │   ├── All components.3mf             # All components in 1 file

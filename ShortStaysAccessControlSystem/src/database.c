@@ -58,13 +58,14 @@ void display_db(int page){
     int numPages = calc_num_pages_db(myDb.count);
     int index;
     int i;
-    if(myDb.count==0){
+    if(myDb.count==0){          //if myDb is empty, print a message
         Graphics_clearDisplay(&g_sContext);
         GrContextFontSet(&g_sContext, &g_sFontCmss16);
         Graphics_drawStringCentered(&g_sContext, (int8_t *) "Nothing to show!",
                                                 AUTO_STRING_LENGTH,
                                                 64, 64,
                                                 OPAQUE_TEXT);
+        return;
     }
     //-- INDEX --       calculation of the index of the element to show depending on the page
     if(myDb.count==MAX_NUMBER_LOG_SAVED){                             //in this case, head points to the oldest element (the first to show)

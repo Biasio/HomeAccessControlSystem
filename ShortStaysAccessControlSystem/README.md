@@ -1,1 +1,1 @@
-<img src="/RepoImages/SoftwareSetup/FSM/fsm_msp432.png" />
+<img src="/RepoImages/FSM/fsm_msp432.png" />

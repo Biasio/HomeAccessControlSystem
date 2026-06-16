@@ -55,9 +55,6 @@ void serial_print_db(){
 
 
 void display_db(int page){
-    int numPages = calc_num_pages_db(myDb.count);
-    int index;
-    int i;
     if(myDb.count==0){          //if myDb is empty, print a message
         Graphics_clearDisplay(&g_sContext);
         GrContextFontSet(&g_sContext, &g_sFontCmss16);
@@ -67,6 +64,11 @@ void display_db(int page){
                                                 OPAQUE_TEXT);
         return;
     }
+
+    int numPages = calc_num_pages_db(myDb.count);
+    int index;
+    int i;
+
     //-- INDEX --       calculation of the index of the element to show depending on the page
     if(myDb.count==MAX_NUMBER_LOG_SAVED){                             //in this case, head points to the oldest element (the first to show)
         index = ((page*2) + myDb.head - 2)%MAX_NUMBER_LOG_SAVED;      //this way, in page 1, i show the oldest element (and at page 5 the youngest)

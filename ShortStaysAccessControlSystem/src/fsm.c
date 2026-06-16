@@ -367,7 +367,7 @@ void fn_menu_open(void){
     Timer_A_stopTimer(TIMER_A2_BASE);
     standby = 0;
 
-    //add check databse and open door:
+    //add check database and open door:
     display_door_open();
     open_door();
 
@@ -379,7 +379,7 @@ void fn_menu_close(void){
     Timer_A_stopTimer(TIMER_A2_BASE);
     standby = 0;
 
-    //add check databse and close door:
+    //add check database and close door:
     display_door_closed();
     close_door();
 
@@ -390,7 +390,18 @@ void fn_wipe_database(void){
     Timer_A_stopTimer(TIMER_A2_BASE);
     standby = 0;
 
-    //add wipe database
+    myDb.count = 0;
+    myDb.head = 0;
+    save_database();
+
+    Graphics_clearDisplay(&g_sContext);
+    GrContextFontSet(&g_sContext, &g_sFontCmss16);
+    Graphics_drawStringCentered(&g_sContext, (int8_t *) "Database Wiped!",
+                                        AUTO_STRING_LENGTH,
+                                        64, 64,
+                                        OPAQUE_TEXT);
+
+    delay_ms(2000);
 
     cur_state = STATE_ADMIN_MENU;
 }

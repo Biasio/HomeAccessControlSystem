@@ -325,7 +325,7 @@ void processUartMessage(char* command) {
 
 // --- GET REAL TIME CLOCK FROM ESP32 ---
 void requestRealTime(void) {
-    // Mandiamo "0" come finto ChatID per rispettare il parser dell'ESP32
+    // Send “0” as a dummy ChatID to work with the ESP32 parser
     sendUartMessage("REQ_TIME:0");
 }
 

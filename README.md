@@ -253,19 +253,6 @@ moveMotor(int angle):      //This function converts the given angle into the num
 
 ### 3. Display - Crystalfontz 128x128 TFT LCD (BOOSTXL-EDUMKII Onboard)
 
-<div align="center">
-  <table border="0" style="border: none; background: none;">
-    <tr style="border: none; background: none;">
-      <td align="center" width="50%" style="border: none; padding: 10px;">
-        <img width="300" height="300" alt="User display" src="RepoImages/HardwareSetup/display1.jpg" />
-      </td>
-      <td align="center" width="50%" style="border: none; padding: 10px;">
-        <img width="300" height="300" alt="User display" src="RepoImages/HardwareSetup/display2.jpg" />
-      </td>
-    </tr>
-  </table>
-</div>
-
 The **Crystalfontz CFAF128128B-0145T color 128x128-pixel TFT LCD** renders the local Graphical User Interface (GUI), to display the keypad interface and the admin menu (shown in the pictures above).
 
 * **Communication Protocol:** `SPI`
@@ -589,27 +576,28 @@ cancel - Abort the current operation or transaction
 
 ## User Guide
 
-QUI link al video e alla presentazione
-
-SCRIPT:
-Commentare quello che si vede nel video
-Contenuti del video:
-- Intro: spiegazione del problema
-- Spiegazione lato MSP:
-  - admin accede al menu, usa rfid e mostra database (con accessi già presenti)
-- IoT:
-  - accesso admin al bot telegram, si mostra il menù
-  - User richiede un pin
-  - Admin accetta il pin
-  - User inserisce il pin corretto, apertura porta
-  - refresh dell'MSP e nuovo tentativo di accesso con vecchio pin user
-  - User verifica durata rimasta del pin e poi se lo revoca autonomamente
-  - User inserisce il pin sbagliato, buzzer
-  - Admin rimuove tutti i pin
+This section explains how to interact with the system through its physical display and the Telegram bot.
 
 ### System Interface
 
-#### 1. Database
+#### 1. MSP User interface
+
+<div align="center">
+  <table border="0" style="border: none; background: none;">
+    <tr style="border: none; background: none;">
+      <td align="center" width="50%" style="border: none; padding: 10px;">
+        <img width="300" height="300" alt="User display" src="RepoImages/HardwareSetup/display1.jpg" />
+      </td>
+      <td align="center" width="50%" style="border: none; padding: 10px;">
+        <img width="300" height="300" alt="User display" src="RepoImages/HardwareSetup/display2.jpg" />
+      </td>
+    </tr>
+  </table>
+</div>
+
+The physical interface features an TFT LCD screen controlled by the onboard joystick and push buttons. The first image shows the numeric keypad, where users navigate to enter their 4-digit access PIN. The second image displays the Admin Menu, accessible exclusively with his PIN and RFID tag.
+
+#### 2. Database
 
 When logged as Admin, the system allows you to see and to navigate through an interactive “Log Database”, which stores in permanent memory (Flash) the last 10 autentication data remembering the the moment of the access, the used PIN and if it has been recognised as the Admin one, as one of the Users or none.  
 
@@ -677,24 +665,24 @@ When logged in as a User, your dashboard adapts based on your current access sta
 
 ## Authors
 
-- Pietro Baroni:
-  1. MSP432 FSM structure
-  2. Display API and menus
-  3. Joystick ADC
-  4. Push buttons
+* **Pietro Baroni:**
+  * MSP432 FSM structure
+  * Display API and menus
+  * Joystick ADC
+  * Push buttons
 
-- Michele Martini:
-  1. Telegram bot
-  2. ESP32 FSM
-  3. UART Communication
+* **Michele Martini:**
+  * Telegram bot
+  * ESP32 FSM
+  * UART Communication
 
-- Michele Casagrande:
-  1. Flash I/O operations
-  2. Database API
-  3. Stepper motor integration
+* **Michele Casagrande:**
+  * Flash I/O operations
+  * Database API
+  * Stepper motor integration
 
-- Alessandro Biasioli
-  1. RFID setup, logic and communication
-  2. ToF Sensor bare-metal driver and logic
-  3. Buzzer 
-  4. MCU sleep and AoD logic
+* **Alessandro Biasioli:**
+  * RFID setup, logic and communication
+  * ToF Sensor bare-metal driver and logic
+  * Buzzer 
+  * MCU sleep and AoD logic

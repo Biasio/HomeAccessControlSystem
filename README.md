@@ -650,7 +650,7 @@ Contenuti del video:
 
 #### 1. Database
 
-When logged as Admin, the system allows you to see and to navigate through an interactive “Log Database”, which stores in permanent memory (Flash) the last 10 autentication data remembering the the moment of the access, the used PIN and if it has been recognised as the Admin one, as one of the Users or none.  
+When logged as Admin, the system allows you to see and to navigate through an interactive “Log Database”, which stores in permanent memory (Flash) the last 10 autentication data remembering the moment of the access, the used PIN and if it has been recognised as the Admin one, as one of the Users or none.  
 
 ##### Core features
 

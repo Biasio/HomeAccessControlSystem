@@ -601,6 +601,10 @@ The physical interface features an TFT LCD screen controlled by the onboard joys
 
 When logged as Admin, the system allows you to see and to navigate through an interactive “Log Database”, which stores in permanent memory (Flash) the last 10 autentication data remembering the moment of the access, the used PIN and if it has been recognised as the Admin one, as one of the Users or none.  
 
+<p align="center">
+  <img src="<PERCORSO IMMAGINE DB>">
+</p> 
+
 ##### Core features
 
 * **Interactive Navigation:** Using the on-board joystick, the Admin can browse the different Database pages containing all log data.

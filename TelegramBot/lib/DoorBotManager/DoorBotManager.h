@@ -16,7 +16,6 @@ using namespace std;
 enum UserState {
     STATE_FIRST_ACCESS,             // First time user accesses the bot
     STATE_WAITING_PW,               // Waiting for admin pin input
-    STATE_WAITING_TEMP_PIN,         // Ask Admin to get a temporay pin
     STATE_ADMIN_PANEL,              // In admin panel
     STATE_USER_PANEL,               // In user panel
     STATE_WAITING_PIN_DURATION,     // Waiting for pin duration input

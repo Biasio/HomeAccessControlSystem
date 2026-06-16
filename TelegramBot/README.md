@@ -1,0 +1,1 @@
+<img src="/RepoImages/FSM/TelegramBot_fsm.png" />

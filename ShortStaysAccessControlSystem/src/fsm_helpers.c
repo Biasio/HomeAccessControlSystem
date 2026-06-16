@@ -235,7 +235,6 @@ bool wait_RFID(void){
 
     uint8_t read_uid[10] = {0};
     uint8_t uid_len=0;
-    bool read_status = 0;
     bool tag_valid =0;
 
     //polling loop
@@ -318,7 +317,6 @@ bool block_RFID(void){
 
     uint8_t read_uid[10] = {0};
     uint8_t uid_len=0;
-    bool read_status = 0;
     bool tag_valid =0;
 
     //polling loop
@@ -471,14 +469,16 @@ bool check_for_inputs(){
 }
 
 
+
+
 void ReconfigInterruptsForSleep(bool enable){
     if(enable)
     {
         SysTick_disableInterrupt();
         Interrupt_disableInterrupt(INT_TA3_N);  //(joystick)
         AODClockTimerInit();                    //reconfigure the idle timer as a 30s timer
-        PORT(VL53L0X_INT_PORT)->IE  |= ONE_HOT_BIT(VL53L0X_INT_PIN);
 
+        if (!ToF_flag) PORT(VL53L0X_INT_PORT)->IE |= ONE_HOT_BIT(VL53L0X_INT_PIN);
     }
     else
     {

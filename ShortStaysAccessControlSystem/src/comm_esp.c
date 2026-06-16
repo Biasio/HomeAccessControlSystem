@@ -2,23 +2,19 @@
 
 
 // --- GLOBAL VARIABLES (Declared extern in the header) ---
-volatile bool newUartMessage = false;
 TempUser activeTempUsers[MAX_TEMP_USERS];
 volatile bool timeSynced = false;
 volatile uint32_t lastTimeSync = 0;
 
-
 // --- LOCAL MODULE VARIABLES ---
 char uartBuffer[UART_BUFFER_SIZE];
 volatile uint8_t uartBufferIndex = 0;
-
+char command_buffer[UART_BUFFER_SIZE];
 
 // --- INITIALIZATION ---
 void ESP_Comm_Init(void) {
-                                                                //non mi torna. quando programmo la prima volta, gli users sono active o no? come faccio a imporre
-    // initialize users from flash                              // che la prima volta siano tutti non active? non posso farlo nell'init, ne tantomeno mettere un
-                                                                // valore di default nella struct.
-    ptrUserArray = (volatile TempUser *) USER_ARRAY_START;
+    // Initialize users from flash
+    ptrUserArray = (TempUser *) USER_ARRAY_START;
     memcpy(activeTempUsers, ptrUserArray, sizeof(activeTempUsers)); // memcpy() is used to copy data from flash into the RAM instance "activeTempUser"
 
     // Check if data restored from flash contains right value or no
@@ -32,8 +28,13 @@ void ESP_Comm_Init(void) {
        save_userArray();       //save on flash initialized array
     }
 
+    // FIX: Configure PendSV priority to the lowest possible (0xFF).
+    // This ensures the heavy Flash operations don't block critical hardware interrupts like UART or SysTick.
+    NVIC_SetPriority(PendSV_IRQn, 0xFF);
+
     // Configure pins P3.2 (RX) and P3.3 (TX) for UART function
     GPIO_setAsPeripheralModuleFunctionInputPin(GPIO_PORT_P3, GPIO_PIN2 | GPIO_PIN3, GPIO_PRIMARY_MODULE_FUNCTION);
+
     // Configure eUSCI_A2 hardware (115200 baud with SMCLK at 12 MHz)
     const eUSCI_UART_ConfigV1 uartConfig = {
         EUSCI_A_UART_CLOCKSOURCE_SMCLK,                 // SMCLK Clock Source
@@ -55,9 +56,10 @@ void ESP_Comm_Init(void) {
     delay_ms(200);
 }
 
-// --- INTERRUPT HANDLING ---
+// --- HIGH PRIORITY INTERRUPT HANDLING ---
 void EUSCIA2_IRQHandler(void) {
     uint32_t status = UART_getEnabledInterruptStatus(EUSCI_A2_BASE);    // Get current interrupt status
+
     // Check if the receive interrupt triggered
     if(status & EUSCI_A_UART_RECEIVE_INTERRUPT) {
         // Read the incoming character from the hardware buffer
@@ -70,17 +72,28 @@ void EUSCIA2_IRQHandler(void) {
             }
         }
         // Otherwise, a newline arrived meaning the message is complete
-        else {
+        else if (rxChar =='\n') {
             // Ignore multiple or empty newlines
             if(uartBufferIndex > 0) {
                 uartBuffer[uartBufferIndex] = '\0'; // Add string terminator
-                newUartMessage = true;  // Notify the FSM
+                strncpy(command_buffer, uartBuffer, UART_BUFFER_SIZE); // Copy payload to transit buffer
                 uartBufferIndex = 0;    // Reset index for the next message
+
+                // 2. FIX: Trigger PendSV (Deferred Interrupt Processing).
+                // This sets the PendSV flag. The ARM core will automatically jump to PendSV_Handler asynchronously, preempting delay_ms() or while(1) loops.
+                SCB->ICSR |= SCB_ICSR_PENDSVSET_Msk;
             }
         }
     }
     UART_clearInterruptFlag(EUSCI_A2_BASE, status);// Clear the interrupt flag
 }
+
+// --- DEFERRED INTERRUPT HANDLER (LOWEST PRIORITY) ---
+void PendSV_Handler(void) {
+    // This handler automatically interrupts the main execution flow safely, without requiring any polling mechanism in the code.
+    processUartMessage(command_buffer);
+}
+
 
 // --- SEND RESPONSES TO ESP32 ---
 void sendUartMessage(const char* msg) {
@@ -100,12 +113,25 @@ static void handleGenTempPin(const char* payload) {
     // Find the first free slot
     int slot = -1;
     int i;
+    // FIX: Before searching for an empty slot, check if the user already has one!
+    // This prevents the same user from exhausting the 10 available slots on the MSP.
     for(i = 0; i < MAX_TEMP_USERS; i++) {
-        if(!activeTempUsers[i].active) {
-            slot = i;
+        if(activeTempUsers[i].active && strcmp(activeTempUsers[i].chatId, payload) == 0) {
+            slot = i; // Reuse the existing slot for this user
             break;
         }
     }
+
+    // If no existing slot was found, find the first free slot
+    if (slot == -1) {
+        for(i = 0; i < MAX_TEMP_USERS; i++) {
+            if(!activeTempUsers[i].active) {
+                slot = i;
+                break;
+            }
+        }
+    }
+
     // If a slot is found, generate PIN and save user
     if(slot != -1) {
         // Mark the slot as active
@@ -219,6 +245,8 @@ static void handleRevokePin(const char* payload) {
     // Check if the payload is not empty
     if(payload == NULL || *payload == '\0') return;
 
+    bool arrayChanged = false; // Flag to track if we need to save changes to flash after processing the command
+
     // Find the user with the matching chat ID and mark their temporary pin as inactive
     int i;
     for(i = 0; i < MAX_TEMP_USERS; i++) {
@@ -228,7 +256,13 @@ static void handleRevokePin(const char* payload) {
 
           // User found, mark it as inactive
           activeTempUsers[i].active = false;
+          arrayChanged = true; // Set flag to save changes in flash after processing the command
       }
+    }
+
+    // FIX: Save the updated array to flash to ensure the revocation survives a reboot
+    if (arrayChanged) {
+        save_userArray(); // Save the updated activeTempUsers array in flash memory if any change was made
     }
 
     // Send an ACK back to the ESP32 to confirm that the revoke command has been processed
@@ -267,9 +301,7 @@ static void handleTimeSync(const char* payload) {
 }
 
 // --- COMMAND DISPATCHER FOR RECEIVED MESSAGE ---
-void processUartMessage(void) {
-    newUartMessage = false;
-
+void processUartMessage(char* command) {
     //Define command prefixes as constant strings
     const char* cmdGen = "GEN_PIN:";
     const char* cmdVerify = "VERIFY_PIN:";
@@ -277,17 +309,17 @@ void processUartMessage(void) {
     const char* cmdTimeSync = "TIME_SYNC:";
 
     //Check prefixes to identify which command was sent
-    if(strncmp(uartBuffer, cmdGen, strlen(cmdGen)) == 0) {
-        handleGenTempPin(uartBuffer + strlen(cmdGen));  //Pass the payload using pointer arithmetic based on the exact prefix length
+    if(strncmp(command, cmdGen, strlen(cmdGen)) == 0) {
+        handleGenTempPin(command + strlen(cmdGen));  //Pass the payload using pointer arithmetic based on the exact prefix length
     }
-    else if(strncmp(uartBuffer, cmdVerify, strlen(cmdVerify)) == 0) {
-        handleVerifyPin(uartBuffer + strlen(cmdVerify));
+    else if(strncmp(command, cmdVerify, strlen(cmdVerify)) == 0) {
+        handleVerifyPin(command + strlen(cmdVerify));
     }
-    else if(strncmp(uartBuffer, cmdRevoke, strlen(cmdRevoke)) == 0) {
-        handleRevokePin(uartBuffer + strlen(cmdRevoke));
+    else if(strncmp(command, cmdRevoke, strlen(cmdRevoke)) == 0) {
+        handleRevokePin(command + strlen(cmdRevoke));
     }
-    else if(strncmp(uartBuffer, cmdTimeSync, strlen(cmdTimeSync)) == 0) {
-        handleTimeSync(uartBuffer + strlen(cmdTimeSync));
+    else if(strncmp(command, cmdTimeSync, strlen(cmdTimeSync)) == 0) {
+        handleTimeSync(command + strlen(cmdTimeSync));
     }
 }
 

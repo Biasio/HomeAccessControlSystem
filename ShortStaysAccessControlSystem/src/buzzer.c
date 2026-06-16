@@ -38,7 +38,7 @@ void buzzerPWMgen(const audio_data* song){
 
             (&buzzerPWMconfig)->dutyCycle = 0;
             Timer_A_generatePWM(TIMER_A0_BASE, &buzzerPWMconfig);
-            delay_ms(1); // silence for 2 ms
+            delay_ms(1); // silence for 1 ms
         }
         else
         {
@@ -55,35 +55,6 @@ void buzzerPWMgen(const audio_data* song){
 
 
 /* ########## SONGS ######## */
-
-const note StarWars_Notes[] = {
-        {NOTE_AS4, 250}, {NOTE_AS4, 250}, {NOTE_AS4, 250},
-        {NOTE_F5, 1000}, {NOTE_C6, 1000},
-        {NOTE_AS5, 250}, {NOTE_A5, 250}, {NOTE_G5, 250}, {NOTE_F6, 1000}, {NOTE_C6, 500},
-        {NOTE_AS5, 250}, {NOTE_A5, 250}, {NOTE_G5, 250}, {NOTE_F6, 1000}, {NOTE_C6, 500},
-        {NOTE_AS5, 250}, {NOTE_A5, 250}, {NOTE_AS5, 250}, {NOTE_G5, 1000}, {NOTE_C5, 250}, {NOTE_C5, 250}, {NOTE_C5, 250},
-        {NOTE_F5, 1000}, {NOTE_C6, 1000},
-        {NOTE_AS5, 250}, {NOTE_A5, 250}, {NOTE_G5, 250}, {NOTE_F6, 1000}, {NOTE_C6, 500},
-
-        {NOTE_AS5, 250}, {NOTE_A5, 250}, {NOTE_G5, 250}, {NOTE_F6, 1000}, {NOTE_C6, 500},
-        {NOTE_AS5, 250}, {NOTE_A5, 250}, {NOTE_AS5, 250}, {NOTE_G5, 1000}, {NOTE_C5, 375}, {NOTE_C5, 125},
-        {NOTE_D5, 750},  {NOTE_D5, 250},  {NOTE_AS5, 250}, {NOTE_A5, 250}, {NOTE_G5, 250}, {NOTE_F5, 250},
-        {NOTE_F5, 250},  {NOTE_G5, 250},  {NOTE_A5, 250},  {NOTE_G5, 500}, {NOTE_D5, 250}, {NOTE_E5, 500}, {NOTE_C5, 375}, {NOTE_C5, 125},
-        {NOTE_D5, 750},  {NOTE_D5, 250},  {NOTE_AS5, 250}, {NOTE_A5, 250}, {NOTE_G5, 250}, {NOTE_F5, 250},
-
-        {NOTE_C6, 375},  {NOTE_G5, 125},  {NOTE_G5, 1000}, {REST, 250},    {NOTE_C5, 250},
-        {NOTE_D5, 750},  {NOTE_D5, 250},  {NOTE_AS5, 250}, {NOTE_A5, 250}, {NOTE_G5, 250}, {NOTE_F5, 250},
-        {NOTE_F5, 250},  {NOTE_G5, 250},  {NOTE_A5, 250},  {NOTE_G5, 500}, {NOTE_D5, 250}, {NOTE_E5, 500}, {NOTE_C6, 375}, {NOTE_C6, 125},
-        {NOTE_F6, 500},  {NOTE_DS6, 250}, {NOTE_CS6, 500}, {NOTE_C6, 250}, {NOTE_AS5, 500}, {NOTE_GS5, 250}, {NOTE_G5, 500}, {NOTE_F5, 250},
-        {NOTE_C6, 2000}
-};
-
-const audio_data StarWars = {
-    StarWars_Notes,
-    (sizeof(StarWars_Notes) / sizeof(StarWars_Notes[0]))
-};
-
-
 
 const note CorrectPin_Notes[] = {
                                  {NOTE_E6, 125},

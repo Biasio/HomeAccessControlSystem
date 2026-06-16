@@ -1,8 +1,6 @@
 #include "fsm.h"
 
-
 int db_page = 1;
-
 
 int32_t displayX = 64;
 int32_t displayY = 64;
@@ -53,6 +51,7 @@ void fn_DOOR_LOCKED(void){
 
 
 void fn_INSERT_PIN(void){
+    uint32_t t_start = 0;
     Timer_A_startCounter(TIMER_A2_BASE, TIMER_A_UP_MODE);
     Graphics_setForegroundColor(&g_sContext, ClrBlack);
     display_string("INSERT PIN");
@@ -64,18 +63,18 @@ void fn_INSERT_PIN(void){
         case 1: // USER pin detected
             error_pin = 0;
 
-            uint32_t t_start = system_millis;
+            t_start = system_millis;
             Graphics_clearDisplay(&g_sContext);
             GrContextFontSet(&g_sContext, &g_sFontCmss16);
             Graphics_setForegroundColor(&g_sContext, ClrGreen);
             Graphics_drawStringCentered(&g_sContext, (int8_t *) "PIN Correct",
                                                 AUTO_STRING_LENGTH,
-                                                64, 64,
+                                                64, 60,
                                                 OPAQUE_TEXT);
             Graphics_setForegroundColor(&g_sContext, ClrBlack);
                         Graphics_drawStringCentered(&g_sContext, (int8_t *) "Welcome user!",
                                                             AUTO_STRING_LENGTH,
-                                                            64, 74,
+                                                            64, 80,
                                                             OPAQUE_TEXT);
             buzzerPWMgen(&CorrectPin);
             while(system_millis - t_start < 1500);
@@ -158,7 +157,7 @@ void fn_ADMIN_MENU(void){
             cur_state = STATE_INSERT_PIN;
             break;
         case LAST_ACCESS_LOG:
-                db_page=1;                              //when you enter the db, the first page is shown
+                db_page=1;                              // When you enter the db, the first page is shown
                 cur_state = STATE_LAST_ACCESS_LOG;
                 break;
         case OPEN_DOOR:
@@ -368,11 +367,9 @@ void fn_menu_open(void){
     Timer_A_stopTimer(TIMER_A2_BASE);
     standby = 0;
 
-    display_menu_unlock_door();
-
     //add check databse and open door:
-    //display_door_open();
-    //open_door();
+    display_door_open();
+    open_door();
 
     cur_state = STATE_ADMIN_MENU;
 }
@@ -383,8 +380,8 @@ void fn_menu_close(void){
     standby = 0;
 
     //add check databse and close door:
-    //display_door_closed();
-    //close_door();
+    display_door_closed();
+    close_door();
 
     cur_state = STATE_ADMIN_MENU;
 }
@@ -401,11 +398,6 @@ void fn_wipe_database(void){
 // ---------------------------------------------//
 // Function to run in the main
 void FSM_Run(void){
-
-    // --- BACKGROUD ---
-    if (newUartMessage) {
-        processUartMessage();
-    }
 
     // Anti-drift: If TIME_SYNC_INTERVAL_MS ms (now 2h) have elapsed since the last sync, request the time to ESP32
     if (timeSynced) {

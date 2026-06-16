@@ -14,6 +14,7 @@
 #include "buzzer.h"
 #include "comm_esp.h"
 #include "database.h"
+#include "motor.h"
 
 
 extern uint16_t error_pin;

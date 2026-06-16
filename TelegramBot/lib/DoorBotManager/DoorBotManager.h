@@ -121,10 +121,11 @@ public:
     void listenToMSP();                                 // Listen for responses from MSP
     
     // --- Process MSP events functions ---
-    void processAdminPinOk(TBMessage& msg, UserProfile* profile);   // Process the event when the admin pin entered is correct
-    void processAdminPinWrong(TBMessage& msg, UserProfile* profile);    // Process the event when the admin pin entered is wrong
+    void processAdminPinOk(TBMessage& msg, UserProfile* profile);           // Process the event when the admin pin entered is correct
+    void processNextPendingCommand(TBMessage& msg, UserProfile* profile);   // Process the next pending command from the admin and send it to the MSP for execution
+    void processAdminPinWrong(TBMessage& msg, UserProfile* profile);        // Process the event when the admin pin entered is wrong
     void processTempUserPin(TBMessage& msg, UserProfile* profile, const String& generatedPin);  // Process the event when a temporary user pin has been generated and received from the MSP
-    void processRevokePin(TBMessage& msg, UserProfile* profile);    // Process the event when the MSP confirms that a pin has been revoked successfully after a revoke command has been sent
+    void processRevokePin(TBMessage& msg, UserProfile* profile);            // Process the event when the MSP confirms that a pin has been revoked successfully after a revoke command has been sent
 
     // --- Test functions ---
     void injectAdminForTesting(int64_t fakeAdminId);

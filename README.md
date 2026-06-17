@@ -105,7 +105,7 @@ The system also features a database that logs all access events for monitoring p
 │   │   └── main.cpp                          # Main bot loop & Wi-Fi init
 │   └── test/                                 # Unit testing folder
 │       └── README.md                         # Test folder info
-├── HomeAccessControlSystem-Presentation.pdf  # Project documentation
+├── HomeAccessControlSystem-Presentation.pdf  # Project presentation
 └── README.md                                 # Project documentation
 ```
 

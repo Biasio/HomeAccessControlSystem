@@ -455,6 +455,7 @@ If ToF_ready: set ToF_flag = 1
 ```
 
 ##### Proximity Detection Flow
+```c
 System in `STATE_AOD` with sensor enabled
 
 User approaches, sensor crosses 300 mm threshold and INT pin asserts
@@ -465,7 +466,7 @@ If range ≤ low_threshold && the error code is valid:
 	 disable the sensor and wake system to `STATE_INSERT_PIN`
    else:
 	reactivate the interrupt for ToF and go to sleep
-
+```
 #### Error checks and resilience
 The VL53L0X driver implements automatic init retries (up to 2 attempts) if initialisation or continuous ranging start fails. 
 Every I2C transaction includes NACK detection and timeout checks to prevent hanging or corrupted configuration in registers I/O operations.

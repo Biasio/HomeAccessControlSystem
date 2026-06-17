@@ -254,7 +254,7 @@ moveMotor(int angle):      //This function converts the given angle into the num
 
 ### 3. Display - Crystalfontz 128x128 TFT LCD (BOOSTXL-EDUMKII Onboard)
 
-The **Crystalfontz CFAF128128B-0145T color 128x128-pixel TFT LCD** renders the local Graphical User Interface (GUI), to display the keypad interface and the admin menu (shown in the pictures above).
+The **Crystalfontz CFAF128128B-0145T color 128x128-pixel TFT LCD** renders the local Graphical User Interface (GUI), to display the keypad interface and the admin menu.
 
 * **Communication Protocol:** `SPI`
 * **Hardware Connections:**

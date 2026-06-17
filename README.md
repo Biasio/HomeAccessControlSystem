@@ -580,7 +580,7 @@ cancel - Abort the current operation or transaction
 This section explains how to interact with the system through its physical display and the Telegram bot.
 
 Click here to watch:
-- [Link to the presentation](HomeAccessControlSystem-Presentation)
+- [Link to the presentation](HomeAccessControlSystem-Presentation.pdf)
 - [Link to the video](https://youtu.be/aaDjH45Er1A)
 
 

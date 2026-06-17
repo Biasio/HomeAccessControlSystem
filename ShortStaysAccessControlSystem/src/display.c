@@ -148,7 +148,7 @@ void draw_admin_menu(bool screen_number){
          start = 0;
          end = 3;
 
-         Graphics_drawStringCentered(&g_sContext, (int8_t *) "Page 1/1",
+         Graphics_drawStringCentered(&g_sContext, (int8_t *) "Page 1/2",
                                         AUTO_STRING_LENGTH,
                                         23, 5,
                                         OPAQUE_TEXT);
